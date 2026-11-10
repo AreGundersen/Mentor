@@ -25,6 +25,7 @@ SellAdvice.lua
 InfoPanel.lua
 LevelPace.lua
 AutoVendor.lua
+Fishing.lua
 Alerts.lua
 BugReport.lua
 UI.lua

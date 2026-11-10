@@ -8,7 +8,9 @@ number is only given when Are decides the release is finished (see
 
 - **New: Level pace** (off by default): a small Mentor window with XP, XP to level, rested XP, XP per hour, time to level and kills to level. Turn it on under Settings or with `/mentor pace on`; `/mentor pace reset` starts the session statistics again.
 - **New: Auto vendor** (off by default): sells all grey items and repairs your gear when you open a vendor (hold Shift to skip once), with a small window showing the junk value and your lowest durability. Turn it on under Settings or with `/mentor vendor on`. `/mentor keep <item>` keeps a grey item from being sold.
-- Both come from the standalone LevelPace and AutoVendor addons. If one of those is still loaded, Mentor leaves the job to it and says so.
+- **Auto vendor window:** on/off switches for "Auto sell junk" and "Auto repair" (both on by default).
+- **New: One-key fishing** (off by default): a small window with a Start / Stop fishing button. While fishing, one key (F by default, `/mentor fish key <KEY>`) casts Fishing and reels in the catch; auto loot is on and the sound is turned up so you hear the splash, and your settings come back when you stop. Turn it on under Settings or with `/mentor fishing on`; `/mentor fish` starts and stops fishing.
+- These come from the standalone LevelPace, AutoVendor and OneKeyFishing addons. If one of those is still loaded, Mentor leaves the job to it and says so.
 
 ## 1.10.0 - 2026-11-10
 

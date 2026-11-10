@@ -28,14 +28,74 @@ local PANEL_BACKDROP = {
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
 }
 
+--------------------------------------------------------------------------------
+-- On/off switch: a small pill that is green with the knob on the right when
+-- on, grey with the knob on the left when off.
+--   isOn()            returns the current value
+--   setOn(newValue)   called when clicked
+--------------------------------------------------------------------------------
+local SWITCH_WIDTH = 28
+local SWITCH_HEIGHT = 14
+local SWITCH_KNOB_SIZE = 8
+local SWITCH_ON_COLOR = { 0.20, 0.72, 0.25 }
+local SWITCH_OFF_COLOR = { 0.25, 0.25, 0.25 }
+
+function Mentor.CreateSwitch(parentFrame, isOn, setOn, tooltipText)
+    local switch = CreateFrame("Button", nil, parentFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    switch:SetSize(SWITCH_WIDTH, SWITCH_HEIGHT)
+    if switch.SetBackdrop then
+        switch:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
+        switch:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.7)
+    end
+    switch.knob = switch:CreateTexture(nil, "OVERLAY")
+    switch.knob:SetColorTexture(0.95, 0.95, 0.95, 1)
+    switch.knob:SetSize(SWITCH_KNOB_SIZE, SWITCH_KNOB_SIZE)
+
+    function switch:Refresh()
+        local isSwitchOn = isOn() and true or false
+        self.isOn = isSwitchOn            -- kept for tests
+        local color = isSwitchOn and SWITCH_ON_COLOR or SWITCH_OFF_COLOR
+        if self.SetBackdropColor then
+            self:SetBackdropColor(color[1], color[2], color[3], 1)
+        end
+        self.knob:ClearAllPoints()
+        if isSwitchOn then
+            self.knob:SetPoint("RIGHT", -3, 0)
+        else
+            self.knob:SetPoint("LEFT", 3, 0)
+        end
+    end
+    switch:SetScript("OnClick", function(self)
+        setOn(not isOn())
+        self:Refresh()
+    end)
+    if tooltipText then
+        switch:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(tooltipText, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        switch:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
+    switch:Refresh()
+    return switch
+end
+
 -- frameName: global frame name. title: shown next to the logo.
 -- rowDefinitions: { { key = "xpPerHour", label = "XP / hour" }, ... }
+--   A row with toggle = { isOn = function, setOn = function, tooltip = "..." }
+--   gets an on/off switch instead of a value (panel.switches[key]).
+-- footerButtonText (optional): a full-width button under the rows (panel.footerButton).
 -- positionKey: MentorDB field that stores { point, relativePoint, offsetX, offsetY }.
 -- defaultPosition: the same table, used the first time.
 -- Returns the panel; panel.values[key] is the value FontString of each row.
-function Mentor.CreateInfoPanel(frameName, title, rowDefinitions, positionKey, defaultPosition)
+local FOOTER_BUTTON_HEIGHT = 20
+
+function Mentor.CreateInfoPanel(frameName, title, rowDefinitions, positionKey, defaultPosition, footerButtonText)
     local panel = CreateFrame("Frame", frameName, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    panel:SetSize(PANEL_WIDTH, PANEL_PADDING * 2 + HEADER_HEIGHT + #rowDefinitions * ROW_HEIGHT)
+    local footerHeight = footerButtonText and (FOOTER_BUTTON_HEIGHT + 6) or 0
+    panel:SetSize(PANEL_WIDTH, PANEL_PADDING * 2 + HEADER_HEIGHT + #rowDefinitions * ROW_HEIGHT + footerHeight)
     panel:SetFrameStrata("MEDIUM")
     panel:SetClampedToScreen(true)
     if panel.SetBackdrop then
@@ -59,18 +119,41 @@ function Mentor.CreateInfoPanel(frameName, title, rowDefinitions, positionKey, d
 
     -- Rows: label on the left, value on the right.
     panel.values = {}
+    panel.switches = {}
     for rowIndex, rowDefinition in ipairs(rowDefinitions) do
         local rowTopOffset = -PANEL_PADDING - HEADER_HEIGHT - (rowIndex - 1) * ROW_HEIGHT
         local labelText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         labelText:SetPoint("TOPLEFT", PANEL_PADDING, rowTopOffset)
         labelText:SetTextColor(LABEL_COLOR[1], LABEL_COLOR[2], LABEL_COLOR[3])
         labelText:SetText(rowDefinition.label)
-        local valueText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        valueText:SetPoint("TOPRIGHT", -PANEL_PADDING, rowTopOffset)
-        valueText:SetJustifyH("RIGHT")
-        valueText:SetText("--")
-        panel.values[rowDefinition.key] = valueText
+        if rowDefinition.toggle then
+            local switch = Mentor.CreateSwitch(panel, rowDefinition.toggle.isOn, rowDefinition.toggle.setOn,
+                rowDefinition.toggle.tooltip)
+            switch:SetPoint("TOPRIGHT", -PANEL_PADDING, rowTopOffset + 1)
+            panel.switches[rowDefinition.key] = switch
+        else
+            local valueText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            valueText:SetPoint("TOPRIGHT", -PANEL_PADDING, rowTopOffset)
+            valueText:SetJustifyH("RIGHT")
+            valueText:SetWidth(PANEL_WIDTH - PANEL_PADDING * 2 - 70)
+            valueText:SetWordWrap(false)
+            valueText:SetText("--")
+            panel.values[rowDefinition.key] = valueText
+        end
     end
+    if footerButtonText then
+        panel.footerButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+        panel.footerButton:SetHeight(FOOTER_BUTTON_HEIGHT)
+        panel.footerButton:SetPoint("BOTTOMLEFT", PANEL_PADDING, PANEL_PADDING)
+        panel.footerButton:SetPoint("BOTTOMRIGHT", -PANEL_PADDING, PANEL_PADDING)
+        panel.footerButton:SetText(footerButtonText)
+    end
+    -- Switches show their saved value whenever the window appears.
+    panel:SetScript("OnShow", function(self)
+        for _, switch in pairs(self.switches) do
+            switch:Refresh()
+        end
+    end)
 
     -- Dragging (unless Mentor is locked); the position is saved in MentorDB.
     local function SavePosition()

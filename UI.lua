@@ -25,6 +25,8 @@
 --   /mentor pace on|off|reset Level pace window (LevelPace.lua)
 --   /mentor vendor on|off     sell junk and repair at vendors (AutoVendor.lua)
 --   /mentor keep|unkeep <item>, /mentor keeplist   grey items Auto vendor never sells
+--   /mentor fishing on|off    One-key fishing window (Fishing.lua)
+--   /mentor fish [key <KEY> | reset]   start / stop fishing mode
 --   /mentor guide             open the "How to play" guide
 --   /mentor spells | racials | macros   open the "Spells & macros" panel on that tab
 --   /mentor bug               report a bug (saved as text, see BugReport.lua)
@@ -80,6 +82,7 @@ local DEFAULT_SETTINGS = {
     isSellAdviceEnabled = false,   -- sell / disenchant advice, needs Auctionator
     isLevelPaceEnabled = false,    -- Level pace window (LevelPace.lua)
     isAutoVendorEnabled = false,   -- sell junk and repair at vendors (AutoVendor.lua)
+    isFishingEnabled = false,      -- One-key fishing window (Fishing.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
     point = "CENTER", relativePoint = "CENTER", offsetX = -320, offsetY = 80,
@@ -611,7 +614,8 @@ function Mentor.OnSettingChanged(settingName)
         Mentor.Print("Sell advice needs the Auctionator addon. Install it and scan the auction house once.")
     end
     -- If the standalone LevelPace / AutoVendor addon is loaded, that one does the job.
-    local standaloneNames = { isLevelPaceEnabled = "LevelPace", isAutoVendorEnabled = "AutoVendor" }
+    local standaloneNames = { isLevelPaceEnabled = "LevelPace", isAutoVendorEnabled = "AutoVendor",
+        isFishingEnabled = "OneKeyFishing" }
     local standaloneName = standaloneNames[settingName]
     if standaloneName and MentorDB[settingName] and Mentor.IsStandaloneAddonLoaded(standaloneName) then
         Mentor.Print("You also have the " .. standaloneName .. " addon loaded, so Mentor leaves this to it. "
@@ -622,6 +626,9 @@ function Mentor.OnSettingChanged(settingName)
     end
     if Mentor.AutoVendor then
         Mentor.AutoVendor.UpdateVisibility()
+    end
+    if Mentor.Fishing and not InCombatLockdown() then
+        Mentor.Fishing.UpdateVisibility()
     end
 end
 
@@ -640,6 +647,7 @@ local SETTINGS_ROWS = {
     { "isSellAdviceEnabled",      "Sell advice",   "AH or disenchant? Uses Auctionator prices (needs Auctionator)" },
     { "isLevelPaceEnabled",       "Level pace",    "Window with XP / hour, time and kills to level" },
     { "isAutoVendorEnabled",      "Auto vendor",   "Sell grey items and repair at vendors (hold Shift to skip)" },
+    { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in the catch" },
 }
 local SETTINGS_ROW_HEIGHT = 34
 local settingsPanel
@@ -1101,6 +1109,7 @@ local ON_OFF_SETTINGS = {
     sell      = { "isSellAdviceEnabled", "Sell / disenchant advice (needs Auctionator)" },
     pace      = { "isLevelPaceEnabled", "Level pace window" },
     vendor    = { "isAutoVendorEnabled", "Auto vendor (sell junk and repair)" },
+    fishing   = { "isFishingEnabled", "One-key fishing window" },
 }
 
 SLASH_MENTOR1 = "/mentor"
@@ -1118,6 +1127,8 @@ SlashCmdList["MENTOR"] = function(input)
     elseif command == "pace" and argument:lower() == "reset" then
         Mentor.LevelPace.ResetSession()
         Mentor.Print("Level pace: session statistics reset.")
+    elseif command == "fish" then
+        Mentor.Fishing.HandleCommand(argument)
     elseif command == "keep" or command == "unkeep" or command == "keeplist" then
         Mentor.AutoVendor.HandleKeepCommand(command, argument)
     elseif ON_OFF_SETTINGS[command] then
@@ -1172,7 +1183,8 @@ SlashCmdList["MENTOR"] = function(input)
         -- The Level pace and Auto vendor windows come back to their default spots too.
         Mentor.LevelPace.panel:ResetPosition()
         Mentor.AutoVendor.panel:ResetPosition()
+        Mentor.Fishing.panel:ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor on|off | pace reset | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing on|off | pace reset | fish | keep <item> | debug | lock | unlock | center")
     end
 end

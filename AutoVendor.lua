@@ -11,6 +11,7 @@
 -- Built from Are's standalone AutoVendor addon, in the Mentor look.
 --
 --   /mentor vendor on|off   turn it on or off
+-- Auto sell and auto repair each have an on/off switch in the window.
 --   /mentor keep <item>     never sell this grey item (shift-click it in)
 --   /mentor unkeep <item>   sell it again
 --   /mentor keeplist        show the keep list
@@ -29,10 +30,22 @@ local LAST_EQUIPMENT_SLOT = 18           -- ranged
 local DURABILITY_WARNING_PERCENT = 25    -- shown in red below this
 local STANDALONE_ADDON_NAME = "AutoVendor"
 
+-- Auto sell and auto repair can each be switched off in the window (both on by default).
+local function IsAutoSellOn() return MentorDB and MentorDB.isAutoSellEnabled ~= false end
+local function IsAutoRepairOn() return MentorDB and MentorDB.isAutoRepairEnabled ~= false end
+
 local ROW_DEFINITIONS = {
     { key = "junkValue",  label = "Junk value" },
     { key = "junkCount",  label = "Junk items" },
     { key = "durability", label = "Lowest durability" },
+    { key = "autoSell",   label = "Auto sell junk", toggle = {
+        isOn = IsAutoSellOn,
+        setOn = function(newValue) MentorDB.isAutoSellEnabled = newValue end,
+        tooltip = "Sell grey items when you open a vendor" } },
+    { key = "autoRepair", label = "Auto repair", toggle = {
+        isOn = IsAutoRepairOn,
+        setOn = function(newValue) MentorDB.isAutoRepairEnabled = newValue end,
+        tooltip = "Repair all your gear when you open a vendor that can repair" } },
 }
 
 local autoVendor = {}
@@ -206,6 +219,9 @@ local function UpdateDisplay()
     if not panel:IsShown() then
         return
     end
+    for _, switch in pairs(panel.switches) do
+        switch:Refresh()                 -- also after /mentor commands or a settings reset
+    end
     local junkValue, junkCount = autoVendor.GetJunkValueAndCount()
     panel.values.junkValue:SetText(Mentor.FormatMoneyWithIcons(junkValue))
     panel.values.junkCount:SetText(tostring(junkCount))
@@ -281,8 +297,12 @@ eventFrame:SetScript("OnEvent", function(_, eventName)
             Mentor.Print("SHIFT held - no auto sell or repair this time.")
             return
         end
-        RepairEverything()       -- first, so the repair is never paid with money you meant to keep
-        SellAllJunk()
+        if IsAutoRepairOn() then
+            RepairEverything()   -- first, so the repair is never paid with money you meant to keep
+        end
+        if IsAutoSellOn() then
+            SellAllJunk()
+        end
     elseif eventName == "MERCHANT_CLOSED" then
         isMerchantOpen = false
     else
