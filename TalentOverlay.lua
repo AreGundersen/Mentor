@@ -72,7 +72,7 @@ local function CreateNextMarker()
     local tag = CreateFrame("Frame", nil, marker, BackdropTemplateMixin and "BackdropTemplate" or nil)
     tag:SetSize(34, 12)
     tag:SetPoint("CENTER", marker, "TOP", 0, 0)
-    tag:SetFrameLevel(marker:GetFrameLevel() + 2)
+    tag:SetFrameLevel((marker:GetFrameLevel() or 1) + 2)
     if tag.SetBackdrop then
         tag:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
             edgeSize = 6, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
