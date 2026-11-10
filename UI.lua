@@ -27,6 +27,7 @@
 --   /mentor keep|unkeep <item>, /mentor keeplist   grey items Auto vendor never sells
 --   /mentor fishing on|off    One-key fishing window (Fishing.lua)
 --   /mentor fish [key <KEY> | reset]   start / stop fishing mode
+--   /mentor lifelog on|off    Life log (LifeLog.lua); /mentor log [reset | wipe confirm | forget <name>]
 --   /mentor guide             open the "How to play" guide
 --   /mentor spells | racials | macros   open the "Spells & macros" panel on that tab
 --   /mentor bug               report a bug (saved as text, see BugReport.lua)
@@ -83,6 +84,7 @@ local DEFAULT_SETTINGS = {
     isLevelPaceEnabled = false,    -- Level pace window (LevelPace.lua)
     isAutoVendorEnabled = false,   -- sell junk and repair at vendors (AutoVendor.lua)
     isFishingEnabled = false,      -- One-key fishing window (Fishing.lua)
+    isLifeLogEnabled = false,      -- Life log: records everything your character does (LifeLog.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
     point = "CENTER", relativePoint = "CENTER", offsetX = -320, offsetY = 80,
@@ -615,7 +617,7 @@ function Mentor.OnSettingChanged(settingName)
     end
     -- If the standalone LevelPace / AutoVendor addon is loaded, that one does the job.
     local standaloneNames = { isLevelPaceEnabled = "LevelPace", isAutoVendorEnabled = "AutoVendor",
-        isFishingEnabled = "OneKeyFishing" }
+        isFishingEnabled = "OneKeyFishing", isLifeLogEnabled = "LifeLog" }
     local standaloneName = standaloneNames[settingName]
     if standaloneName and MentorDB[settingName] and Mentor.IsStandaloneAddonLoaded(standaloneName) then
         Mentor.Print("You also have the " .. standaloneName .. " addon loaded, so Mentor leaves this to it. "
@@ -626,6 +628,9 @@ function Mentor.OnSettingChanged(settingName)
     end
     if Mentor.AutoVendor then
         Mentor.AutoVendor.UpdateVisibility()
+    end
+    if Mentor.LifeLog then
+        Mentor.LifeLog.UpdateActivation()
     end
     if Mentor.Fishing and not InCombatLockdown() then
         Mentor.Fishing.UpdateVisibility()
@@ -648,6 +653,7 @@ local SETTINGS_ROWS = {
     { "isLevelPaceEnabled",       "Level pace",    "Window with XP / hour, time and kills to level" },
     { "isAutoVendorEnabled",      "Auto vendor",   "Sell grey items and repair at vendors (hold Shift to skip)" },
     { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in the catch" },
+    { "isLifeLogEnabled",         "Life log",      "Your character's story: kills, gold, loot, travel ... (/mentor log)" },
 }
 local SETTINGS_ROW_HEIGHT = 34
 local settingsPanel
@@ -1110,6 +1116,7 @@ local ON_OFF_SETTINGS = {
     pace      = { "isLevelPaceEnabled", "Level pace window" },
     vendor    = { "isAutoVendorEnabled", "Auto vendor (sell junk and repair)" },
     fishing   = { "isFishingEnabled", "One-key fishing window" },
+    lifelog   = { "isLifeLogEnabled", "Life log" },
 }
 
 SLASH_MENTOR1 = "/mentor"
@@ -1127,6 +1134,8 @@ SlashCmdList["MENTOR"] = function(input)
     elseif command == "pace" and argument:lower() == "reset" then
         Mentor.LevelPace.ResetSession()
         Mentor.Print("Level pace: session statistics reset.")
+    elseif command == "log" then
+        Mentor.LifeLog.HandleCommand(argument)
     elseif command == "fish" then
         Mentor.Fishing.HandleCommand(argument)
     elseif command == "keep" or command == "unkeep" or command == "keeplist" then
@@ -1184,7 +1193,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.LevelPace.panel:ResetPosition()
         Mentor.AutoVendor.panel:ResetPosition()
         Mentor.Fishing.panel:ResetPosition()
+        Mentor.LifeLog.ResetWindowPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing on|off | pace reset | fish | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | keep <item> | debug | lock | unlock | center")
     end
 end

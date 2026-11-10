@@ -29,45 +29,34 @@ local PANEL_BACKDROP = {
 }
 
 --------------------------------------------------------------------------------
--- On/off switch: a small pill that is green with the knob on the right when
--- on, grey with the knob on the left when off.
+-- On/off switch in the Warcraft style: the game's own gold-framed check box
+-- (the same one Blizzard's settings use).
 --   isOn()            returns the current value
 --   setOn(newValue)   called when clicked
 --------------------------------------------------------------------------------
-local SWITCH_WIDTH = 28
-local SWITCH_HEIGHT = 14
-local SWITCH_KNOB_SIZE = 8
-local SWITCH_ON_COLOR = { 0.20, 0.72, 0.25 }
-local SWITCH_OFF_COLOR = { 0.25, 0.25, 0.25 }
+local SWITCH_SIZE = 22
 
 function Mentor.CreateSwitch(parentFrame, isOn, setOn, tooltipText)
-    local switch = CreateFrame("Button", nil, parentFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    switch:SetSize(SWITCH_WIDTH, SWITCH_HEIGHT)
-    if switch.SetBackdrop then
-        switch:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-            edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
-        switch:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.7)
+    local switch = CreateFrame("CheckButton", nil, parentFrame, "UICheckButtonTemplate")
+    switch:SetSize(SWITCH_SIZE, SWITCH_SIZE)
+    -- The template's built-in label is not used; the row has its own.
+    for _, labelFieldName in ipairs({ "text", "Text" }) do
+        local templateLabel = rawget(switch, labelFieldName)
+        if type(templateLabel) == "table" and templateLabel.SetText then
+            templateLabel:SetText("")
+        end
     end
-    switch.knob = switch:CreateTexture(nil, "OVERLAY")
-    switch.knob:SetColorTexture(0.95, 0.95, 0.95, 1)
-    switch.knob:SetSize(SWITCH_KNOB_SIZE, SWITCH_KNOB_SIZE)
 
     function switch:Refresh()
         local isSwitchOn = isOn() and true or false
         self.isOn = isSwitchOn            -- kept for tests
-        local color = isSwitchOn and SWITCH_ON_COLOR or SWITCH_OFF_COLOR
-        if self.SetBackdropColor then
-            self:SetBackdropColor(color[1], color[2], color[3], 1)
-        end
-        self.knob:ClearAllPoints()
-        if isSwitchOn then
-            self.knob:SetPoint("RIGHT", -3, 0)
-        else
-            self.knob:SetPoint("LEFT", 3, 0)
-        end
+        self:SetChecked(isSwitchOn)
     end
     switch:SetScript("OnClick", function(self)
         setOn(not isOn())
+        if PlaySound and SOUNDKIT then
+            PlaySound(isOn() and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
+        end
         self:Refresh()
     end)
     if tooltipText then
@@ -129,7 +118,7 @@ function Mentor.CreateInfoPanel(frameName, title, rowDefinitions, positionKey, d
         if rowDefinition.toggle then
             local switch = Mentor.CreateSwitch(panel, rowDefinition.toggle.isOn, rowDefinition.toggle.setOn,
                 rowDefinition.toggle.tooltip)
-            switch:SetPoint("TOPRIGHT", -PANEL_PADDING, rowTopOffset + 1)
+            switch:SetPoint("TOPRIGHT", -PANEL_PADDING + 4, rowTopOffset + 5)
             panel.switches[rowDefinition.key] = switch
         else
             local valueText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
