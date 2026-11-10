@@ -27,6 +27,7 @@
 --   /mentor keep|unkeep <item>, /mentor keeplist   grey items Auto vendor never sells
 --   /mentor fishing on|off    One-key fishing window (Fishing.lua)
 --   /mentor fish [key <KEY> | reset]   start / stop fishing mode
+--   /mentor mana on|off|low|critical|...   Mana warning (ManaWarning.lua)
 --   /mentor lifelog on|off    Life log (LifeLog.lua); /mentor log [reset | wipe confirm | forget <name>]
 --   /mentor guide             open the "How to play" guide
 --   /mentor spells | racials | macros   open the "Spells & macros" panel on that tab
@@ -84,7 +85,11 @@ local DEFAULT_SETTINGS = {
     isLevelPaceEnabled = false,    -- Level pace window (LevelPace.lua)
     isAutoVendorEnabled = false,   -- sell junk and repair at vendors (AutoVendor.lua)
     isFishingEnabled = false,      -- One-key fishing window (Fishing.lua)
-    isLifeLogEnabled = false,      -- Life log: records everything your character does (LifeLog.lua)
+    isLifeLogEnabled = true,       -- Life log: records everything your character does (LifeLog.lua)
+    isManaWarningEnabled = false,  -- Mana warning box and LOW MANA warnings (ManaWarning.lua)
+    isManaSoundEnabled = true,
+    isManaPartyMessageEnabled = true,
+    isManaCombatOnly = false,
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
     point = "CENTER", relativePoint = "CENTER", offsetX = -320, offsetY = 80,
@@ -313,6 +318,21 @@ local function BuildMainWindow()
     settingsButton:SetScript("OnClick", function()
         Mentor.ToggleSettings()
     end)
+    -- Life log window, left of Settings.
+    local lifeLogButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+    lifeLogButton:SetSize(70, 20)
+    lifeLogButton:SetPoint("RIGHT", settingsButton, "LEFT", -4, 0)
+    lifeLogButton:SetText("Life log")
+    lifeLogButton:SetScript("OnClick", function()
+        Mentor.LifeLog.ToggleWindow()
+    end)
+    lifeLogButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine("Life log")
+        GameTooltip:AddLine("Your character's story: kills, deaths, gold, loot, travel and more.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    lifeLogButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- Report a bug, right under Settings so it is always in view.
     local bugButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
     bugButton:SetSize(70, 18)
@@ -617,7 +637,7 @@ function Mentor.OnSettingChanged(settingName)
     end
     -- If the standalone LevelPace / AutoVendor addon is loaded, that one does the job.
     local standaloneNames = { isLevelPaceEnabled = "LevelPace", isAutoVendorEnabled = "AutoVendor",
-        isFishingEnabled = "OneKeyFishing", isLifeLogEnabled = "LifeLog" }
+        isFishingEnabled = "OneKeyFishing", isLifeLogEnabled = "LifeLog", isManaWarningEnabled = "ManaWarning" }
     local standaloneName = standaloneNames[settingName]
     if standaloneName and MentorDB[settingName] and Mentor.IsStandaloneAddonLoaded(standaloneName) then
         Mentor.Print("You also have the " .. standaloneName .. " addon loaded, so Mentor leaves this to it. "
@@ -631,6 +651,9 @@ function Mentor.OnSettingChanged(settingName)
     end
     if Mentor.LifeLog then
         Mentor.LifeLog.UpdateActivation()
+    end
+    if Mentor.ManaWarning then
+        Mentor.ManaWarning.UpdateVisibility()
     end
     if Mentor.Fishing and not InCombatLockdown() then
         Mentor.Fishing.UpdateVisibility()
@@ -663,7 +686,13 @@ local SETTINGS_SECTIONS = {
         { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in" },
         { "isLifeLogEnabled",         "Life log",      "Your character's story (/mentor log)" },
     } },
-    { column = 2, title = "Interface", rows = {
+    { column = 2, title = "Mana warning", rows = {
+        { "isManaWarningEnabled",     "Mana warning",  "Big LOW MANA warning (/mentor mana low 30)" },
+        { "isManaSoundEnabled",       "Sound",         "Play a sound with the warning", dependsOn = "isManaWarningEnabled" },
+        { "isManaPartyMessageEnabled", "Tell the group", "Say \"Low mana!\" in party / raid", dependsOn = "isManaWarningEnabled" },
+        { "isManaCombatOnly",         "Only in combat", "No warnings outside combat", dependsOn = "isManaWarningEnabled" },
+    } },
+    { column = 1, title = "Interface", rows = {
         { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
     } },
 }
@@ -1193,6 +1222,8 @@ SlashCmdList["MENTOR"] = function(input)
     elseif command == "pace" and argument:lower() == "reset" then
         Mentor.LevelPace.ResetSession()
         Mentor.Print("Level pace: session statistics reset.")
+    elseif command == "mana" then
+        Mentor.ManaWarning.HandleCommand(argument)
     elseif command == "log" then
         Mentor.LifeLog.HandleCommand(argument)
     elseif command == "fish" then
@@ -1253,7 +1284,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.AutoVendor.panel:ResetPosition()
         Mentor.Fishing.panel:ResetPosition()
         Mentor.LifeLog.ResetWindowPosition()
+        Mentor.ManaWarning.ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | keep <item> | debug | lock | unlock | center")
     end
 end

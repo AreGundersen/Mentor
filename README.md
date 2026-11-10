@@ -7,7 +7,8 @@ An all-in-one leveling helper for new **WoW Forever** players: talent picks, gea
 - **How to play** - rotation, 1 / 2 / 3+ mobs, pet and "in trouble" advice for all 27 specs that changes as you learn new abilities.
 - **New abilities as you level, racials and ready-made macros.**
 - **Sell advice** (optional, needs [Auctionator](https://www.curseforge.com/wow/addons/auctionator)) - tells you whether an item is worth selling on the auction house, disenchanting or just vendoring, and marks the ones worth money in your bags. Potions, food and reagents for your professions are kept. Off by default: turn it on under Settings.
-- **Level pace, Auto vendor, One-key fishing and Life log** (optional) - a small window with XP per hour and time to level, automatic junk selling and repairs at vendors, fishing with one key, and a log of everything your character does. All are off by default. Coming from the LifeLog addon? Mentor copies your LifeLog data while both are installed, so nothing is lost.
+- **Life log** (on, window closed until you open it) - a log of everything your character does: kills, deaths, gold, loot, travel and more. Coming from the LifeLog addon? Mentor copies your LifeLog data while both are installed, so nothing is lost.
+- **Level pace, Auto vendor, One-key fishing and Mana warning** (optional, off by default) - XP per hour and time to level, automatic junk selling and repairs at vendors, fishing with one key, and a big warning when your mana is low.
 
 Download: [Mentor on CurseForge](https://www.curseforge.com/wow/addons/mentor-forever). Type `/mentor` in game.
 

@@ -27,6 +27,7 @@ LevelPace.lua
 AutoVendor.lua
 Fishing.lua
 LifeLog.lua
+ManaWarning.lua
 Alerts.lua
 BugReport.lua
 UI.lua

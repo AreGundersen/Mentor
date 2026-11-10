@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- Mentor - LifeLog.lua
--- "Life log" (OFF by default; turn it on under Settings or with
--- /mentor lifelog on): records (almost) everything your character does and
+-- "Life log" (ON by default; turn it off under Settings or with
+-- /mentor lifelog off; the "Life log" button in the Mentor window opens it): records (almost) everything your character does and
 -- keeps it forever. A Mentor-style window (/mentor log) shows every stat for
 -- the session, this character and all your characters.
 -- Built from Are's standalone LifeLog addon.
@@ -271,7 +271,7 @@ for _, section in ipairs(STAT_SECTIONS) do
 end
 
 local DEFAULT_SETTINGS = {
-    isShown = true,
+    isShown = false,
     isLocked = false,
     point = "CENTER",
     relativePoint = "CENTER",
@@ -2081,7 +2081,9 @@ local function StartTracking()
     RestoreWindowPosition()
     isTracking = true
     RunSafely("Login", OnPlayerLogin)
-    mainFrame:SetShown(characterDB.settings.isShown)
+    -- Recording starts at login, but the window stays closed until you open
+    -- it (the "Life log" button in the Mentor window, or /mentor log).
+    mainFrame:Hide()
 end
 
 local function StopTracking()
@@ -2273,6 +2275,22 @@ function lifeLog.HandleCommand(input)
         end
     else
         PrintMessage("commands: /mentor log | log reset | log wipe confirm | log forget <name>")
+    end
+end
+
+-- The "Life log" button in the Mentor window.
+function lifeLog.ToggleWindow()
+    if isTracking then
+        lifeLog.HandleCommand("")
+    elseif IsStandaloneLoaded() then
+        PrintMessage("the LifeLog addon is loaded, so it is the one recording. Type /ll, or disable LifeLog to use Mentor's.")
+    elseif MentorDB and not MentorDB.isLifeLogEnabled then
+        MentorDB.isLifeLogEnabled = true       -- turned off earlier: switch it back on
+        hasAskedForReload = false
+        lifeLog.UpdateActivation()
+    else
+        hasAskedForReload = false
+        AskForReload()
     end
 end
 
