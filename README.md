@@ -7,6 +7,7 @@ An all-in-one leveling helper for new **WoW Forever** players: talent picks, gea
 - **How to play** - rotation, 1 / 2 / 3+ mobs, pet and "in trouble" advice for all 27 specs that changes as you learn new abilities.
 - **New abilities as you level, racials and ready-made macros.**
 - **Sell advice** (optional, needs [Auctionator](https://www.curseforge.com/wow/addons/auctionator)) - tells you whether an item is worth selling on the auction house, disenchanting or just vendoring, and marks the ones worth money in your bags. Potions, food and reagents for your professions are kept. Off by default: turn it on under Settings.
+- **Level pace and Auto vendor** (optional) - a small window with XP per hour and time to level, and automatic junk selling and repairs at vendors. Both are off by default.
 
 Download: [Mentor on CurseForge](https://www.curseforge.com/wow/addons/mentor-forever). Type `/mentor` in game.
 

@@ -20,6 +20,11 @@
 --   /mentor minimap on|off    minimap button
 --   /mentor settings          open the settings menu (also: right-click the minimap button)
 --   /mentor rotation on|off   rotation bar
+--   /mentor sell on|off       sell / disenchant advice (needs Auctionator)
+--   /mentor details on|off    explanations and extra values in tooltips
+--   /mentor pace on|off|reset Level pace window (LevelPace.lua)
+--   /mentor vendor on|off     sell junk and repair at vendors (AutoVendor.lua)
+--   /mentor keep|unkeep <item>, /mentor keeplist   grey items Auto vendor never sells
 --   /mentor guide             open the "How to play" guide
 --   /mentor spells | racials | macros   open the "Spells & macros" panel on that tab
 --   /mentor bug               report a bug (saved as text, see BugReport.lua)
@@ -73,6 +78,8 @@ local DEFAULT_SETTINGS = {
     isMinimapButtonShown = true,
     isRotationBarShown = true,
     isSellAdviceEnabled = false,   -- sell / disenchant advice, needs Auctionator
+    isLevelPaceEnabled = false,    -- Level pace window (LevelPace.lua)
+    isAutoVendorEnabled = false,   -- sell junk and repair at vendors (AutoVendor.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
     point = "CENTER", relativePoint = "CENTER", offsetX = -320, offsetY = 80,
@@ -596,10 +603,25 @@ end
 --------------------------------------------------------------------------------
 -- Build panel (opens to the right of the window)
 --------------------------------------------------------------------------------
--- Sell advice needs Auctionator's prices; say so when it is turned on without it.
-function Mentor.WarnIfAuctionatorMissing()
-    if MentorDB.isSellAdviceEnabled and Mentor.SellAdvice and not Mentor.SellAdvice.IsAuctionatorLoaded() then
+-- Messages and updates right after a setting is switched.
+function Mentor.OnSettingChanged(settingName)
+    -- Sell advice needs Auctionator's prices.
+    if settingName == "isSellAdviceEnabled" and MentorDB.isSellAdviceEnabled
+        and Mentor.SellAdvice and not Mentor.SellAdvice.IsAuctionatorLoaded() then
         Mentor.Print("Sell advice needs the Auctionator addon. Install it and scan the auction house once.")
+    end
+    -- If the standalone LevelPace / AutoVendor addon is loaded, that one does the job.
+    local standaloneNames = { isLevelPaceEnabled = "LevelPace", isAutoVendorEnabled = "AutoVendor" }
+    local standaloneName = standaloneNames[settingName]
+    if standaloneName and MentorDB[settingName] and Mentor.IsStandaloneAddonLoaded(standaloneName) then
+        Mentor.Print("You also have the " .. standaloneName .. " addon loaded, so Mentor leaves this to it. "
+            .. "Disable " .. standaloneName .. " in the addon list to use Mentor's version.")
+    end
+    if Mentor.LevelPace then
+        Mentor.LevelPace.UpdateVisibility()
+    end
+    if Mentor.AutoVendor then
+        Mentor.AutoVendor.UpdateVisibility()
     end
 end
 
@@ -616,6 +638,8 @@ local SETTINGS_ROWS = {
     { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
     { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
     { "isSellAdviceEnabled",      "Sell advice",   "AH or disenchant? Uses Auctionator prices (needs Auctionator)" },
+    { "isLevelPaceEnabled",       "Level pace",    "Window with XP / hour, time and kills to level" },
+    { "isAutoVendorEnabled",      "Auto vendor",   "Sell grey items and repair at vendors (hold Shift to skip)" },
 }
 local SETTINGS_ROW_HEIGHT = 34
 local settingsPanel
@@ -652,9 +676,7 @@ local function BuildSettingsPanel()
             if settingName == "isMinimapButtonShown" and Mentor.MinimapButton then
                 Mentor.MinimapButton.UpdateVisibility()
             end
-            if settingName == "isSellAdviceEnabled" then
-                Mentor.WarnIfAuctionatorMissing()
-            end
+            Mentor.OnSettingChanged(settingName)
             Mentor.RequestRefresh()
         end)
         settingsCheckboxes[settingName] = checkbox
@@ -1077,6 +1099,8 @@ local ON_OFF_SETTINGS = {
     minimap   = { "isMinimapButtonShown", "Minimap button" },
     rotation  = { "isRotationBarShown", "Rotation bar" },
     sell      = { "isSellAdviceEnabled", "Sell / disenchant advice (needs Auctionator)" },
+    pace      = { "isLevelPaceEnabled", "Level pace window" },
+    vendor    = { "isAutoVendorEnabled", "Auto vendor (sell junk and repair)" },
 }
 
 SLASH_MENTOR1 = "/mentor"
@@ -1091,6 +1115,11 @@ SlashCmdList["MENTOR"] = function(input)
     elseif command == "build" then
         MentorDB.isBuildShown = not MentorDB.isBuildShown
         Mentor.RequestRefresh()
+    elseif command == "pace" and argument:lower() == "reset" then
+        Mentor.LevelPace.ResetSession()
+        Mentor.Print("Level pace: session statistics reset.")
+    elseif command == "keep" or command == "unkeep" or command == "keeplist" then
+        Mentor.AutoVendor.HandleKeepCommand(command, argument)
     elseif ON_OFF_SETTINGS[command] then
         local newValue = ParseOnOff(argument)
         if newValue == nil then
@@ -1100,9 +1129,7 @@ SlashCmdList["MENTOR"] = function(input)
         local settingName, description = ON_OFF_SETTINGS[command][1], ON_OFF_SETTINGS[command][2]
         MentorDB[settingName] = newValue
         Mentor.Print(description .. ": " .. (newValue and "on" or "off"))
-        if settingName == "isSellAdviceEnabled" then
-            Mentor.WarnIfAuctionatorMissing()
-        end
+        Mentor.OnSettingChanged(settingName)
         Mentor.MinimapButton.UpdateVisibility()
         Mentor.RequestRefresh()
     elseif command == "settings" then
@@ -1142,7 +1169,10 @@ SlashCmdList["MENTOR"] = function(input)
     elseif command == "center" then
         MentorDB.point, MentorDB.relativePoint, MentorDB.offsetX, MentorDB.offsetY = "CENTER", "CENTER", 0, 0
         RestoreWindowPosition()
+        -- The Level pace and Auto vendor windows come back to their default spots too.
+        Mentor.LevelPace.panel:ResetPosition()
+        Mentor.AutoVendor.panel:ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap on|off | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor on|off | pace reset | keep <item> | debug | lock | unlock | center")
     end
 end

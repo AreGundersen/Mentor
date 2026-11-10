@@ -20,6 +20,11 @@ Needs the **Auctionator** addon. Off by default: turn it on under Settings or wi
 - Items worth money get a gold coin or disenchant icon in your bags.
 - Potions, food and other things you use, and reagents for your professions, say "Keep".
 
+## Level pace and Auto vendor (optional)
+Both are off by default: turn them on under Settings.
+- **Level pace** (`/mentor pace on`) - a small window with your XP, XP per hour, time to level and kills to level.
+- **Auto vendor** (`/mentor vendor on`) - sells your grey items and repairs your gear when you open a vendor (hold Shift to skip once). A small window shows the value of your junk and your lowest durability. `/mentor keep <item>` keeps a grey item from being sold.
+
 ## How to play
 - Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for all 27 specs.
 - The advice changes as you learn new abilities.
@@ -33,6 +38,8 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor settings` - settings
 - `/mentor sell on|off` - sell advice
 - `/mentor details on|off` - explanations in tooltips
+- `/mentor pace on|off|reset` - Level pace window
+- `/mentor vendor on|off` - Auto vendor
 - `/mentor bug` - report a bug
 
 ## Found a bug?
