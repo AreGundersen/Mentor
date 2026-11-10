@@ -5,6 +5,9 @@
 --   green up   = upgrade for your spec
 --   yellow up  = upgrade, but you need a higher level first
 --   red down   = worse than what you wear
+-- With "Sell advice" on (SellAdvice.lua) items worth selling also get a small
+-- icon in the bottom-left corner: a gold coin (sell on the AH) or the
+-- disenchant icon.
 --
 -- Works with Blizzard's bags (separate bag windows and the combined bag) and
 -- with Bagnon / BagBrother. Other bag addons use their own buttons.
@@ -120,6 +123,38 @@ local function GetArrow(itemButton)
     end
     arrowsByButton[itemButton] = marker
     return marker
+end
+
+-- Sell advice icon, one per item button, bottom-left corner (the item count
+-- uses the bottom-right one).
+local SELL_ICON_SIZE = 14
+local sellIconsByButton = {}
+
+local function GetSellIcon(itemButton)
+    local sellIcon = sellIconsByButton[itemButton]
+    if sellIcon then
+        return sellIcon
+    end
+    local iconFrame = CreateFrame("Frame", nil, itemButton)
+    iconFrame:SetSize(SELL_ICON_SIZE, SELL_ICON_SIZE)
+    iconFrame:SetPoint("BOTTOMLEFT", itemButton, "BOTTOMLEFT", 2, 2)
+    iconFrame:SetFrameLevel((itemButton:GetFrameLevel() or 1) + 5)
+    iconFrame.texture = iconFrame:CreateTexture(nil, "OVERLAY")
+    iconFrame.texture:SetAllPoints()
+    sellIconsByButton[itemButton] = iconFrame
+    return iconFrame
+end
+
+-- True when the item in this bag slot is soulbound (cannot go on the AH).
+local function IsButtonItemBound(itemButton)
+    if type(itemButton.info) == "table" and itemButton.info.isBound ~= nil then   -- Bagnon
+        return itemButton.info.isBound == true
+    end
+    if itemButton.GetBagID and C_Container and C_Container.GetContainerItemInfo then
+        local success, slotInfo = pcall(C_Container.GetContainerItemInfo, itemButton:GetBagID(), itemButton:GetID())
+        return success and type(slotInfo) == "table" and slotInfo.isBound == true
+    end
+    return false
 end
 
 local function GetContainerItemLinkCompat(bagIndex, slotIndex)
@@ -305,11 +340,13 @@ local retriesLeft = MAX_RETRIES
 -- Marks every visible bag item (Blizzard bags and Bagnon).
 -- weights = the current spec's stat weights.
 function bagOverlay.Update(weights)
-    local isEnabled = weights and not (MentorDB and MentorDB.areBagArrowsEnabled == false)
+    local areArrowsEnabled = weights and not (MentorDB and MentorDB.areBagArrowsEnabled == false)
+    local isSellAdviceEnabled = weights and Mentor.SellAdvice and Mentor.SellAdvice.IsEnabled()
     local markedButtons = {}
+    local buttonsWithSellIcon = {}
     local isAnyItemLoading = false
 
-    if isEnabled then
+    if areArrowsEnabled or isSellAdviceEnabled then
         ForEachVisibleBagButton(function(itemButton, itemLink)
             if not itemLink then
                 return
@@ -331,7 +368,19 @@ function bagOverlay.Update(weights)
             elseif result.kind == "cannotUse" then
                 arrowDirection, arrowColor = CROSS, DOWNGRADE_COLOR
             end
-            if arrowDirection then
+            -- Coin / disenchant icon on items that are not an upgrade but worth money.
+            if isSellAdviceEnabled and arrowDirection ~= UP_ARROW then
+                local sellAdvice = Mentor.SellAdvice.Evaluate(itemLink, IsButtonItemBound(itemButton))
+                local iconTexture = Mentor.SellAdvice.GetActionIcon(sellAdvice)
+                if iconTexture then
+                    local sellIcon = GetSellIcon(itemButton)
+                    sellIcon.texture:SetTexture(iconTexture)
+                    sellIcon.action = sellAdvice.action   -- kept for tests
+                    sellIcon:Show()
+                    buttonsWithSellIcon[itemButton] = true
+                end
+            end
+            if arrowDirection and areArrowsEnabled then
                 local marker = GetArrow(itemButton)
                 marker:SetArrow(arrowDirection, arrowColor[1], arrowColor[2], arrowColor[3])
                 marker:Show()
@@ -343,6 +392,11 @@ function bagOverlay.Update(weights)
     for itemButton, marker in pairs(arrowsByButton) do
         if not markedButtons[itemButton] then
             marker:Hide()
+        end
+    end
+    for itemButton, sellIcon in pairs(sellIconsByButton) do
+        if not buttonsWithSellIcon[itemButton] then
+            sellIcon:Hide()
         end
     end
     -- Retry shortly while items are still loading (limited, so it never loops forever).

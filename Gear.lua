@@ -582,14 +582,18 @@ local function FormatBothPercents(result)
     return Mentor.FormatPercentChange(result.percent)
 end
 
-function Mentor.DescribeComparison(result, specName)
+-- isShort: leave out the words before the percent ("Tiny upgrade") - used in
+-- the tooltip, where the arrow and colour already say better or worse.
+function Mentor.DescribeComparison(result, specName, isShort)
     local prefix = specName and (specName .. ": ") or ""
     local levelText = result.requiredLevel and string.format(" - at level %d", result.requiredLevel) or ""
     if result.kind == "upgrade" then
-        return string.format("%s%s %s %s%s", prefix, result.requiredLevel and ARROW_UP_LATER or ARROW_UP, GetMagnitudeLabel(result, true),
+        local labelText = isShort and "" or (GetMagnitudeLabel(result, true) .. " ")
+        return string.format("%s%s %s%s%s", prefix, result.requiredLevel and ARROW_UP_LATER or ARROW_UP, labelText,
             FormatBothPercents(result), levelText), 0.25, 1.0, 0.25
     elseif result.kind == "downgrade" then
-        return string.format("%s%s %s %s", prefix, ARROW_DOWN, GetMagnitudeLabel(result, false),
+        local labelText = isShort and "" or (GetMagnitudeLabel(result, false) .. " ")
+        return string.format("%s%s %s%s", prefix, ARROW_DOWN, labelText,
             FormatBothPercents(result)), 1.0, 0.35, 0.35
     elseif result.kind == "empty" then
         local totalText = result.overallPercent and (" " .. FormatTotalPercent(result.overallPercent) .. " total") or ""

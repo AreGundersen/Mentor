@@ -288,6 +288,17 @@ local function FormatMoney(copper)
 end
 sellAdvice.FormatMoney = FormatMoney
 
+-- Icon for the bag corner: a coin for "sell on the AH", the disenchant icon
+-- for "disenchant", nothing for "just vendor it".
+function sellAdvice.GetActionIcon(advice)
+    if advice and advice.action == "auction" then
+        return COIN_ICON
+    elseif advice and advice.action == "disenchant" then
+        return DISENCHANT_ICON
+    end
+    return nil
+end
+
 -- Returns the tooltip line and its colour for an Evaluate() result.
 function sellAdvice.Describe(advice)
     if not advice then
