@@ -212,13 +212,67 @@ end
 --------------------------------------------------------------------------------
 local function GetItemDetails(itemLink)
     local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
-    local _, _, quality, itemLevel, _, _, _, stackSize, _, _, vendorPrice, classId = getInfo(itemLink)
-    return quality, itemLevel, stackSize, vendorPrice, classId
+    local _, _, quality, itemLevel, _, _, _, stackSize, _, _, vendorPrice, classId, subclassId = getInfo(itemLink)
+    return quality, itemLevel, stackSize, vendorPrice, classId, subclassId
 end
+
+-- Crafting reagents (item class "Tradeskill") you can use yourself are kept,
+-- not sold. Trade goods subclass -> the professions that use it (skill line ids).
+local ITEM_CLASS_TRADE_GOODS = 7
+local PROFESSION_NAMES = {
+    [129] = "First Aid", [164] = "Blacksmithing", [165] = "Leatherworking", [171] = "Alchemy",
+    [185] = "Cooking", [197] = "Tailoring", [202] = "Engineering", [333] = "Enchanting",
+}
+local PROFESSIONS_BY_TRADE_GOODS_SUBCLASS = {
+    [1]  = { 202 },                 -- parts
+    [5]  = { 197, 129 },            -- cloth: tailoring and bandages
+    [6]  = { 165 },                 -- leather and hides
+    [7]  = { 164, 202 },            -- metal and stone
+    [8]  = { 185 },                 -- cooking (meat)
+    [9]  = { 171 },                 -- herbs
+    [10] = { 171, 164, 165, 197, 202, 333 },   -- elemental
+    [12] = { 333 },                 -- enchanting materials
+}
+
+-- Skill line ids of the player's professions (cached for a while).
+local playerSkillLines, playerSkillLinesTime = {}, -1000
+local function GetPlayerSkillLines()
+    local now = GetTime and GetTime() or 0
+    if now - playerSkillLinesTime < CACHE_SECONDS then
+        return playerSkillLines
+    end
+    playerSkillLines, playerSkillLinesTime = {}, now
+    if GetProfessions and GetProfessionInfo then
+        for _, professionIndex in pairs({ GetProfessions() }) do
+            local success, _, _, _, _, _, _, skillLine = pcall(GetProfessionInfo, professionIndex)
+            if success and skillLine then
+                playerSkillLines[skillLine] = true
+            end
+        end
+    end
+    return playerSkillLines
+end
+
+-- Name of one of your professions that uses this reagent, or nil.
+local function GetProfessionThatUsesReagent(classId, subclassId)
+    local professionIds = classId == ITEM_CLASS_TRADE_GOODS and PROFESSIONS_BY_TRADE_GOODS_SUBCLASS[subclassId]
+    if not professionIds then
+        return nil
+    end
+    local skillLines = GetPlayerSkillLines()
+    for _, professionId in ipairs(professionIds) do
+        if skillLines[professionId] then
+            return PROFESSION_NAMES[professionId]
+        end
+    end
+    return nil
+end
+sellAdvice.GetProfessionThatUsesReagent = GetProfessionThatUsesReagent
 
 -- isBound: true when this copy is soulbound (from the bag slot or the
 -- tooltip). Bind-on-pickup items are always treated as bound.
 -- Returns nil when there is nothing to say, otherwise:
+--   { action = "keep", professionName }   reagent for one of your professions
 --   { action = "auction" | "disenchant" | "vendor", vendorValue, auctionValue,
 --     disenchantValue, canDisenchant, priceAgeDays }
 function sellAdvice.Evaluate(itemLink, isBound)
@@ -232,9 +286,15 @@ function sellAdvice.Evaluate(itemLink, isBound)
         return cachedEntry.advice
     end
 
-    local quality, itemLevel, stackSize, vendorPrice, classId = GetItemDetails(itemLink)
+    local quality, itemLevel, stackSize, vendorPrice, classId, subclassId = GetItemDetails(itemLink)
     if not quality then
         return nil      -- not loaded yet
+    end
+    local professionName = GetProfessionThatUsesReagent(classId, subclassId)
+    if professionName then
+        local keepAdvice = { action = "keep", professionName = professionName }
+        adviceCache[cacheKey] = { time = now, advice = keepAdvice }
+        return keepAdvice
     end
     stackSize = math.max(tonumber(stackSize) or 1, 1)
     if not isBound and Mentor.GetItemTooltipLines then
@@ -278,18 +338,25 @@ end
 --------------------------------------------------------------------------------
 -- Text for tooltips
 --------------------------------------------------------------------------------
+-- Money with the game's own gold / silver / copper coin icons, like the
+-- "Sell Price" line: "1(gold) 12(silver)" - copper is left out above 1 gold.
+local GOLD_COIN = "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:2:0|t"
+local SILVER_COIN = "|TInterface\\MoneyFrame\\UI-SilverIcon:0:0:2:0|t"
+local COPPER_COIN = "|TInterface\\MoneyFrame\\UI-CopperIcon:0:0:2:0|t"
 local function FormatMoney(copper)
     copper = math.floor(copper or 0)
-    if GetCoinTextureString then
-        return GetCoinTextureString(copper)
-    end
     local gold, silver, copperLeft = math.floor(copper / 10000), math.floor(copper / 100) % 100, copper % 100
+    local parts = {}
     if gold > 0 then
-        return string.format("%dg %ds", gold, silver)
-    elseif silver > 0 then
-        return string.format("%ds %dc", silver, copperLeft)
+        table.insert(parts, gold .. GOLD_COIN)
     end
-    return copperLeft .. "c"
+    if silver > 0 then
+        table.insert(parts, silver .. SILVER_COIN)
+    end
+    if gold == 0 and (copperLeft > 0 or silver == 0) then
+        table.insert(parts, copperLeft .. COPPER_COIN)
+    end
+    return table.concat(parts, " ")
 end
 sellAdvice.FormatMoney = FormatMoney
 
@@ -309,6 +376,9 @@ end
 function sellAdvice.Describe(advice, isShort)
     if not advice then
         return nil
+    end
+    if advice.action == "keep" then
+        return "Keep for " .. advice.professionName, 0.6, 0.9, 0.6
     end
     local otherValues = {}
     if advice.action ~= "vendor" then

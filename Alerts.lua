@@ -147,12 +147,14 @@ local function AddComparisonToTooltip(tooltip)
 
     -- Compare once per spec of your class.
     local specLines = {}
-    local otherSpecUpgradeName
+    local otherSpecUpgradeName, bestOtherSpecGain = nil, 0
     for specNumber, specData in ipairs(advice.classData.specs) do
         local isCurrentSpec = specNumber == advice.specNumber
         local specResult = isCurrentSpec and currentResult or Mentor.CompareItem(itemLink, specData.weights)
-        if not isCurrentSpec and not otherSpecUpgradeName and specResult.kind == "upgrade" then
-            otherSpecUpgradeName = specData.name
+        -- The other spec this helps most (largest gain over all your gear).
+        local gainPercent = specResult.overallPercent or specResult.percent or 0
+        if not isCurrentSpec and specResult.kind == "upgrade" and gainPercent > bestOtherSpecGain then
+            otherSpecUpgradeName, bestOtherSpecGain = specData.name, gainPercent
         end
         local specLabel = isCurrentSpec and ("|cffffffff" .. specData.name .. "|r") or ("|cffa6a6a6" .. specData.name .. "|r")
         local lineText, red, green, blue = Mentor.DescribeComparison(specResult, specLabel, true)

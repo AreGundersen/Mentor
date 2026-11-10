@@ -6,8 +6,8 @@
 --   yellow up  = upgrade, but you need a higher level first
 --   red down   = worse than what you wear
 -- With "Sell advice" on (SellAdvice.lua) items worth selling also get a small
--- icon in the bottom-left corner: a gold coin (sell on the AH) or the
--- disenchant icon.
+-- icon in the top-left corner instead of the arrow: a gold coin (sell on the
+-- AH) or the disenchant icon.
 --
 -- Works with Blizzard's bags (separate bag windows and the combined bag) and
 -- with Bagnon / BagBrother. Other bag addons use their own buttons.
@@ -125,8 +125,8 @@ local function GetArrow(itemButton)
     return marker
 end
 
--- Sell advice icon, one per item button, bottom-left corner (the item count
--- uses the bottom-right one).
+-- Sell advice icon, one per item button, top-left corner like the arrows
+-- (it replaces the red arrow / cross: the item is worth selling).
 local SELL_ICON_SIZE = 14
 local sellIconsByButton = {}
 
@@ -137,7 +137,7 @@ local function GetSellIcon(itemButton)
     end
     local iconFrame = CreateFrame("Frame", nil, itemButton)
     iconFrame:SetSize(SELL_ICON_SIZE, SELL_ICON_SIZE)
-    iconFrame:SetPoint("BOTTOMLEFT", itemButton, "BOTTOMLEFT", 2, 2)
+    iconFrame:SetPoint("TOPLEFT", itemButton, "TOPLEFT", 1, -1)
     iconFrame:SetFrameLevel((itemButton:GetFrameLevel() or 1) + 5)
     iconFrame.texture = iconFrame:CreateTexture(nil, "OVERLAY")
     iconFrame.texture:SetAllPoints()
@@ -396,6 +396,7 @@ function bagOverlay.Update(weights)
                     sellIcon.action = sellAdvice.action   -- kept for tests
                     sellIcon:Show()
                     buttonsWithSellIcon[itemButton] = true
+                    arrowDirection = nil   -- the coin takes the arrow's corner
                 end
             end
             if arrowDirection and areArrowsEnabled then
