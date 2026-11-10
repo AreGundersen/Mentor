@@ -11,6 +11,7 @@ number is only given when Are decides the release is finished (see
 - Item tooltips are shorter: the spec lines show only the arrow and the percentages ("Balance: +0.2% total (item +6%)") without the words "Tiny upgrade" / "Much worse".
 - New setting "Tooltip details" (on by default): turn it off to hide the stat explanations, the total/item legend and the extra prices, so the tooltip only shows the verdicts. Also `/mentor details on|off`.
 - Sell advice now always says something for gear: "Just vendor it" with the reason in grey (soulbound, or no AH price yet) when the AH and disenchanting are not worth it, and "Sell advice needs the Auctionator addon" when Auctionator is missing.
+- Sell advice works for every item with a price (cloth, hides, herbs ...), not only gear. Stackable items show the price "each", and the minimum gain (10 silver) is counted for a full stack, so cheap reagents that are worth much more on the AH are no longer sent to the vendor.
 - New Mentor logo as the minimap button and the addon list icon.
 
 ## 1.9.0 - 2026-11-10

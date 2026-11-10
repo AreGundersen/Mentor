@@ -12,13 +12,16 @@
 --               tables - WoW Forever items follow the classic item levels)
 -- The best one is only recommended when it is clearly better than the vendor
 -- (MIN_GAIN_FACTOR and MIN_GAIN_COPPER), so small differences don't nag.
+-- Works for every item with a price (gear, cloth, hides, herbs ...); for
+-- stackable items the gain is counted for a full stack, since that is what
+-- you put on the AH.
 --------------------------------------------------------------------------------
 
 local ADDON_NAME, Mentor = ...
 
 local AUCTION_HOUSE_CUT       = 0.05      -- the auction house keeps 5% of the sale
 local MIN_GAIN_FACTOR         = 1.25      -- best value must be 25% above the vendor price ...
-local MIN_GAIN_COPPER         = 2500      -- ... and at least 25 silver more
+local MIN_GAIN_COPPER         = 1000      -- ... and at least 10 silver more (per item, or per full stack)
 local OLD_PRICE_DAYS          = 3         -- older Auctionator prices are flagged
 local ITEM_CLASS_WEAPON       = 2
 local ITEM_CLASS_ARMOR        = 4
@@ -209,8 +212,8 @@ end
 --------------------------------------------------------------------------------
 local function GetItemDetails(itemLink)
     local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
-    local _, _, quality, itemLevel, _, _, _, _, equipLocation, _, vendorPrice, classId = getInfo(itemLink)
-    return quality, itemLevel, equipLocation, vendorPrice, classId
+    local _, _, quality, itemLevel, _, _, _, stackSize, _, _, vendorPrice, classId = getInfo(itemLink)
+    return quality, itemLevel, stackSize, vendorPrice, classId
 end
 
 -- isBound: true when this copy is soulbound (from the bag slot or the
@@ -229,10 +232,11 @@ function sellAdvice.Evaluate(itemLink, isBound)
         return cachedEntry.advice
     end
 
-    local quality, itemLevel, equipLocation, vendorPrice, classId = GetItemDetails(itemLink)
-    if not quality or not equipLocation or equipLocation == "" then
-        return nil      -- not loaded yet, or not gear
+    local quality, itemLevel, stackSize, vendorPrice, classId = GetItemDetails(itemLink)
+    if not quality then
+        return nil      -- not loaded yet
     end
+    stackSize = math.max(tonumber(stackSize) or 1, 1)
     if not isBound and Mentor.GetItemTooltipLines then
         for _, tooltipLine in ipairs(Mentor.GetItemTooltipLines(itemLink)) do
             local lineText = tooltipLine.text
@@ -254,11 +258,11 @@ function sellAdvice.Evaluate(itemLink, isBound)
             vendorValue = vendorValue, auctionValue = auctionValue, disenchantValue = disenchantValue,
             canDisenchant = disenchantValue ~= nil and sellAdvice.CanPlayerDisenchant(),
             priceAgeDays = auctionValue and GetPriceAgeDays(itemLink) or nil,
-            action = "vendor",
+            action = "vendor", isStackable = stackSize > 1,
         }
         local bestValue = vendorValue
         local function IsClearlyBetter(value)
-            return value and value >= bestValue * MIN_GAIN_FACTOR and value - vendorValue >= MIN_GAIN_COPPER
+            return value and value >= bestValue * MIN_GAIN_FACTOR and (value - vendorValue) * stackSize >= MIN_GAIN_COPPER
         end
         if IsClearlyBetter(auctionValue) then
             advice.action, bestValue = "auction", auctionValue
@@ -328,13 +332,14 @@ function sellAdvice.Describe(advice, isShort)
     local ageText = (not isShort and advice.priceAgeDays and advice.priceAgeDays >= OLD_PRICE_DAYS)
         and (" |cffa6a6a6- AH prices " .. advice.priceAgeDays .. " days old|r") or ""
 
+    local eachText = advice.isStackable and " each" or ""      -- stackable prices are per item
     if advice.action == "auction" then
-        return "|T" .. COIN_ICON .. ":0|t Sell on the AH: " .. FormatMoney(advice.auctionValue) .. otherText .. ageText, 1.0, 0.82, 0.0
+        return "|T" .. COIN_ICON .. ":0|t Sell on the AH: " .. FormatMoney(advice.auctionValue) .. eachText .. otherText .. ageText, 1.0, 0.82, 0.0
     elseif advice.action == "disenchant" then
         local whoText = (advice.canDisenchant or isShort) and "" or " |cffa6a6a6- ask an enchanter|r"
         return "|T" .. DISENCHANT_ICON .. ":0|t Disenchant: ~" .. FormatMoney(advice.disenchantValue) .. otherText .. whoText, 0.75, 0.55, 1.0
     end
-    return "Just vendor it: " .. FormatMoney(advice.vendorValue) .. otherText, 0.75, 0.75, 0.75
+    return "Just vendor it: " .. FormatMoney(advice.vendorValue) .. eachText .. otherText, 0.75, 0.75, 0.75
 end
 
 -- Listen for new Auctionator scans once every addon has loaded.
