@@ -6,7 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
-- Sell advice: quest items ("Quest Item", "This Item Begins a Quest", quest pages) say "Keep - quest item". "Use:" lines in colour were not recognised, so some usable items were sent to the vendor.
+- Sell advice: quest items ("Quest Item", "This Item Begins a Quest") and other items with a "Use:" line say "Keep" - unless the AH pays clearly more, then they say "Sell on the AH". Potions, food and reagents for your professions are always kept. "Use:" lines in colour were not recognised before.
 - Sell advice: items worth at least twice the vendor price on the AH are recommended for the AH from 1 silver gain (before: 10 silver), so a 7 silver item is no longer vendored for 62 copper.
 
 ## 1.11.0 - 2026-11-10

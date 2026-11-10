@@ -346,14 +346,22 @@ function sellAdvice.Evaluate(itemLink, isBound)
     if not quality then
         return nil      -- not loaded yet
     end
-    local keepReason
+    -- Always kept: reagents for your professions, potions / food / bandages.
+    -- Kept unless the AH pays clearly more: quest items and other things with
+    -- a "Use:" line (quest pages, campfire ...) - if someone pays 7 silver for
+    -- a quest page, selling it is the better advice.
+    local keepReason, softKeepReason
     local professionName = GetProfessionThatUsesReagent(classId, subclassId)
     if professionName then
         keepReason = "for " .. professionName
-    elseif IsQuestItem(itemLink, classId) then
-        keepReason = "quest item"
     elseif IsItemToUse(itemLink, classId, equipLocation, quality) then
-        keepReason = "use it"
+        if classId == ITEM_CLASS_CONSUMABLE then
+            keepReason = "use it"
+        else
+            softKeepReason = IsQuestItem(itemLink, classId) and "quest item" or "use it"
+        end
+    elseif IsQuestItem(itemLink, classId) then
+        softKeepReason = "quest item"
     end
     if keepReason then
         local keepAdvice = { action = "keep", keepReason = keepReason }
@@ -399,6 +407,9 @@ function sellAdvice.Evaluate(itemLink, isBound)
         if IsClearlyBetter(disenchantValue) and disenchantValue > bestValue then
             advice.action = "disenchant"
         end
+    end
+    if softKeepReason and not (advice and advice.action == "auction") then
+        advice = { action = "keep", keepReason = softKeepReason }
     end
     adviceCache[cacheKey] = { time = now, advice = advice }
     return advice
