@@ -6,7 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
-- Talent window: new look for the strip above the window - the Mentor logo, and the plan for the next points as talent icons with rank and level (hover for the name when it is too wide). The gold NEXT frame and the point numbers are always drawn above the neighbouring talents.
+- Talent window: new look for the strip above the window - the Mentor logo, and the plan for the next points as talent icons with rank and level (hover for the name when it is too wide). The gold NEXT frame now sits tight around the talent with rounded corners, the NEXT tag sits on its top edge and the point numbers sit inside the talent's own corner, so nothing covers the neighbouring talents.
 - Report bug button: the tooltip also says "No errors caught." when there are none.
 - Talent window: shows the next 5 talent POINTS instead of the next 5 talents. A talent that gets several points shows all their numbers (for example "2-4"), and the strip above the talent window lists the plan with the rank and the level each point is spent at ("Gift of Nature 2-5/5 (now-29) > Nature's Swiftness 1/1 (lv 30)").
 - New setting "Sell advice" (off by default, needs Auctionator): items that are not an upgrade get a tooltip line saying whether to sell them on the auction house, disenchant them or just vendor them, using the prices Auctionator has scanned (AH cut included, soulbound items skip the AH). Also `/mentor sell on|off`. In the bags these items get a small gold coin (sell on the AH) or disenchant icon in the top-left corner, in place of the arrow. Prices are shown with the game's gold, silver and copper coin icons.

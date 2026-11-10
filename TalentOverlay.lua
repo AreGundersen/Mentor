@@ -15,11 +15,14 @@
 local _, Mentor = ...
 
 local GOLD = { 1.00, 0.78, 0.10 }
-local FRAME_GAP = 5            -- pixels between the talent button and the gold frame
+-- The gold frame sits tight around the button so it does not reach the
+-- neighbouring talents; the corners are rounded (tooltip-style edge).
+local FRAME_GAP = 1            -- pixels between the talent button and the gold frame
 local FRAME_THICKNESS = 3
-local HALO_SIZE = 16
-local BADGE_SIZE = 18
-local GUIDE_HEIGHT = 50
+local FRAME_EDGE_SIZE = 10     -- size of the rounded edge pieces
+local HALO_SIZE = 5            -- soft glow outside the frame (kept small, see above)
+local BADGE_SIZE = 16
+local GUIDE_HEIGHT = 60
 local MUTED_TEXT = "|cffa6a6a6"
 local CLASSIC_TALENT_FRAME_NAMES = { "PlayerTalentFrame", "TalentFrame" }
 
@@ -47,7 +50,7 @@ end
 Mentor.AddBorder = AddBorder
 
 local function CreateNextMarker()
-    local marker = CreateFrame("Frame", "MentorNextTalentMarker", UIParent)
+    local marker = CreateFrame("Frame", "MentorNextTalentMarker", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     marker:Hide()
 
     local halo = marker:CreateTexture(nil, "BACKGROUND")
@@ -57,19 +60,37 @@ local function CreateNextMarker()
     halo:SetPoint("TOPLEFT", -HALO_SIZE, HALO_SIZE)
     halo:SetPoint("BOTTOMRIGHT", HALO_SIZE, -HALO_SIZE)
 
-    AddBorder(marker, FRAME_THICKNESS, GOLD[1], GOLD[2], GOLD[3], 1)
+    if marker.SetBackdrop then
+        marker:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = FRAME_EDGE_SIZE })
+        marker:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 1)
+    else
+        AddBorder(marker, FRAME_THICKNESS, GOLD[1], GOLD[2], GOLD[3], 1)
+    end
 
-    -- "NEXT" tag above the button.
-    local tag = CreateFrame("Frame", nil, marker)
-    tag:SetSize(40, 14)
-    tag:SetPoint("BOTTOM", marker, "TOP", 0, 1)
-    local tagBackground = tag:CreateTexture(nil, "BACKGROUND")
-    tagBackground:SetAllPoints()
-    tagBackground:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 1)
+    -- "NEXT" tag sitting on the frame's top edge (half in, half out), so it
+    -- stays in the gap between the talent rows.
+    local tag = CreateFrame("Frame", nil, marker, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    tag:SetSize(34, 12)
+    tag:SetPoint("CENTER", marker, "TOP", 0, 0)
+    tag:SetFrameLevel(marker:GetFrameLevel() + 2)
+    if tag.SetBackdrop then
+        tag:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 6, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
+        tag:SetBackdropColor(GOLD[1], GOLD[2], GOLD[3], 1)
+        tag:SetBackdropBorderColor(0, 0, 0, 0.8)
+    else
+        local tagBackground = tag:CreateTexture(nil, "BACKGROUND")
+        tagBackground:SetAllPoints()
+        tagBackground:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 1)
+    end
     local tagText = tag:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     tagText:SetPoint("CENTER", 0, 0)
     tagText:SetTextColor(0, 0, 0)
     tagText:SetText("NEXT")
+    local tagFont, _, tagFlags = tagText:GetFont()
+    if tagFont then
+        tagText:SetFont(tagFont, 8, tagFlags)
+    end
 
     -- Pulse.
     local pulse = marker:CreateAnimationGroup()
@@ -86,12 +107,19 @@ end
 -- A small gold-framed label on a talent button with the point numbers that
 -- go into that talent ("2", "2-4" or "2,5"). It widens to fit the text.
 local function CreateBadge()
-    local badge = CreateFrame("Frame", nil, UIParent)
+    local badge = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     badge:SetSize(BADGE_SIZE, BADGE_SIZE)
-    local background = badge:CreateTexture(nil, "BACKGROUND")
-    background:SetAllPoints()
-    background:SetColorTexture(0.05, 0.05, 0.05, 0.9)
-    AddBorder(badge, 1, GOLD[1], GOLD[2], GOLD[3], 0.9)
+    if badge.SetBackdrop then
+        badge:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
+        badge:SetBackdropColor(0.05, 0.05, 0.05, 0.92)
+        badge:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
+    else
+        local background = badge:CreateTexture(nil, "BACKGROUND")
+        background:SetAllPoints()
+        background:SetColorTexture(0.05, 0.05, 0.05, 0.9)
+        AddBorder(badge, 1, GOLD[1], GOLD[2], GOLD[3], 0.9)
+    end
     badge.numberText = badge:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     badge.numberText:SetPoint("CENTER", 1, 0)
     function badge:SetPointNumbers(numbersText)
@@ -157,27 +185,27 @@ local function CreateGuideStrip()
     -- Mentor logo on the left, spanning both lines.
     strip.logo = strip:CreateTexture(nil, "ARTWORK")
     strip.logo:SetTexture(LOGO_TEXTURE)
-    strip.logo:SetSize(GUIDE_HEIGHT - 10, GUIDE_HEIGHT - 10)
-    strip.logo:SetPoint("LEFT", 6, 0)
+    strip.logo:SetSize(GUIDE_HEIGHT - 16, GUIDE_HEIGHT - 16)
+    strip.logo:SetPoint("LEFT", 10, 0)
     -- Line 1: next talent.
     strip.icon = strip:CreateTexture(nil, "ARTWORK")
     strip.icon:SetSize(18, 18)
-    strip.icon:SetPoint("TOPLEFT", strip.logo, "TOPRIGHT", 8, -1)
+    strip.icon:SetPoint("TOPLEFT", strip, "TOPLEFT", GUIDE_HEIGHT - 6 + 10, -9)
     strip.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     strip.text = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     strip.text:SetPoint("LEFT", strip.icon, "RIGHT", 6, 0)
     strip.detail = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    strip.detail:SetPoint("TOPRIGHT", -10, -9)
+    strip.detail:SetPoint("TOPRIGHT", -12, -12)
     strip.detail:SetJustifyH("RIGHT")
     -- A thin gold line between the two lines.
     strip.divider = strip:CreateTexture(nil, "ARTWORK")
     strip.divider:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.25)
     strip.divider:SetHeight(1)
-    strip.divider:SetPoint("LEFT", strip.logo, "RIGHT", 8, -2)
-    strip.divider:SetPoint("RIGHT", strip, "RIGHT", -10, -2)
+    strip.divider:SetPoint("LEFT", strip.logo, "RIGHT", 8, 0)
+    strip.divider:SetPoint("RIGHT", strip, "RIGHT", -12, 0)
     -- Line 2: the plan for the next points.
     strip.planTitle = strip:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    strip.planTitle:SetPoint("BOTTOMLEFT", strip.logo, "BOTTOMRIGHT", 8, 1)
+    strip.planTitle:SetPoint("BOTTOMLEFT", strip, "BOTTOMLEFT", GUIDE_HEIGHT - 6 + 10, 12)
     strip.planChips = {}
     for chipIndex = 1, MAX_PLAN_CHIPS do
         strip.planChips[chipIndex] = CreatePlanChip(strip)
@@ -489,7 +517,8 @@ function overlay.Update(advice)
             AttachToButton(badge, talentButton, 7, talentWindow)
             badge:SetPointNumbers(overlay.FormatNumberList(shownNumbers))
             badge:ClearAllPoints()
-            badge:SetPoint("CENTER", talentButton, "TOPRIGHT", -2, -2)
+            -- Inside the talent's own top-right corner, so it never covers a neighbour.
+            badge:SetPoint("TOPRIGHT", talentButton, "TOPRIGHT", 1, 1)
             badge:Show()
         end
     end
