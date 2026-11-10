@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 -- Mentor - Alerts.lua
 --   * extra line on every item tooltip: "Mentor: +14% upgrade for Enhancement"
+--   * optional sell / disenchant advice line (SellAdvice.lua)
 --   * chat alert when you loot an upgrade
 --   * best quest reward suggestion (with a glow) when you hand in a quest
 --------------------------------------------------------------------------------
@@ -88,10 +89,52 @@ local function AddComparisonToTooltip(tooltip)
     tooltip:Show() -- resize the tooltip to fit the new lines
 end
 
+-- Sell / disenchant advice (off by default, needs Auctionator). Shown for items
+-- that are not an upgrade for your current spec.
+local function IsTooltipSoulbound(tooltip)
+    local tooltipName = tooltip.GetName and tooltip:GetName()
+    if not tooltipName or not tooltip.NumLines then
+        return false
+    end
+    for lineNumber = 2, math.min(tooltip:NumLines(), 6) do
+        local lineFontString = _G[tooltipName .. "TextLeft" .. lineNumber]
+        local lineText = lineFontString and lineFontString:GetText()
+        if lineText and not IsSecret(lineText)
+            and (lineText == (ITEM_SOULBOUND or "Soulbound") or lineText == (ITEM_BIND_ON_PICKUP or "Binds when picked up")) then
+            return true
+        end
+    end
+    return false
+end
+
+local function AddSellAdviceToTooltip(tooltip)
+    local sellAdvice = Mentor.SellAdvice
+    if tooltip == Mentor.scanTooltip or not tooltip.GetItem or not (sellAdvice and sellAdvice.IsEnabled()) then
+        return
+    end
+    local _, itemLink = tooltip:GetItem()
+    if not itemLink or IsSecret(itemLink) then
+        return
+    end
+    local weights = GetCurrentWeights()
+    if weights then
+        local currentResult = Mentor.CompareItem(itemLink, weights)
+        if currentResult.kind == "upgrade" or currentResult.kind == "empty" then
+            return -- you want to wear this one, not sell it
+        end
+    end
+    local lineText, red, green, blue = sellAdvice.Describe(sellAdvice.Evaluate(itemLink, IsTooltipSoulbound(tooltip)))
+    if lineText then
+        tooltip:AddLine("|cff66ccffMentor:|r " .. lineText, red, green, blue)
+        tooltip:Show()
+    end
+end
+
 function Mentor.HookItemTooltips()
     if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip)
             pcall(AddComparisonToTooltip, tooltip)
+            pcall(AddSellAdviceToTooltip, tooltip)
         end)
         return
     end
@@ -99,6 +142,7 @@ function Mentor.HookItemTooltips()
         if tooltip and tooltip.HookScript then
             tooltip:HookScript("OnTooltipSetItem", function(self)
                 pcall(AddComparisonToTooltip, self)
+                pcall(AddSellAdviceToTooltip, self)
             end)
         end
     end

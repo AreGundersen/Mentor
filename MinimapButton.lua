@@ -9,7 +9,7 @@
 local _, Mentor = ...
 
 local BUTTON_SIZE = 31
-local ICON_TEXTURE = "Interface\\Icons\\INV_Misc_Book_09"
+local ICON_TEXTURE = "Interface\\AddOns\\Mentor\\Media\\Logo"   -- the Mentor shield
 local DISTANCE_OUTSIDE_EDGE = 5   -- pixels outside the minimap's edge
 
 local minimapButtonModule = {}
@@ -53,9 +53,8 @@ function minimapButtonModule.Create()
     background:SetPoint("TOPLEFT", 7, -5)
     local icon = minimapButton:CreateTexture(nil, "ARTWORK")
     icon:SetTexture(ICON_TEXTURE)
-    icon:SetSize(17, 17)
-    icon:SetPoint("TOPLEFT", 7, -6)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    icon:SetSize(20, 20)
+    icon:SetPoint("TOPLEFT", 6, -5)
     local border = minimapButton:CreateTexture(nil, "OVERLAY")
     border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
     border:SetSize(53, 53)

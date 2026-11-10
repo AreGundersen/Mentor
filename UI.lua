@@ -71,6 +71,7 @@ local DEFAULT_SETTINGS = {
     areQuestPicksEnabled = true,
     isMinimapButtonShown = true,
     isRotationBarShown = true,
+    isSellAdviceEnabled = false,   -- sell / disenchant advice, needs Auctionator
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
     point = "CENTER", relativePoint = "CENTER", offsetX = -320, offsetY = 80,
@@ -592,6 +593,13 @@ end
 --------------------------------------------------------------------------------
 -- Build panel (opens to the right of the window)
 --------------------------------------------------------------------------------
+-- Sell advice needs Auctionator's prices; say so when it is turned on without it.
+function Mentor.WarnIfAuctionatorMissing()
+    if MentorDB.isSellAdviceEnabled and Mentor.SellAdvice and not Mentor.SellAdvice.IsAuctionatorLoaded() then
+        Mentor.Print("Sell advice needs the Auctionator addon. Install it and scan the auction house once.")
+    end
+end
+
 --------------------------------------------------------------------------------
 -- Settings menu: on/off switches for every overlay
 --------------------------------------------------------------------------------
@@ -603,6 +611,7 @@ local SETTINGS_ROWS = {
     { "areQuestPicksEnabled",     "Quest rewards", "Mark the best reward when you hand in a quest" },
     { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
     { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
+    { "isSellAdviceEnabled",      "Sell advice",   "AH or disenchant? Uses Auctionator prices (needs Auctionator)" },
 }
 local SETTINGS_ROW_HEIGHT = 34
 local settingsPanel
@@ -638,6 +647,9 @@ local function BuildSettingsPanel()
             MentorDB[settingName] = self:GetChecked() and true or false
             if settingName == "isMinimapButtonShown" and Mentor.MinimapButton then
                 Mentor.MinimapButton.UpdateVisibility()
+            end
+            if settingName == "isSellAdviceEnabled" then
+                Mentor.WarnIfAuctionatorMissing()
             end
             Mentor.RequestRefresh()
         end)
@@ -1059,6 +1071,7 @@ local ON_OFF_SETTINGS = {
     quest     = { "areQuestPicksEnabled", "Best quest reward pick" },
     minimap   = { "isMinimapButtonShown", "Minimap button" },
     rotation  = { "isRotationBarShown", "Rotation bar" },
+    sell      = { "isSellAdviceEnabled", "Sell / disenchant advice (needs Auctionator)" },
 }
 
 SLASH_MENTOR1 = "/mentor"
@@ -1082,6 +1095,9 @@ SlashCmdList["MENTOR"] = function(input)
         local settingName, description = ON_OFF_SETTINGS[command][1], ON_OFF_SETTINGS[command][2]
         MentorDB[settingName] = newValue
         Mentor.Print(description .. ": " .. (newValue and "on" or "off"))
+        if settingName == "isSellAdviceEnabled" then
+            Mentor.WarnIfAuctionatorMissing()
+        end
         Mentor.MinimapButton.UpdateVisibility()
         Mentor.RequestRefresh()
     elseif command == "settings" then
