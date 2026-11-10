@@ -2086,16 +2086,17 @@ local function StartTracking()
     mainFrame:Hide()
 end
 
+-- Stopping only pauses: the events stay registered and are ignored while
+-- isTracking is false. Unregistering them made the game block Mentor
+-- ("blocked from an action only available to the Blizzard UI") - the combat
+-- log event may not be touched by addons at all on Forever.
+local hasStartedThisSession = false
+
 local function StopTracking()
     if not isTracking then
         return
     end
     isTracking = false
-    for eventName in pairs(EVENT_HANDLERS) do
-        if eventName ~= "PLAYER_LOGOUT" then
-            pcall(eventFrame.UnregisterEvent, eventFrame, eventName)
-        end
-    end
     mainFrame:Hide()
 end
 
@@ -2132,6 +2133,9 @@ function lifeLog.UpdateActivation()
     if IsWanted() then
         if isStartAllowed then
             StartTracking()
+            hasStartedThisSession = true
+        elseif not isTracking and hasStartedThisSession then
+            isTracking = true            -- it was only paused: carry on without a reload
         elseif not isTracking then
             AskForReload()
         end

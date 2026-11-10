@@ -7,7 +7,7 @@ number is only given when Are decides the release is finished (see
 ## Unreleased
 
 - **Settings open to the right of the Mentor window.**
-- Life log: turning it on in the middle of a session made the game block Mentor ("blocked from an action only available to the Blizzard UI"). It now starts recording at login like the LifeLog addon did, and asks to reload the interface when you turn it on. Gold in the Life log window uses the game's coin icons.
+- Life log: turning it off made the game block Mentor ("blocked from an action only available to the Blizzard UI"), because it unregistered the combat log event (#2). Turning it off now only pauses it, and turning it on again in the same session carries on without a reload. The first start happens at login; turning it on for the first time mid-session asks to reload the interface. Gold in the Life log window uses the game's coin icons.
 - Bug reports include actions the game blocked, with the name of the blocked function.
 - **Settings are organized:** two columns with sections - Talents & play, Gear & loot, Gold, Extra tools and Interface. "Details" sits under "Item tooltips" and is greyed out while tooltips are off.
 - **New: Level pace** (off by default): a small Mentor window with XP, XP to level, rested XP, XP per hour, time to level and kills to level. Turn it on under Settings or with `/mentor pace on`; `/mentor pace reset` starts the session statistics again.

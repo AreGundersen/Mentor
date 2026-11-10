@@ -180,7 +180,7 @@ blockedActionFrame:SetScript("OnEvent", function(_, eventName, blockedAddonName,
     end
     pcall(RememberError, string.format("Interface/AddOns/%s/(blocked): %s - the game blocked %s()",
         ADDON_NAME, eventName == "ADDON_ACTION_FORBIDDEN" and "forbidden action" or "blocked action",
-        IsReadableText(functionName) and functionName or "?"))
+        (IsReadableText(functionName) and functionName or "?"):gsub("%(%)$", "")))
 end)
 
 -- Saved variables are only available once the addon has loaded.
