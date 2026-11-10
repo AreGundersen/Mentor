@@ -640,61 +640,118 @@ end
 --------------------------------------------------------------------------------
 -- Settings menu: on/off switches for every overlay
 --------------------------------------------------------------------------------
-local SETTINGS_ROWS = {
-    { "isTalentHighlightEnabled", "Talent window", "Mark the next talent and number the following ones" },
-    { "areBagArrowsEnabled",      "Bags",          "Green / red arrows on items that are better / worse" },
-    { "areTooltipLinesEnabled",   "Item tooltips", "Comparison for each spec and the stat changes" },
-    { "areTooltipDetailsShown",   "Tooltip details", "Stat explanations, the total/item legend and extra prices" },
-    { "areLootAlertsEnabled",     "Loot alerts",   "Chat message when you loot an upgrade" },
-    { "areQuestPicksEnabled",     "Quest rewards", "Mark the best reward when you hand in a quest" },
-    { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
-    { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
-    { "isSellAdviceEnabled",      "Sell advice",   "AH or disenchant? Uses Auctionator prices (needs Auctionator)" },
-    { "isLevelPaceEnabled",       "Level pace",    "Window with XP / hour, time and kills to level" },
-    { "isAutoVendorEnabled",      "Auto vendor",   "Sell grey items and repair at vendors (hold Shift to skip)" },
-    { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in the catch" },
-    { "isLifeLogEnabled",         "Life log",      "Your character's story: kills, gold, loot, travel ... (/mentor log)" },
+-- The settings are grouped in sections, in two columns. A row with
+-- dependsOn is indented under the setting it belongs to.
+local SETTINGS_SECTIONS = {
+    { column = 1, title = "Talents & play", rows = {
+        { "isTalentHighlightEnabled", "Talent window", "Mark the next talent and plan the next points" },
+        { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
+    } },
+    { column = 1, title = "Gear & loot", rows = {
+        { "areBagArrowsEnabled",      "Bag arrows",    "Green / red arrows on items that are better / worse" },
+        { "areTooltipLinesEnabled",   "Item tooltips", "What to do with an item, and how it compares per spec" },
+        { "areTooltipDetailsShown",   "Details",       "Stat explanations and extra lines", dependsOn = "areTooltipLinesEnabled" },
+        { "areLootAlertsEnabled",     "Loot alerts",   "Chat message when you loot an upgrade" },
+        { "areQuestPicksEnabled",     "Quest rewards", "Mark the best reward when you hand in a quest" },
+    } },
+    { column = 2, title = "Gold", rows = {
+        { "isSellAdviceEnabled",      "Sell advice",   "AH, disenchant or vendor? Needs Auctionator" },
+        { "isAutoVendorEnabled",      "Auto vendor",   "Sell junk and repair at vendors (Shift skips)" },
+    } },
+    { column = 2, title = "Extra tools", rows = {
+        { "isLevelPaceEnabled",       "Level pace",    "XP / hour, time and kills to level" },
+        { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in" },
+        { "isLifeLogEnabled",         "Life log",      "Your character's story (/mentor log)" },
+    } },
+    { column = 2, title = "Interface", rows = {
+        { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
+    } },
 }
 local SETTINGS_ROW_HEIGHT = 34
+local SETTINGS_SECTION_HEADER_HEIGHT = 24
+local SETTINGS_COLUMN_WIDTH = 250
+local SETTINGS_TOP_OFFSET = 38
+local SETTINGS_BOTTOM_SPACE = 44
+local SETTINGS_INDENT = 18
 local settingsPanel
 local settingsCheckboxes = {}
+local settingsDependentRows = {}   -- { checkbox, labelText, dependsOn }
+
+-- Greys out "Details" while "Item tooltips" is off, and so on.
+local function UpdateDependentSettings()
+    for _, dependentRow in ipairs(settingsDependentRows) do
+        local isParentOn = MentorDB[dependentRow.dependsOn] ~= false
+        dependentRow.checkbox:SetEnabled(isParentOn)
+        dependentRow.labelText:SetTextColor(isParentOn and 1 or 0.5, isParentOn and 1 or 0.5, isParentOn and 1 or 0.5)
+    end
+end
 
 local function BuildSettingsPanel()
     settingsPanel = CreateFrame("Frame", "MentorSettingsPanel", mainFrame, BACKDROP_TEMPLATE)
-    settingsPanel:SetSize(260, 44 + #SETTINGS_ROWS * SETTINGS_ROW_HEIGHT + 34)
     settingsPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -8, -40)
     settingsPanel:SetFrameStrata("DIALOG")
     settingsPanel:EnableMouse(true)
     ApplyBackdrop(settingsPanel)
 
-    local title = CreateText(settingsPanel, "GameFontNormal")
-    title:SetPoint("TOPLEFT", PADDING, -PADDING)
+    local logo = settingsPanel:CreateTexture(nil, "ARTWORK")
+    logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
+    logo:SetSize(20, 20)
+    logo:SetPoint("TOPLEFT", PADDING - 2, -PADDING + 3)
+    local title = CreateText(settingsPanel, "GameFontNormalLarge")
+    title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
     title:SetText("Mentor settings")
     local closeButton = CreateFrame("Button", nil, settingsPanel, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", -2, -2)
     closeButton:SetScript("OnClick", function() settingsPanel:Hide() end)
 
-    for rowIndex, rowInfo in ipairs(SETTINGS_ROWS) do
-        local settingName, label, description = rowInfo[1], rowInfo[2], rowInfo[3]
-        local checkbox = CreateFrame("CheckButton", nil, settingsPanel, "UICheckButtonTemplate")
-        checkbox:SetSize(24, 24)
-        checkbox:SetPoint("TOPLEFT", PADDING - 4, -36 - (rowIndex - 1) * SETTINGS_ROW_HEIGHT)
-        local labelText = CreateText(settingsPanel, "GameFontHighlight")
-        labelText:SetPoint("TOPLEFT", checkbox, "TOPRIGHT", 4, -2)
-        labelText:SetText(label)
-        local descriptionText = CreateText(settingsPanel, "GameFontHighlightSmall", 210)
-        descriptionText:SetPoint("TOPLEFT", labelText, "BOTTOMLEFT", 0, -1)
-        descriptionText:SetText(MUTED_TEXT .. description .. "|r")
-        checkbox:SetScript("OnClick", function(self)
-            MentorDB[settingName] = self:GetChecked() and true or false
-            if settingName == "isMinimapButtonShown" and Mentor.MinimapButton then
-                Mentor.MinimapButton.UpdateVisibility()
+    -- Each column is filled from the top, section by section.
+    local columnOffsets = { SETTINGS_TOP_OFFSET, SETTINGS_TOP_OFFSET }
+    for _, section in ipairs(SETTINGS_SECTIONS) do
+        local columnLeft = PADDING + (section.column - 1) * SETTINGS_COLUMN_WIDTH
+        local verticalOffset = columnOffsets[section.column]
+
+        -- Section header: gold title with a thin gold line under it.
+        local headerText = CreateText(settingsPanel, "GameFontNormal")
+        headerText:SetPoint("TOPLEFT", columnLeft, -verticalOffset)
+        headerText:SetText(section.title)
+        local headerLine = settingsPanel:CreateTexture(nil, "ARTWORK")
+        headerLine:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.3)
+        headerLine:SetHeight(1)
+        headerLine:SetPoint("TOPLEFT", columnLeft, -verticalOffset - 15)
+        headerLine:SetWidth(SETTINGS_COLUMN_WIDTH - 16)
+        verticalOffset = verticalOffset + SETTINGS_SECTION_HEADER_HEIGHT
+
+        for _, rowInfo in ipairs(section.rows) do
+            local settingName, label, description = rowInfo[1], rowInfo[2], rowInfo[3]
+            local indent = rowInfo.dependsOn and SETTINGS_INDENT or 0
+            local checkbox = CreateFrame("CheckButton", nil, settingsPanel, "UICheckButtonTemplate")
+            checkbox:SetSize(24, 24)
+            checkbox:SetPoint("TOPLEFT", columnLeft - 4 + indent, -verticalOffset)
+            local labelText = CreateText(settingsPanel, "GameFontHighlight")
+            labelText:SetPoint("TOPLEFT", checkbox, "TOPRIGHT", 4, -2)
+            labelText:SetText(label)
+            local descriptionText = CreateText(settingsPanel, "GameFontHighlightSmall", SETTINGS_COLUMN_WIDTH - 50 - indent)
+            descriptionText:SetPoint("TOPLEFT", labelText, "BOTTOMLEFT", 0, -1)
+            descriptionText:SetText(MUTED_TEXT .. description .. "|r")
+            checkbox:SetScript("OnClick", function(self)
+                MentorDB[settingName] = self:GetChecked() and true or false
+                if settingName == "isMinimapButtonShown" and Mentor.MinimapButton then
+                    Mentor.MinimapButton.UpdateVisibility()
+                end
+                Mentor.OnSettingChanged(settingName)
+                UpdateDependentSettings()
+                Mentor.RequestRefresh()
+            end)
+            settingsCheckboxes[settingName] = checkbox
+            if rowInfo.dependsOn then
+                table.insert(settingsDependentRows, { checkbox = checkbox, labelText = labelText, dependsOn = rowInfo.dependsOn })
             end
-            Mentor.OnSettingChanged(settingName)
-            Mentor.RequestRefresh()
-        end)
-        settingsCheckboxes[settingName] = checkbox
+            verticalOffset = verticalOffset + SETTINGS_ROW_HEIGHT
+        end
+        columnOffsets[section.column] = verticalOffset + 6
     end
+    local tallestColumn = math.max(columnOffsets[1], columnOffsets[2])
+    settingsPanel:SetSize(PADDING * 2 + SETTINGS_COLUMN_WIDTH * 2 - 10, tallestColumn + SETTINGS_BOTTOM_SPACE)
 
     local bugButton = CreateFrame("Button", nil, settingsPanel, "UIPanelButtonTemplate")
     bugButton:SetSize(140, 22)
@@ -720,6 +777,7 @@ function Mentor.ToggleSettings()
     for settingName, checkbox in pairs(settingsCheckboxes) do
         checkbox:SetChecked(MentorDB[settingName] ~= false)
     end
+    UpdateDependentSettings()
     settingsPanel:SetShown(not settingsPanel:IsShown())
 end
 

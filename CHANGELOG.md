@@ -6,6 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Settings are organized:** two columns with sections - Talents & play, Gear & loot, Gold, Extra tools and Interface. "Details" sits under "Item tooltips" and is greyed out while tooltips are off.
 - **New: Level pace** (off by default): a small Mentor window with XP, XP to level, rested XP, XP per hour, time to level and kills to level. Turn it on under Settings or with `/mentor pace on`; `/mentor pace reset` starts the session statistics again.
 - **New: Auto vendor** (off by default): sells all grey items and repairs your gear when you open a vendor (hold Shift to skip once), with a small window showing the junk value and your lowest durability. Turn it on under Settings or with `/mentor vendor on`. `/mentor keep <item>` keeps a grey item from being sold.
 - **Auto vendor window:** check boxes for "Auto sell junk" and "Auto repair" (both on by default).
