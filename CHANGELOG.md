@@ -6,6 +6,9 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- Sell advice: quest items ("Quest Item", "This Item Begins a Quest", quest pages) say "Keep - quest item". "Use:" lines in colour were not recognised, so some usable items were sent to the vendor.
+- Sell advice: items worth at least twice the vendor price on the AH are recommended for the AH from 1 silver gain (before: 10 silver), so a 7 silver item is no longer vendored for 62 copper.
+
 ## 1.11.0 - 2026-11-10
 
 Five tools in one addon, and a tidier settings menu.

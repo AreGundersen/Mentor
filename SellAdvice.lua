@@ -21,7 +21,9 @@ local ADDON_NAME, Mentor = ...
 
 local AUCTION_HOUSE_CUT       = 0.05      -- the auction house keeps 5% of the sale
 local MIN_GAIN_FACTOR         = 1.25      -- best value must be 25% above the vendor price ...
-local MIN_GAIN_COPPER         = 1000      -- ... and at least 10 silver more (per item, or per full stack)
+local MIN_GAIN_COPPER         = 1000      -- ... and at least 10 silver more (per item, or per full stack),
+local MANY_TIMES_VENDOR_FACTOR = 2         -- or at least twice the vendor price ...
+local MANY_TIMES_MIN_GAIN     = 100       -- ... and at least 1 silver more (7s on the AH beats 62c at a vendor)
 local OLD_PRICE_DAYS          = 3         -- older Auctionator prices are flagged
 local ITEM_CLASS_WEAPON       = 2
 local ITEM_CLASS_ARMOR        = 4
@@ -276,17 +278,42 @@ local ITEM_CLASS_CONSUMABLE = 0
 local ITEM_CLASS_RECIPE = 9                  -- "Use: Teaches you ..." - handled as normal items
 local USE_PREFIX = ITEM_SPELL_TRIGGER_ONUSE or "Use:"
 
-local function HasUseLine(itemLink)
+-- Tooltip text without colour codes ("|cff00ff00Use: ...|r" -> "Use: ...").
+local function StripColorCodes(text)
+    return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+end
+
+-- True when one of the item's tooltip lines starts with one of the prefixes.
+local function HasTooltipLineStartingWith(itemLink, prefixes)
     if not Mentor.GetItemTooltipLines then
         return false
     end
     for _, tooltipLine in ipairs(Mentor.GetItemTooltipLines(itemLink)) do
-        local lineText = tooltipLine.text
-        if type(lineText) == "string" and lineText:sub(1, #USE_PREFIX) == USE_PREFIX then
-            return true
+        if type(tooltipLine.text) == "string" then
+            local lineText = StripColorCodes(tooltipLine.text):gsub("^%s+", "")
+            for _, prefix in ipairs(prefixes) do
+                if lineText:sub(1, #prefix) == prefix then
+                    return true
+                end
+            end
         end
     end
     return false
+end
+
+local function HasUseLine(itemLink)
+    return HasTooltipLineStartingWith(itemLink, { USE_PREFIX })
+end
+
+-- Quest items ("Quest Item", "This Item Begins a Quest", item class Quest)
+-- are kept: you need them for a quest, or they start one.
+local ITEM_CLASS_QUEST = 12
+local QUEST_LINE_PREFIXES = {
+    ITEM_BIND_QUEST or "Quest Item",
+    ITEM_STARTS_QUEST or "This Item Begins a Quest",
+}
+local function IsQuestItem(itemLink, classId)
+    return classId == ITEM_CLASS_QUEST or HasTooltipLineStartingWith(itemLink, QUEST_LINE_PREFIXES)
 end
 
 local function IsItemToUse(itemLink, classId, equipLocation, quality)
@@ -323,6 +350,8 @@ function sellAdvice.Evaluate(itemLink, isBound)
     local professionName = GetProfessionThatUsesReagent(classId, subclassId)
     if professionName then
         keepReason = "for " .. professionName
+    elseif IsQuestItem(itemLink, classId) then
+        keepReason = "quest item"
     elseif IsItemToUse(itemLink, classId, equipLocation, quality) then
         keepReason = "use it"
     end
@@ -357,7 +386,12 @@ function sellAdvice.Evaluate(itemLink, isBound)
         }
         local bestValue = vendorValue
         local function IsClearlyBetter(value)
-            return value and value >= bestValue * MIN_GAIN_FACTOR and (value - vendorValue) * stackSize >= MIN_GAIN_COPPER
+            if not value or value < bestValue * MIN_GAIN_FACTOR then
+                return false
+            end
+            local gainForStack = (value - vendorValue) * stackSize
+            return gainForStack >= MIN_GAIN_COPPER
+                or (value >= vendorValue * MANY_TIMES_VENDOR_FACTOR and gainForStack >= MANY_TIMES_MIN_GAIN)
         end
         if IsClearlyBetter(auctionValue) then
             advice.action, bestValue = "auction", auctionValue
