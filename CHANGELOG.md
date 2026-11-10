@@ -6,18 +6,18 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
-- **Settings open to the right of the Mentor window.**
-- Life log: turning it off made the game block Mentor ("blocked from an action only available to the Blizzard UI"), because it unregistered the combat log event (#2). Turning it off now only pauses it, and turning it on again in the same session carries on without a reload. The first start happens at login; turning it on for the first time mid-session asks to reload the interface. Gold in the Life log window uses the game's coin icons.
-- Bug reports include actions the game blocked, with the name of the blocked function.
-- **Settings are organized:** two columns with sections - Talents & play, Gear & loot, Gold, Extra tools and Interface. "Details" sits under "Item tooltips" and is greyed out while tooltips are off.
-- **New: Level pace** (off by default): a small Mentor window with XP, XP to level, rested XP, XP per hour, time to level and kills to level. Turn it on under Settings or with `/mentor pace on`; `/mentor pace reset` starts the session statistics again.
-- **New: Auto vendor** (off by default): sells all grey items and repairs your gear when you open a vendor (hold Shift to skip once), with a small window showing the junk value and your lowest durability. Turn it on under Settings or with `/mentor vendor on`. `/mentor keep <item>` keeps a grey item from being sold.
-- **Auto vendor window:** check boxes for "Auto sell junk" and "Auto repair" (both on by default).
-- **New: Life log** (on by default; the window stays closed until you open it with the new "Life log" button in the Mentor window or `/mentor log`): your character's story - kills, deaths, gold, loot, crafting, professions, consumables, reputation, travel, groups and more - for the session, this character and all your characters, in a Mentor window. Turn it off under Settings or with `/mentor lifelog off`.
-- **Moving from the LifeLog addon keeps all your data:** while LifeLog is still installed, Mentor copies its data at every login and logout (LifeLog itself is never changed) and turns its own life log on. Disable LifeLog afterwards and Mentor carries on where it left off. Characters you have not logged in with since then start from the copy LifeLog kept for the "All chars" column.
-- **New: One-key fishing** (off by default): a small window with a Start / Stop fishing button. While fishing, one key (F by default, `/mentor fish key <KEY>`) casts Fishing and reels in the catch; auto loot is on and the sound is turned up so you hear the splash, and your settings come back when you stop. Turn it on under Settings or with `/mentor fishing on`; `/mentor fish` starts and stops fishing.
-- **New: Mana warning** (off by default): a small Mentor box with your mana and a big LOW MANA / OUT OF MANA warning, with a sound and an optional party message. Options under Settings ("Sound", "Tell the group", "Only in combat") and `/mentor mana low|critical <percent>`. Your ManaWarning addon settings are copied the first time.
-- These come from the standalone LevelPace, AutoVendor, OneKeyFishing, LifeLog and ManaWarning addons. If one of those is still loaded, Mentor leaves the job to it and says so.
+## 1.11.0 - 2026-11-10
+
+Five tools in one addon, and a tidier settings menu.
+
+- **New: Life log** (on by default; the window stays closed until you click the new "Life log" button or type `/mentor log`): your character's story - kills, deaths, gold, loot, crafting, professions, consumables, reputation, travel, groups and more - for the session, this character and all your characters. Coming from the LifeLog addon? Keep it installed for one login: Mentor copies all your data (LifeLog itself is never changed), then you can disable LifeLog.
+- **New: Level pace** (off by default): XP per hour, time to level and kills to level in a small window (`/mentor pace on`).
+- **New: Auto vendor** (off by default): sells grey items and repairs your gear at vendors, with check boxes for each and a small window with junk value and durability (`/mentor vendor on`; hold Shift to skip once).
+- **New: One-key fishing** (off by default): one key casts Fishing and reels in the catch (`/mentor fishing on`, `/mentor fish`).
+- **New: Mana warning** (off by default): a big LOW MANA / OUT OF MANA warning with a sound and an optional party message (`/mentor mana on`). Your ManaWarning settings are copied the first time.
+- These come from the standalone LifeLog, LevelPace, AutoVendor, OneKeyFishing and ManaWarning addons. While one of those is still loaded, Mentor leaves the job to it.
+- **Settings** open to the right of the Mentor window, in two columns with sections: Talents & play, Gear & loot, Interface, Gold, Extra tools and Mana warning.
+- Bug reports include actions the game blocked.
 
 ## 1.10.0 - 2026-11-10
 
