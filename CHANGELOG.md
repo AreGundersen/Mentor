@@ -6,7 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
-_Nothing yet._
+- Talent window: shows the next 5 talent POINTS instead of the next 5 talents. A talent that gets several points shows all their numbers (for example "2-4"), and the strip above the talent window lists the plan with the rank and the level each point is spent at ("Gift of Nature 2-5/5 (now-29) > Nature's Swiftness 1/1 (lv 30)").
 
 ## 1.9.0 - 2026-11-10
 

@@ -2,8 +2,10 @@
 -- Mentor - TalentOverlay.lua
 -- Graphics inside the game's talent window:
 --   * the next talent gets a pulsing gold frame, a soft glow and a "NEXT" tag
---   * the following talents of the build get numbered badges (2, 3, 4, 5)
---   * a guide strip above the window names the next talent and your spec
+--   * the next 5 talent POINTS get numbers: badges show which points go into
+--     a talent ("2-4" = points 2, 3 and 4 all go here)
+--   * a guide strip above the window names the next talent, your spec, and
+--     the plan for the next 5 points with the level each is spent at
 --
 -- WoW Forever uses the modern talent window (PlayerSpellsFrame.TalentsFrame,
 -- loaded with Blizzard_PlayerSpells); buttons are found by trait node id.
@@ -17,7 +19,8 @@ local FRAME_GAP = 5            -- pixels between the talent button and the gold 
 local FRAME_THICKNESS = 3
 local HALO_SIZE = 16
 local BADGE_SIZE = 18
-local GUIDE_HEIGHT = 34
+local GUIDE_HEIGHT = 50
+local MUTED_TEXT = "|cffa6a6a6"
 local CLASSIC_TALENT_FRAME_NAMES = { "PlayerTalentFrame", "TalentFrame" }
 
 local overlay = {}            -- created widgets
@@ -80,16 +83,22 @@ local function CreateNextMarker()
     return marker
 end
 
-local function CreateBadge(badgeNumber)
+-- A small gold-framed label on a talent button with the point numbers that
+-- go into that talent ("2", "2-4" or "2,5"). It widens to fit the text.
+local function CreateBadge()
     local badge = CreateFrame("Frame", nil, UIParent)
     badge:SetSize(BADGE_SIZE, BADGE_SIZE)
     local background = badge:CreateTexture(nil, "BACKGROUND")
     background:SetAllPoints()
     background:SetColorTexture(0.05, 0.05, 0.05, 0.9)
     AddBorder(badge, 1, GOLD[1], GOLD[2], GOLD[3], 0.9)
-    local numberText = badge:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    numberText:SetPoint("CENTER", 1, 0)
-    numberText:SetText(tostring(badgeNumber))
+    badge.numberText = badge:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    badge.numberText:SetPoint("CENTER", 1, 0)
+    function badge:SetPointNumbers(numbersText)
+        self.numberText:SetText(numbersText)
+        local textWidth = self.numberText:GetStringWidth() or 0
+        self:SetWidth(math.max(BADGE_SIZE, textWidth + 8))
+    end
     badge:Hide()
     return badge
 end
@@ -106,7 +115,7 @@ local function CreateGuideStrip()
         strip:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
     end
     strip.brand = strip:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    strip.brand:SetPoint("LEFT", 10, 0)
+    strip.brand:SetPoint("TOPLEFT", 10, -10)
     strip.brand:SetText("|cff66ccffMentor|r")
     strip.icon = strip:CreateTexture(nil, "ARTWORK")
     strip.icon:SetSize(22, 22)
@@ -114,16 +123,23 @@ local function CreateGuideStrip()
     strip.text = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     strip.text:SetPoint("LEFT", strip.icon, "RIGHT", 8, 0)
     strip.detail = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    strip.detail:SetPoint("RIGHT", -10, 0)
+    strip.detail:SetPoint("TOPRIGHT", -10, -11)
     strip.detail:SetJustifyH("RIGHT")
+    -- Second line: the plan for the next points.
+    strip.plan = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    strip.plan:SetPoint("BOTTOMLEFT", 10, 8)
+    strip.plan:SetPoint("BOTTOMRIGHT", -10, 8)
+    strip.plan:SetJustifyH("LEFT")
+    strip.plan:SetWordWrap(false)
     strip:Hide()
     return strip
 end
 
 overlay.nextMarker = CreateNextMarker()
+-- At most 5 points are shown, so at most 5 different talents need a badge.
 overlay.badges = {}
-for badgeIndex = 1, 4 do
-    overlay.badges[badgeIndex] = CreateBadge(badgeIndex + 1)
+for badgeIndex = 1, 5 do
+    overlay.badges[badgeIndex] = CreateBadge()
 end
 overlay.guide = CreateGuideStrip()
 
@@ -225,6 +241,71 @@ local function AttachToButton(widget, talentButton, frameLevelOffset)
     widget:SetFrameLevel((talentButton:GetFrameLevel() or 1) + frameLevelOffset)
 end
 
+--------------------------------------------------------------------------------
+-- Formatting the point plan
+--------------------------------------------------------------------------------
+
+-- {2,3,4} -> "2-4", {2,5} -> "2,5", {3} -> "3".
+function overlay.FormatNumberList(numbers)
+    local parts, rangeStart = {}, nil
+    for numberIndex, number in ipairs(numbers) do
+        rangeStart = rangeStart or number
+        local nextNumber = numbers[numberIndex + 1]
+        if nextNumber ~= number + 1 then
+            table.insert(parts, rangeStart == number and tostring(number) or (rangeStart .. "-" .. number))
+            rangeStart = nil
+        end
+    end
+    return table.concat(parts, ",")
+end
+
+-- Groups the upcoming points by talent, in order of first appearance:
+-- { { talent, pointNumbers = {1,2}, firstRank, lastRank, levels = {...}, isNow = {...} }, ... }
+function overlay.GroupPointsByTalent(upcomingPoints)
+    local talentGroups, groupByTalent = {}, {}
+    for pointNumber, upcomingPoint in ipairs(upcomingPoints or {}) do
+        local talentGroup = groupByTalent[upcomingPoint.talent]
+        if not talentGroup then
+            talentGroup = { talent = upcomingPoint.talent, pointNumbers = {}, levels = {}, nowFlags = {},
+                firstRank = upcomingPoint.rank }
+            groupByTalent[upcomingPoint.talent] = talentGroup
+            table.insert(talentGroups, talentGroup)
+        end
+        table.insert(talentGroup.pointNumbers, pointNumber)
+        table.insert(talentGroup.levels, upcomingPoint.level)
+        table.insert(talentGroup.nowFlags, upcomingPoint.isNow == true)
+        talentGroup.lastRank = upcomingPoint.rank
+    end
+    return talentGroups
+end
+
+-- "now", "27" or "27-29" (or "now-28" when it starts with free points).
+local function FormatLevelSpan(talentGroup)
+    local firstText = talentGroup.nowFlags[1] and "now" or ("lv " .. tostring(talentGroup.levels[1]))
+    local lastIndex = #talentGroup.levels
+    if lastIndex == 1 or (talentGroup.nowFlags[lastIndex] and talentGroup.nowFlags[1]) then
+        return firstText
+    end
+    return firstText .. "-" .. tostring(talentGroup.levels[lastIndex])
+end
+
+-- One line for the guide strip:
+-- "Next 5 points:  Gift of Nature 2-4/5 (now-lv 28)  >  Improved Rejuvenation 1/3 (lv 29)"
+function overlay.FormatPointPlan(upcomingPoints)
+    local talentGroups = overlay.GroupPointsByTalent(upcomingPoints)
+    if #talentGroups == 0 then
+        return ""
+    end
+    local groupTexts = {}
+    for _, talentGroup in ipairs(talentGroups) do
+        local rankText = talentGroup.firstRank == talentGroup.lastRank and tostring(talentGroup.firstRank)
+            or (talentGroup.firstRank .. "-" .. talentGroup.lastRank)
+        table.insert(groupTexts, string.format("|cffffd100%s|r %s/%d %s(%s)|r", talentGroup.talent.name,
+            rankText, talentGroup.talent.maxRank or 1, MUTED_TEXT, FormatLevelSpan(talentGroup)))
+    end
+    return MUTED_TEXT .. "Next " .. #upcomingPoints .. " points:|r  " .. table.concat(groupTexts, MUTED_TEXT .. "  >  |r")
+end
+
 function overlay.HideAll()
     overlay.nextMarker.pulse:Stop()
     overlay.nextMarker:Hide()
@@ -266,6 +347,7 @@ function overlay.Update(advice)
         and string.format("|cff40ff40%d point%s to spend|r", advice.unspentPoints, advice.unspentPoints == 1 and "" or "s")
         or "|cffa6a6a6no free points|r"
     guide.detail:SetText(specName .. " build  ·  " .. pointsText)
+    guide.plan:SetText(overlay.FormatPointPlan(advice.upcomingPoints))
     guide:Show()
 
     -- Gold frame on the next talent.
@@ -288,18 +370,31 @@ function overlay.Update(advice)
         overlay.lastStatus = nextTalent and "next talent's button not found" or "no next talent"
     end
 
-    -- Numbered badges on the talents after that.
-    for badgeIndex, badge in ipairs(overlay.badges) do
-        local upcomingTalent = advice.upcomingTalents and advice.upcomingTalents[badgeIndex]
-        local badgeButton = upcomingTalent and findButton(upcomingTalent)
-        if badgeButton and badgeButton:IsVisible() then
-            AttachToButton(badge, badgeButton, 7)
-            badge:ClearAllPoints()
-            badge:SetPoint("CENTER", badgeButton, "TOPRIGHT", -2, -2)
-            badge:Show()
-        else
-            badge:Hide()
+    -- Point numbers on the talents: one badge per talent, listing which of
+    -- the next points go there. Point 1 is the NEXT talent itself, so its
+    -- badge only appears when it gets more points ("2-3").
+    local talentGroups = overlay.GroupPointsByTalent(advice.upcomingPoints)
+    local badgeIndex = 0
+    for _, talentGroup in ipairs(talentGroups) do
+        local shownNumbers = {}
+        for _, pointNumber in ipairs(talentGroup.pointNumbers) do
+            if pointNumber > 1 then
+                table.insert(shownNumbers, pointNumber)
+            end
         end
+        local talentButton = #shownNumbers > 0 and findButton(talentGroup.talent)
+        if talentButton and talentButton:IsVisible() and overlay.badges[badgeIndex + 1] then
+            badgeIndex = badgeIndex + 1
+            local badge = overlay.badges[badgeIndex]
+            AttachToButton(badge, talentButton, 7)
+            badge:SetPointNumbers(overlay.FormatNumberList(shownNumbers))
+            badge:ClearAllPoints()
+            badge:SetPoint("CENTER", talentButton, "TOPRIGHT", -2, -2)
+            badge:Show()
+        end
+    end
+    for unusedIndex = badgeIndex + 1, #overlay.badges do
+        overlay.badges[unusedIndex]:Hide()
     end
 end
 

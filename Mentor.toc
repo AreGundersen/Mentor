@@ -2,7 +2,7 @@
 ## Title: Mentor
 ## Notes: Detects your class and spec, shows which talent to take next (and marks it in the talent window), and tells you how much better or worse every item is for each of your specs.
 ## Author: Are Gundersen
-## Version: 1.9.0
+## Version: 1.9.0+dev
 ## X-Website: https://github.com/AreGundersen/Mentor
 ## SavedVariables: MentorBugReports
 ## SavedVariablesPerCharacter: MentorDB

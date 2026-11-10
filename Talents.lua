@@ -534,26 +534,52 @@ local function FindAutomaticSuggestion(treesToSearch)
     return nil, nil
 end
 
--- Upcoming talents after the next one, for the numbered badges in the talent
--- window: the next few build steps that are not done yet (one per talent).
-local function GetUpcomingTalents(steps, nextTalent, upcomingCount)
-    local upcomingTalents, seenTalents = {}, {}
-    if nextTalent then
-        seenTalents[nextTalent] = true
+-- The next few talent POINTS, in the order they should be spent: the next
+-- talent first, then the build order point by point. A talent that gets
+-- several of these points appears several times (Gift of Nature 2/5, 3/5 ...).
+-- Each point: { talent, tree, rank (rank after this point), level, isNow }.
+-- level = the character level the point is spent at: points you can already
+-- spend are "now", after that one point per level (first point at level 10).
+local UPCOMING_POINT_COUNT = 5
+local FIRST_TALENT_LEVEL = 10
+
+local function GetUpcomingPoints(steps, advice, pointCount)
+    local upcomingPoints = {}
+    local plannedRankByTalent = {}
+
+    local function AddPoint(talent, tree)
+        plannedRankByTalent[talent] = (plannedRankByTalent[talent] or talent.rank or 0) + 1
+        table.insert(upcomingPoints, { talent = talent, tree = tree, rank = plannedRankByTalent[talent] })
+    end
+
+    if advice.nextTalent then
+        AddPoint(advice.nextTalent, advice.nextTree)
     end
     for _, step in ipairs(steps) do
-        if #upcomingTalents >= upcomingCount then
+        if step.talent and step.status ~= "missing" then
+            local plannedRank = plannedRankByTalent[step.talent] or step.talent.rank or 0
+            while plannedRank < step.targetRank and #upcomingPoints < pointCount do
+                AddPoint(step.talent, step.tree)
+                plannedRank = plannedRankByTalent[step.talent]
+            end
+        end
+        if #upcomingPoints >= pointCount then
             break
         end
-        if step.talent and step.status ~= "done" and not seenTalents[step.talent] then
-            seenTalents[step.talent] = true
-            table.insert(upcomingTalents, step.talent)
+    end
+
+    local freePointsNow = advice.unspentPoints or 0
+    local levelBeforeNextPoint = math.max(advice.level or 1, FIRST_TALENT_LEVEL - 1)
+    for pointIndex, upcomingPoint in ipairs(upcomingPoints) do
+        if pointIndex <= freePointsNow then
+            upcomingPoint.isNow = true
+            upcomingPoint.level = advice.level
+        else
+            upcomingPoint.level = levelBeforeNextPoint + (pointIndex - freePointsNow)
         end
     end
-    return upcomingTalents
+    return upcomingPoints
 end
-
-local UPCOMING_BADGE_COUNT = 4
 
 -- Everything the UI needs about talents, in one table (nil for unknown classes).
 function Mentor.GetTalentAdvice()
@@ -609,7 +635,7 @@ function Mentor.GetTalentAdvice()
         advice.nextTalent, advice.nextTree = FindAutomaticSuggestion(searchOrder)
         advice.isAutomatic = advice.nextTalent ~= nil
     end
-    advice.upcomingTalents = GetUpcomingTalents(steps, advice.nextTalent, UPCOMING_BADGE_COUNT)
+    advice.upcomingPoints = GetUpcomingPoints(steps, advice, UPCOMING_POINT_COUNT)
 
     advice.missingCount = 0
     for _, step in ipairs(steps) do
