@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in Mentor is wrong, broken or confusing.
+title: "[Bug] "
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make Mentor better! The fastest way:
+        1. In the game, click **Report bug** in the Mentor window (or type `/mentor bug`).
+        2. Pick what kind of problem it is and describe it. For gear problems, shift-click the item into the box.
+        3. Click **Create report**, copy the report (Ctrl+A, Ctrl+C) and paste it below.
+  - type: dropdown
+    id: category
+    attributes:
+      label: What kind of problem is it?
+      options:
+        - Wrong advice (talents, rotation, guide text)
+        - Gear comparison / bag arrows / tooltip
+        - Talents (detection, highlight, build)
+        - Error message (Lua error)
+        - Window / layout / settings
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: A sentence or two is enough. A screenshot helps a lot - drag it into this box.
+      placeholder: "The arrow on my ring says it is an upgrade, but it has less of everything than the one I wear."
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Mentor report
+      description: Paste the report from the game here. It contains your class, spec, talents, settings, addons and any caught errors - nothing personal.
+      render: text
+      placeholder: "=== Mentor bug report ===\n..."
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Mentor version (if you didn't paste a report)
+      placeholder: "1.9.0"

@@ -1,0 +1,15 @@
+name: Idea / feature request
+description: Something Mentor could do better or should add.
+title: "[Idea] "
+labels: ["idea"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Mentor to do?
+    validations:
+      required: true
+  - type: input
+    id: class-spec
+    attributes:
+      label: Which class / spec is it about? (optional)
