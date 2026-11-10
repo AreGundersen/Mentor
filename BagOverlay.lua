@@ -157,6 +157,21 @@ local function IsButtonItemBound(itemButton)
     return false
 end
 
+-- True when the item is an upgrade for one of your other specs (then it is
+-- not marked as something to sell).
+local function IsUpgradeForAnotherSpec(itemLink)
+    local advice = Mentor.currentAdvice
+    if not (advice and advice.classData) then
+        return false
+    end
+    for specNumber, specData in ipairs(advice.classData.specs) do
+        if specNumber ~= advice.specNumber and Mentor.CompareItem(itemLink, specData.weights).kind == "upgrade" then
+            return true
+        end
+    end
+    return false
+end
+
 local function GetContainerItemLinkCompat(bagIndex, slotIndex)
     if C_Container and C_Container.GetContainerItemLink then
         return C_Container.GetContainerItemLink(bagIndex, slotIndex)
@@ -372,6 +387,9 @@ function bagOverlay.Update(weights)
             if isSellAdviceEnabled and arrowDirection ~= UP_ARROW then
                 local sellAdvice = Mentor.SellAdvice.Evaluate(itemLink, IsButtonItemBound(itemButton))
                 local iconTexture = Mentor.SellAdvice.GetActionIcon(sellAdvice)
+                if iconTexture and IsUpgradeForAnotherSpec(itemLink) then
+                    iconTexture = nil   -- the tooltip says "Keep - upgrade for <spec>"
+                end
                 if iconTexture then
                     local sellIcon = GetSellIcon(itemButton)
                     sellIcon.texture:SetTexture(iconTexture)

@@ -59,24 +59,45 @@ local function IsTooltipSoulbound(tooltip)
     return false
 end
 
--- Adds the sell line; currentResult (optional) is the comparison for your spec.
-local function AddSellAdviceLine(tooltip, itemLink, currentResult, indentText)
+-- Returns the sell line (text, red, green, blue), or nil. currentResult
+-- (optional) is the comparison for your spec; upgrades are never sold.
+local function GetSellAdviceLine(tooltip, itemLink, currentResult)
     local sellAdvice = Mentor.SellAdvice
     if not (sellAdvice and MentorDB.isSellAdviceEnabled) then
-        return
+        return nil
     end
     if not sellAdvice.IsAuctionatorLoaded() then
-        tooltip:AddLine(indentText .. "Sell advice needs the Auctionator addon", 0.6, 0.6, 0.6)
-        return
+        return "Sell advice needs the Auctionator addon", 0.6, 0.6, 0.6
     end
     if currentResult and (currentResult.kind == "upgrade" or currentResult.kind == "empty") then
-        return -- you want to wear this one, not sell it
+        return nil -- you want to wear this one, not sell it
     end
-    local lineText, red, green, blue = sellAdvice.Describe(sellAdvice.Evaluate(itemLink, IsTooltipSoulbound(tooltip)),
-        not AreDetailsShown())
+    return sellAdvice.Describe(sellAdvice.Evaluate(itemLink, IsTooltipSoulbound(tooltip)), not AreDetailsShown())
+end
+
+local function AddSellAdviceLine(tooltip, itemLink, currentResult, indentText)
+    local lineText, red, green, blue = GetSellAdviceLine(tooltip, itemLink, currentResult)
     if lineText then
         tooltip:AddLine(indentText .. lineText, red, green, blue)
     end
+end
+
+-- What to do with the item, shown right after "Mentor:" at the top:
+--   Equip                       upgrade for your current spec
+--   Equip at level 24           upgrade, but you need a higher level
+--   Keep - upgrade for <spec>   not for your spec, but for another spec of yours
+--   the sell advice             otherwise (when Sell advice is on)
+local function GetActionLine(tooltip, itemLink, currentResult, otherSpecUpgradeName)
+    if currentResult.kind == "upgrade" or currentResult.kind == "empty" then
+        if currentResult.requiredLevel then
+            return "Equip at level " .. currentResult.requiredLevel, 1.0, 0.85, 0.1
+        end
+        return "Equip", 0.25, 1.0, 0.25
+    end
+    if otherSpecUpgradeName then
+        return "Keep - upgrade for " .. otherSpecUpgradeName, 0.6, 0.9, 0.6
+    end
+    return GetSellAdviceLine(tooltip, itemLink, currentResult)
 end
 
 -- Used when the Mentor tooltip lines are off but sell advice is on.
@@ -124,23 +145,36 @@ local function AddComparisonToTooltip(tooltip)
         return
     end
 
-    -- One line per spec of your class; your current spec is bright, the others grey.
-    tooltip:AddLine(" ")
-    tooltip:AddLine("|cff66ccffMentor|r")
+    -- Compare once per spec of your class.
+    local specLines = {}
+    local otherSpecUpgradeName
     for specNumber, specData in ipairs(advice.classData.specs) do
-        local specResult = (specNumber == advice.specNumber) and currentResult
-            or Mentor.CompareItem(itemLink, specData.weights)
-        local specLabel = (specNumber == advice.specNumber) and ("|cffffffff" .. specData.name .. "|r")
-            or ("|cffa6a6a6" .. specData.name .. "|r")
+        local isCurrentSpec = specNumber == advice.specNumber
+        local specResult = isCurrentSpec and currentResult or Mentor.CompareItem(itemLink, specData.weights)
+        if not isCurrentSpec and not otherSpecUpgradeName and specResult.kind == "upgrade" then
+            otherSpecUpgradeName = specData.name
+        end
+        local specLabel = isCurrentSpec and ("|cffffffff" .. specData.name .. "|r") or ("|cffa6a6a6" .. specData.name .. "|r")
         local lineText, red, green, blue = Mentor.DescribeComparison(specResult, specLabel, true)
         if lineText then
-            tooltip:AddLine("  " .. lineText, red, green, blue)
+            table.insert(specLines, { lineText, red, green, blue })
         end
+    end
+
+    -- Header with the verdict, then one line per spec (your current spec bright, the others grey).
+    tooltip:AddLine(" ")
+    local actionText, actionRed, actionGreen, actionBlue = GetActionLine(tooltip, itemLink, currentResult, otherSpecUpgradeName)
+    if actionText then
+        tooltip:AddLine("|cff66ccffMentor:|r " .. actionText, actionRed, actionGreen, actionBlue)
+    else
+        tooltip:AddLine("|cff66ccffMentor|r")
+    end
+    for _, specLine in ipairs(specLines) do
+        tooltip:AddLine("  " .. specLine[1], specLine[2], specLine[3], specLine[4])
     end
     if AreDetailsShown() then
         tooltip:AddLine("  total = all your gear, item = vs. what you wear in that slot", 0.5, 0.5, 0.5)
     end
-    AddSellAdviceLine(tooltip, itemLink, currentResult, "  ")
     -- What actually changes compared with what you wear, one stat per line.
     local differenceLines = Mentor.GetStatDifferenceLines(currentResult.statDifference, weights,
         advice.specData and advice.specData.name, not AreDetailsShown())
