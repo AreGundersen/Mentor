@@ -6,6 +6,8 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+## 1.10.0 - 2026-11-10
+
 Sell advice, clearer tooltips and a better talent window.
 
 - **New: Sell advice** (off by default, needs the Auctionator addon). Items you don't need say whether to sell them on the auction house, disenchant them or just vendor them, based on Auctionator's prices (the 5% AH cut included). Items worth selling get a gold coin or disenchant icon in your bags. Things you use (potions, food, campfire ...) and reagents for your professions say "Keep". Turn it on under Settings or with `/mentor sell on`.
