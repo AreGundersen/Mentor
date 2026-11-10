@@ -136,11 +136,12 @@ local function AddComparisonToTooltip(tooltip)
     local isComparable = currentResult.kind == "upgrade" or currentResult.kind == "downgrade"
         or currentResult.kind == "same" or currentResult.kind == "empty"
     if not isComparable then
+        -- What to do with it first, then why ("You cannot use this item").
+        AddSellAdviceLine(tooltip, itemLink, currentResult, "|cff66ccffMentor:|r ")
         local lineText, red, green, blue = Mentor.DescribeComparison(currentResult)
         if lineText then
             tooltip:AddLine("|cff66ccffMentor:|r " .. lineText, red, green, blue)
         end
-        AddSellAdviceLine(tooltip, itemLink, currentResult, "|cff66ccffMentor:|r ")
         tooltip:Show()
         return
     end

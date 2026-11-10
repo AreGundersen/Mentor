@@ -212,8 +212,8 @@ end
 --------------------------------------------------------------------------------
 local function GetItemDetails(itemLink)
     local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
-    local _, _, quality, itemLevel, requiredLevel, _, _, stackSize, _, _, vendorPrice, classId, subclassId = getInfo(itemLink)
-    return quality, itemLevel, stackSize, vendorPrice, classId, subclassId, requiredLevel
+    local _, _, quality, itemLevel, requiredLevel, _, _, stackSize, equipLocation, _, vendorPrice, classId, subclassId = getInfo(itemLink)
+    return quality, itemLevel, stackSize, vendorPrice, classId, subclassId, requiredLevel, equipLocation
 end
 
 -- Crafting reagents (item class "Tradeskill") you can use yourself are kept,
@@ -269,23 +269,47 @@ local function GetProfessionThatUsesReagent(classId, subclassId)
 end
 sellAdvice.GetProfessionThatUsesReagent = GetProfessionThatUsesReagent
 
--- Potions, elixirs, food, bandages and scrolls are for using, not selling -
--- unless they are far below your level (a level 5 potion at level 40).
+-- Things you use are kept, not sold: potions, elixirs, food, bandages,
+-- scrolls, and every other bag item with a "Use:" line (campfire, tent ...).
+-- Only consumables with a real level requirement that is far below your level
+-- (a level 5 healing potion at level 40) go back to the normal sell advice;
+-- utility items without a level requirement (Swiftness Potion) never expire.
 local ITEM_CLASS_CONSUMABLE = 0
+local ITEM_CLASS_RECIPE = 9                  -- "Use: Teaches you ..." - handled as normal items
 local OUTDATED_CONSUMABLE_LEVELS = 20
-local function IsUsefulConsumable(classId, requiredLevel)
-    if classId ~= ITEM_CLASS_CONSUMABLE then
+local USE_PREFIX = ITEM_SPELL_TRIGGER_ONUSE or "Use:"
+
+local function HasUseLine(itemLink)
+    if not Mentor.GetItemTooltipLines then
+        return false
+    end
+    for _, tooltipLine in ipairs(Mentor.GetItemTooltipLines(itemLink)) do
+        local lineText = tooltipLine.text
+        if type(lineText) == "string" and lineText:sub(1, #USE_PREFIX) == USE_PREFIX then
+            return true
+        end
+    end
+    return false
+end
+
+local function IsItemToUse(itemLink, classId, requiredLevel, equipLocation, quality)
+    local isEquippable = equipLocation and equipLocation ~= "" and equipLocation ~= "INVTYPE_NON_EQUIP_IGNORE"
+    if isEquippable or classId == ITEM_CLASS_RECIPE or (quality or 0) < 1 then
+        return false     -- gear has its own advice, grey items are junk
+    end
+    if classId ~= ITEM_CLASS_CONSUMABLE and not HasUseLine(itemLink) then
         return false
     end
     local playerLevel = UnitLevel and UnitLevel("player") or 1
-    return playerLevel - (requiredLevel or 0) <= OUTDATED_CONSUMABLE_LEVELS
+    local isOutdated = (requiredLevel or 0) > 1 and playerLevel - requiredLevel > OUTDATED_CONSUMABLE_LEVELS
+    return not isOutdated
 end
 
 -- isBound: true when this copy is soulbound (from the bag slot or the
 -- tooltip). Bind-on-pickup items are always treated as bound.
 -- Returns nil when there is nothing to say, otherwise:
---   { action = "keep", keepReason }   reagent for your profession, or a potion,
---                                     elixir, food or bandage for your level
+--   { action = "keep", keepReason }   reagent for your profession, or something
+--                                     to use (potion, food, campfire ...)
 --   { action = "auction" | "disenchant" | "vendor", vendorValue, auctionValue,
 --     disenchantValue, canDisenchant, priceAgeDays }
 function sellAdvice.Evaluate(itemLink, isBound)
@@ -299,7 +323,7 @@ function sellAdvice.Evaluate(itemLink, isBound)
         return cachedEntry.advice
     end
 
-    local quality, itemLevel, stackSize, vendorPrice, classId, subclassId, requiredLevel = GetItemDetails(itemLink)
+    local quality, itemLevel, stackSize, vendorPrice, classId, subclassId, requiredLevel, equipLocation = GetItemDetails(itemLink)
     if not quality then
         return nil      -- not loaded yet
     end
@@ -307,7 +331,7 @@ function sellAdvice.Evaluate(itemLink, isBound)
     local professionName = GetProfessionThatUsesReagent(classId, subclassId)
     if professionName then
         keepReason = "for " .. professionName
-    elseif IsUsefulConsumable(classId, requiredLevel) then
+    elseif IsItemToUse(itemLink, classId, requiredLevel, equipLocation, quality) then
         keepReason = "use it"
     end
     if keepReason then
