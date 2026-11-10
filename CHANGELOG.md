@@ -14,7 +14,7 @@ number is only given when Are decides the release is finished (see
 - Sell advice now always says something for gear: "Just vendor it" with the reason in grey (soulbound, or no AH price yet) when the AH and disenchanting are not worth it, and "Sell advice needs the Auctionator addon" when Auctionator is missing.
 - Sell advice works for every item with a price (cloth, hides, herbs ...), not only gear. Stackable items show the price "each", and the minimum gain (10 silver) is counted for a full stack, so cheap reagents that are worth much more on the AH are no longer sent to the vendor.
 - Crafting reagents for one of your professions say "Keep - for Tailoring" (cloth also for First Aid, hides for Leatherworking, herbs for Alchemy, and so on) instead of "sell".
-- Things you use say "Keep - use it" instead of "sell": potions, elixirs, food, bandages and every other bag item with a "Use:" line (campfire, tent ...). Only consumables with a level requirement more than 20 levels below you get normal sell advice. Recipes and grey items are not kept.
+- Things you use say "Keep - use it" instead of "sell": potions, elixirs, food, bandages and every other bag item with a "Use:" line (campfire, tent ...). This holds whatever their level. Recipes and grey items are not kept.
 - When Mentor says "You cannot use this item", the advice (what to do with it) comes first.
 - New Mentor logo as the minimap button and the addon list icon.
 

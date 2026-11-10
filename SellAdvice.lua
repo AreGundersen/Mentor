@@ -270,13 +270,10 @@ end
 sellAdvice.GetProfessionThatUsesReagent = GetProfessionThatUsesReagent
 
 -- Things you use are kept, not sold: potions, elixirs, food, bandages,
--- scrolls, and every other bag item with a "Use:" line (campfire, tent ...).
--- Only consumables with a real level requirement that is far below your level
--- (a level 5 healing potion at level 40) go back to the normal sell advice;
--- utility items without a level requirement (Swiftness Potion) never expire.
+-- scrolls, and every other bag item with a "Use:" line (campfire, tent ...),
+-- whatever their level - a level 5 Swiftness Potion is still useful at 30.
 local ITEM_CLASS_CONSUMABLE = 0
 local ITEM_CLASS_RECIPE = 9                  -- "Use: Teaches you ..." - handled as normal items
-local OUTDATED_CONSUMABLE_LEVELS = 20
 local USE_PREFIX = ITEM_SPELL_TRIGGER_ONUSE or "Use:"
 
 local function HasUseLine(itemLink)
@@ -292,17 +289,12 @@ local function HasUseLine(itemLink)
     return false
 end
 
-local function IsItemToUse(itemLink, classId, requiredLevel, equipLocation, quality)
+local function IsItemToUse(itemLink, classId, equipLocation, quality)
     local isEquippable = equipLocation and equipLocation ~= "" and equipLocation ~= "INVTYPE_NON_EQUIP_IGNORE"
     if isEquippable or classId == ITEM_CLASS_RECIPE or (quality or 0) < 1 then
         return false     -- gear has its own advice, grey items are junk
     end
-    if classId ~= ITEM_CLASS_CONSUMABLE and not HasUseLine(itemLink) then
-        return false
-    end
-    local playerLevel = UnitLevel and UnitLevel("player") or 1
-    local isOutdated = (requiredLevel or 0) > 1 and playerLevel - requiredLevel > OUTDATED_CONSUMABLE_LEVELS
-    return not isOutdated
+    return classId == ITEM_CLASS_CONSUMABLE or HasUseLine(itemLink)
 end
 
 -- isBound: true when this copy is soulbound (from the bag slot or the
@@ -331,7 +323,7 @@ function sellAdvice.Evaluate(itemLink, isBound)
     local professionName = GetProfessionThatUsesReagent(classId, subclassId)
     if professionName then
         keepReason = "for " .. professionName
-    elseif IsItemToUse(itemLink, classId, requiredLevel, equipLocation, quality) then
+    elseif IsItemToUse(itemLink, classId, equipLocation, quality) then
         keepReason = "use it"
     end
     if keepReason then
