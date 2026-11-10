@@ -7,7 +7,7 @@ An all-in-one leveling helper for new **WoW Forever** players: talent picks, gea
 - **How to play** - rotation, 1 / 2 / 3+ mobs, pet and "in trouble" advice for all 27 specs that changes as you learn new abilities.
 - **New abilities as you level, racials and ready-made macros.**
 
-Download: CurseForge (search "Mentor" for WoW Forever). Type `/mentor` in game.
+Download: [Mentor on CurseForge](https://www.curseforge.com/wow/addons/mentor-forever). Type `/mentor` in game.
 
 ## Found a bug?
 
