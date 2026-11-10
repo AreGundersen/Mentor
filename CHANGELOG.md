@@ -9,6 +9,8 @@ number is only given when Are decides the release is finished (see
 - Talent window: shows the next 5 talent POINTS instead of the next 5 talents. A talent that gets several points shows all their numbers (for example "2-4"), and the strip above the talent window lists the plan with the rank and the level each point is spent at ("Gift of Nature 2-5/5 (now-29) > Nature's Swiftness 1/1 (lv 30)").
 - New setting "Sell advice" (off by default, needs Auctionator): items that are not an upgrade get a tooltip line saying whether to sell them on the auction house, disenchant them or just vendor them, using the prices Auctionator has scanned (AH cut included, soulbound items skip the AH). Also `/mentor sell on|off`. In the bags these items get a small gold coin (sell on the AH) or disenchant icon in the bottom-left corner, and in the tooltip the advice sits above the stat changes.
 - Item tooltips are shorter: the spec lines show only the arrow and the percentages ("Balance: +0.2% total (item +6%)") without the words "Tiny upgrade" / "Much worse".
+- New setting "Tooltip details" (on by default): turn it off to hide the stat explanations, the total/item legend and the extra prices, so the tooltip only shows the verdicts. Also `/mentor details on|off`.
+- Sell advice now always says something for gear: "Just vendor it" with the reason in grey (soulbound, or no AH price yet) when the AH and disenchanting are not worth it, and "Sell advice needs the Auctionator addon" when Auctionator is missing.
 - New Mentor logo as the minimap button and the addon list icon.
 
 ## 1.9.0 - 2026-11-10

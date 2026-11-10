@@ -68,6 +68,7 @@ local DEFAULT_SETTINGS = {
     isTalentHighlightEnabled = true,
     areBagArrowsEnabled = true,
     areTooltipLinesEnabled = true,
+    areTooltipDetailsShown = true, -- explanations, legend and extra values in tooltips
     areQuestPicksEnabled = true,
     isMinimapButtonShown = true,
     isRotationBarShown = true,
@@ -607,6 +608,7 @@ local SETTINGS_ROWS = {
     { "isTalentHighlightEnabled", "Talent window", "Mark the next talent and number the following ones" },
     { "areBagArrowsEnabled",      "Bags",          "Green / red arrows on items that are better / worse" },
     { "areTooltipLinesEnabled",   "Item tooltips", "Comparison for each spec and the stat changes" },
+    { "areTooltipDetailsShown",   "Tooltip details", "Stat explanations, the total/item legend and extra prices" },
     { "areLootAlertsEnabled",     "Loot alerts",   "Chat message when you loot an upgrade" },
     { "areQuestPicksEnabled",     "Quest rewards", "Mark the best reward when you hand in a quest" },
     { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
@@ -1068,6 +1070,7 @@ local ON_OFF_SETTINGS = {
     highlight = { "isTalentHighlightEnabled", "Talent window graphics" },
     arrows    = { "areBagArrowsEnabled", "Upgrade arrows in bags" },
     tooltip   = { "areTooltipLinesEnabled", "Mentor lines in item tooltips" },
+    details   = { "areTooltipDetailsShown", "Explanations and extra values in item tooltips" },
     quest     = { "areQuestPicksEnabled", "Best quest reward pick" },
     minimap   = { "isMinimapButtonShown", "Minimap button" },
     rotation  = { "isRotationBarShown", "Rotation bar" },

@@ -22,6 +22,11 @@ local function GetCurrentSpecName()
     return advice and advice.specData and advice.specData.name
 end
 
+-- "Tooltip details" setting: off = only the verdicts, no explanations.
+local function AreDetailsShown()
+    return MentorDB.areTooltipDetailsShown ~= false
+end
+
 local function IsSecret(value)
     return issecretvalue ~= nil and issecretvalue(value) == true
 end
@@ -57,13 +62,18 @@ end
 -- Adds the sell line; currentResult (optional) is the comparison for your spec.
 local function AddSellAdviceLine(tooltip, itemLink, currentResult, indentText)
     local sellAdvice = Mentor.SellAdvice
-    if not (sellAdvice and sellAdvice.IsEnabled()) then
+    if not (sellAdvice and MentorDB.isSellAdviceEnabled) then
+        return
+    end
+    if not sellAdvice.IsAuctionatorLoaded() then
+        tooltip:AddLine(indentText .. "Sell advice needs the Auctionator addon", 0.6, 0.6, 0.6)
         return
     end
     if currentResult and (currentResult.kind == "upgrade" or currentResult.kind == "empty") then
         return -- you want to wear this one, not sell it
     end
-    local lineText, red, green, blue = sellAdvice.Describe(sellAdvice.Evaluate(itemLink, IsTooltipSoulbound(tooltip)))
+    local lineText, red, green, blue = sellAdvice.Describe(sellAdvice.Evaluate(itemLink, IsTooltipSoulbound(tooltip)),
+        not AreDetailsShown())
     if lineText then
         tooltip:AddLine(indentText .. lineText, red, green, blue)
     end
@@ -127,11 +137,13 @@ local function AddComparisonToTooltip(tooltip)
             tooltip:AddLine("  " .. lineText, red, green, blue)
         end
     end
-    tooltip:AddLine("  total = all your gear, item = vs. what you wear in that slot", 0.5, 0.5, 0.5)
+    if AreDetailsShown() then
+        tooltip:AddLine("  total = all your gear, item = vs. what you wear in that slot", 0.5, 0.5, 0.5)
+    end
     AddSellAdviceLine(tooltip, itemLink, currentResult, "  ")
     -- What actually changes compared with what you wear, one stat per line.
     local differenceLines = Mentor.GetStatDifferenceLines(currentResult.statDifference, weights,
-        advice.specData and advice.specData.name)
+        advice.specData and advice.specData.name, not AreDetailsShown())
     if #differenceLines > 0 then
         tooltip:AddLine("  Compared with what you wear:", 0.8, 0.8, 0.8)
         for _, differenceLine in ipairs(differenceLines) do

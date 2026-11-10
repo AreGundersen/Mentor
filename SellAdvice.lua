@@ -248,8 +248,9 @@ function sellAdvice.Evaluate(itemLink, isBound)
     local disenchantValue = EstimateDisenchantValue(quality, itemLevel, classId)
 
     local advice
-    if auctionValue or disenchantValue then
+    if auctionValue or disenchantValue or vendorValue > 0 then
         advice = {
+            isBound = isBound == true, hasNoAuctionPrice = not isBound and auctionValue == nil,
             vendorValue = vendorValue, auctionValue = auctionValue, disenchantValue = disenchantValue,
             canDisenchant = disenchantValue ~= nil and sellAdvice.CanPlayerDisenchant(),
             priceAgeDays = auctionValue and GetPriceAgeDays(itemLink) or nil,
@@ -300,7 +301,8 @@ function sellAdvice.GetActionIcon(advice)
 end
 
 -- Returns the tooltip line and its colour for an Evaluate() result.
-function sellAdvice.Describe(advice)
+-- isShort: only the advice, without the other values in grey.
+function sellAdvice.Describe(advice, isShort)
     if not advice then
         return nil
     end
@@ -314,14 +316,22 @@ function sellAdvice.Describe(advice)
     if advice.action ~= "disenchant" and advice.disenchantValue then
         table.insert(otherValues, "disenchant ~" .. FormatMoney(advice.disenchantValue))
     end
+    if advice.action == "vendor" and advice.hasNoAuctionPrice then
+        table.insert(otherValues, "no AH price yet")       -- Auctionator has not seen it
+    elseif advice.action == "vendor" and advice.isBound and not advice.disenchantValue then
+        table.insert(otherValues, "soulbound")             -- why the AH is not mentioned
+    end
+    if isShort then
+        otherValues = {}
+    end
     local otherText = #otherValues > 0 and (" |cffa6a6a6(" .. table.concat(otherValues, ", ") .. ")|r") or ""
-    local ageText = (advice.priceAgeDays and advice.priceAgeDays >= OLD_PRICE_DAYS)
+    local ageText = (not isShort and advice.priceAgeDays and advice.priceAgeDays >= OLD_PRICE_DAYS)
         and (" |cffa6a6a6- AH prices " .. advice.priceAgeDays .. " days old|r") or ""
 
     if advice.action == "auction" then
         return "|T" .. COIN_ICON .. ":0|t Sell on the AH: " .. FormatMoney(advice.auctionValue) .. otherText .. ageText, 1.0, 0.82, 0.0
     elseif advice.action == "disenchant" then
-        local whoText = advice.canDisenchant and "" or " |cffa6a6a6- ask an enchanter|r"
+        local whoText = (advice.canDisenchant or isShort) and "" or " |cffa6a6a6- ask an enchanter|r"
         return "|T" .. DISENCHANT_ICON .. ":0|t Disenchant: ~" .. FormatMoney(advice.disenchantValue) .. otherText .. whoText, 0.75, 0.55, 1.0
     end
     return "Just vendor it: " .. FormatMoney(advice.vendorValue) .. otherText, 0.75, 0.75, 0.75

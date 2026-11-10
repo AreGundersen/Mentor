@@ -677,7 +677,8 @@ end
 -- { text = "+1% Crit  more hits do double damage", red, green, blue }
 -- (green gains, red losses). With weights, stats that are worth nothing to
 -- your spec say so ("does nothing for Beast Mastery") and are greyed out.
-function Mentor.GetStatDifferenceLines(statDifference, weights, specName)
+-- isShort: no grey explanation after each stat (the "Tooltip details" setting is off).
+function Mentor.GetStatDifferenceLines(statDifference, weights, specName, isShort)
     local differenceLines = {}
     if not statDifference then
         return differenceLines
@@ -692,7 +693,9 @@ function Mentor.GetStatDifferenceLines(statDifference, weights, specName)
             local statText = displayName:sub(1, 1) == "%" and (amountText .. displayName) or (amountText .. " " .. displayName)
             local isUseless = weights and (weights[statName] or 0) == 0
             local noteText
-            if isUseless then
+            if isShort then
+                noteText = nil
+            elseif isUseless then
                 noteText = "does nothing for " .. (specName or "your spec")
             else
                 noteText = STAT_EXPLANATIONS[statName]
