@@ -103,34 +103,88 @@ local function CreateBadge()
     return badge
 end
 
+-- The plan for the next points as a row of "chips": talent icon with a thin
+-- border, then "Gift of Nature 3-5/5 lv 27-29". Hovering a chip shows the
+-- talent's tooltip text.
+local PLAN_ICON_SIZE = 16
+local PLAN_CHIP_GAP = 14
+local MAX_PLAN_CHIPS = 5
+local LOGO_TEXTURE = "Interface\\AddOns\\Mentor\\Media\\Logo"
+
+local function CreatePlanChip(strip)
+    local chip = CreateFrame("Frame", nil, strip)
+    chip:SetHeight(PLAN_ICON_SIZE + 2)
+    chip.iconBorder = chip:CreateTexture(nil, "BACKGROUND")
+    chip.iconBorder:SetColorTexture(0, 0, 0, 1)
+    chip.iconBorder:SetSize(PLAN_ICON_SIZE + 2, PLAN_ICON_SIZE + 2)
+    chip.iconBorder:SetPoint("LEFT", 0, 0)
+    chip.icon = chip:CreateTexture(nil, "ARTWORK")
+    chip.icon:SetSize(PLAN_ICON_SIZE, PLAN_ICON_SIZE)
+    chip.icon:SetPoint("CENTER", chip.iconBorder, "CENTER", 0, 0)
+    chip.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)       -- cut the icon's own border
+    chip.label = chip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    chip.label:SetPoint("LEFT", chip.iconBorder, "RIGHT", 5, 0)
+    chip.arrow = chip:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    chip.arrow:SetPoint("RIGHT", chip, "LEFT", -4, 0)
+    chip.arrow:SetText(">")
+    chip:EnableMouse(true)
+    chip:SetScript("OnEnter", function(self)
+        if not self.talentName then
+            return
+        end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:AddLine(self.talentName, 1, 0.82, 0)
+        GameTooltip:AddLine(self.tooltipDetail, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    chip:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    chip:Hide()
+    return chip
+end
+
 local function CreateGuideStrip()
     local strip = CreateFrame("Frame", "MentorTalentGuide", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     strip:SetHeight(GUIDE_HEIGHT)
     if strip.SetBackdrop then
         strip:SetBackdrop({
-            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            bgFile = "Interface\\Buttons\\WHITE8X8",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12,
             insets = { left = 3, right = 3, top = 3, bottom = 3 },
         })
+        strip:SetBackdropColor(0.04, 0.06, 0.07, 0.94)
         strip:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
     end
-    strip.brand = strip:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    strip.brand:SetPoint("TOPLEFT", 10, -10)
-    strip.brand:SetText("|cff66ccffMentor|r")
+    -- Mentor logo on the left, spanning both lines.
+    strip.logo = strip:CreateTexture(nil, "ARTWORK")
+    strip.logo:SetTexture(LOGO_TEXTURE)
+    strip.logo:SetSize(GUIDE_HEIGHT - 10, GUIDE_HEIGHT - 10)
+    strip.logo:SetPoint("LEFT", 6, 0)
+    -- Line 1: next talent.
     strip.icon = strip:CreateTexture(nil, "ARTWORK")
-    strip.icon:SetSize(22, 22)
-    strip.icon:SetPoint("LEFT", strip.brand, "RIGHT", 10, 0)
+    strip.icon:SetSize(18, 18)
+    strip.icon:SetPoint("TOPLEFT", strip.logo, "TOPRIGHT", 8, -1)
+    strip.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     strip.text = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    strip.text:SetPoint("LEFT", strip.icon, "RIGHT", 8, 0)
+    strip.text:SetPoint("LEFT", strip.icon, "RIGHT", 6, 0)
     strip.detail = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    strip.detail:SetPoint("TOPRIGHT", -10, -11)
+    strip.detail:SetPoint("TOPRIGHT", -10, -9)
     strip.detail:SetJustifyH("RIGHT")
-    -- Second line: the plan for the next points.
+    -- A thin gold line between the two lines.
+    strip.divider = strip:CreateTexture(nil, "ARTWORK")
+    strip.divider:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.25)
+    strip.divider:SetHeight(1)
+    strip.divider:SetPoint("LEFT", strip.logo, "RIGHT", 8, -2)
+    strip.divider:SetPoint("RIGHT", strip, "RIGHT", -10, -2)
+    -- Line 2: the plan for the next points.
+    strip.planTitle = strip:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    strip.planTitle:SetPoint("BOTTOMLEFT", strip.logo, "BOTTOMRIGHT", 8, 1)
+    strip.planChips = {}
+    for chipIndex = 1, MAX_PLAN_CHIPS do
+        strip.planChips[chipIndex] = CreatePlanChip(strip)
+    end
+    -- The same plan as plain text (kept for /mentor debug and tests; not shown).
     strip.plan = strip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    strip.plan:SetPoint("BOTTOMLEFT", 10, 8)
-    strip.plan:SetPoint("BOTTOMRIGHT", -10, 8)
-    strip.plan:SetJustifyH("LEFT")
-    strip.plan:SetWordWrap(false)
+    strip.plan:Hide()
     strip:Hide()
     return strip
 end
@@ -235,10 +289,15 @@ overlay.GetOpenTalentWindow = GetOpenTalentWindow
 --------------------------------------------------------------------------------
 -- Placing the graphics
 --------------------------------------------------------------------------------
-local function AttachToButton(widget, talentButton, frameLevelOffset)
-    widget:SetParent(talentButton)
+-- The widget is parented to the talent window (not the button) and raised
+-- well above every talent button, so the glow and the NEXT tag are never
+-- covered by a neighbouring talent.
+local RAISE_ABOVE_BUTTONS = 50
+local MAX_FRAME_LEVEL = 9000
+local function AttachToButton(widget, talentButton, frameLevelOffset, talentWindow)
+    widget:SetParent(talentWindow or talentButton)
     widget:SetFrameStrata(talentButton:GetFrameStrata() or "HIGH")
-    widget:SetFrameLevel((talentButton:GetFrameLevel() or 1) + frameLevelOffset)
+    widget:SetFrameLevel(math.min((talentButton:GetFrameLevel() or 1) + RAISE_ABOVE_BUTTONS + frameLevelOffset, MAX_FRAME_LEVEL))
 end
 
 --------------------------------------------------------------------------------
@@ -306,6 +365,46 @@ function overlay.FormatPointPlan(upcomingPoints)
     return MUTED_TEXT .. "Next " .. #upcomingPoints .. " points:|r  " .. table.concat(groupTexts, MUTED_TEXT .. "  >  |r")
 end
 
+-- Places the plan chips on the strip's second line. If they don't fit, the
+-- talent names are left out (icon, ranks and levels stay; names on hover).
+function overlay.LayoutPlanChips(upcomingPoints)
+    local strip = overlay.guide
+    local talentGroups = overlay.GroupPointsByTalent(upcomingPoints)
+    strip.planTitle:SetText(#talentGroups > 0 and ("Next " .. #upcomingPoints .. " points:") or "")
+    local availableWidth = (strip:GetWidth() or 0) - (strip.planTitle:GetStringWidth() or 0) - 80
+
+    local function Layout(withNames)
+        local previousFrame, totalWidth = strip.planTitle, 0
+        for chipIndex, chip in ipairs(strip.planChips) do
+            local talentGroup = talentGroups[chipIndex]
+            if talentGroup then
+                local talent = talentGroup.talent
+                local rankText = talentGroup.firstRank == talentGroup.lastRank and tostring(talentGroup.firstRank)
+                    or (talentGroup.firstRank .. "-" .. talentGroup.lastRank)
+                local rankAndLevel = string.format("%s/%d %s%s|r", rankText, talent.maxRank or 1, MUTED_TEXT, FormatLevelSpan(talentGroup))
+                chip.label:SetText(withNames and ("|cffffd100" .. talent.name .. "|r " .. rankAndLevel) or rankAndLevel)
+                chip.icon:SetTexture(talent.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
+                chip.talentName = talent.name
+                chip.tooltipDetail = string.format("Rank %s of %d - %s", rankText, talent.maxRank or 1, FormatLevelSpan(talentGroup))
+                local chipWidth = PLAN_ICON_SIZE + 2 + 5 + (chip.label:GetStringWidth() or 0)
+                chip:SetWidth(chipWidth)
+                chip:ClearAllPoints()
+                chip:SetPoint("LEFT", previousFrame, "RIGHT", chipIndex == 1 and 8 or PLAN_CHIP_GAP, 0)
+                chip.arrow:SetShown(chipIndex > 1)
+                chip:Show()
+                previousFrame = chip
+                totalWidth = totalWidth + chipWidth + PLAN_CHIP_GAP
+            else
+                chip:Hide()
+            end
+        end
+        return totalWidth
+    end
+    if Layout(true) > availableWidth and availableWidth > 0 then
+        Layout(false)
+    end
+end
+
 function overlay.HideAll()
     overlay.nextMarker.pulse:Stop()
     overlay.nextMarker:Hide()
@@ -349,12 +448,13 @@ function overlay.Update(advice)
     guide.detail:SetText(specName .. " build  ·  " .. pointsText)
     guide.plan:SetText(overlay.FormatPointPlan(advice.upcomingPoints))
     guide:Show()
+    overlay.LayoutPlanChips(advice.upcomingPoints)
 
     -- Gold frame on the next talent.
     local marker = overlay.nextMarker
     local nextButton = nextTalent and findButton(nextTalent)
     if nextButton and nextButton:IsVisible() then
-        AttachToButton(marker, nextButton, 6)
+        AttachToButton(marker, nextButton, 6, talentWindow)
         marker:ClearAllPoints()
         local outerOffset = FRAME_GAP + FRAME_THICKNESS
         marker:SetPoint("TOPLEFT", nextButton, "TOPLEFT", -outerOffset, outerOffset)
@@ -386,7 +486,7 @@ function overlay.Update(advice)
         if talentButton and talentButton:IsVisible() and overlay.badges[badgeIndex + 1] then
             badgeIndex = badgeIndex + 1
             local badge = overlay.badges[badgeIndex]
-            AttachToButton(badge, talentButton, 7)
+            AttachToButton(badge, talentButton, 7, talentWindow)
             badge:SetPointNumbers(overlay.FormatNumberList(shownNumbers))
             badge:ClearAllPoints()
             badge:SetPoint("CENTER", talentButton, "TOPRIGHT", -2, -2)

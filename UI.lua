@@ -318,6 +318,8 @@ local function BuildMainWindow()
         local errorCount = Mentor.BugReport.GetErrorCount()
         if errorCount > 0 then
             GameTooltip:AddLine(errorCount .. " error(s) caught - they are added to the report.", 1, 0.5, 0.3, true)
+        else
+            GameTooltip:AddLine("No errors caught.", 0.25, 1.0, 0.25)
         end
         GameTooltip:Show()
     end)
