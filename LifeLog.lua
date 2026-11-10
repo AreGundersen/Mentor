@@ -577,17 +577,29 @@ local function FormatDuration(totalSeconds)
     return string.format("%ds", seconds)
 end
 
+-- Money with the game's gold / silver / copper coin icons, like Mentor's
+-- tooltips. Gold keeps thousands separators; copper is left out above 1 gold.
+local GOLD_COIN = "|TInterface\\MoneyFrame\\UI-GoldIcon:0:0:2:0|t"
+local SILVER_COIN = "|TInterface\\MoneyFrame\\UI-SilverIcon:0:0:2:0|t"
+local COPPER_COIN = "|TInterface\\MoneyFrame\\UI-CopperIcon:0:0:2:0|t"
 local function FormatGold(copperAmount)
     copperAmount = math.floor(copperAmount)
+    local isNegative = copperAmount < 0
+    copperAmount = math.abs(copperAmount)
     local gold   = math.floor(copperAmount / 10000)
     local silver = math.floor((copperAmount % 10000) / 100)
     local copper = copperAmount % 100
+    local parts = {}
     if gold > 0 then
-        return string.format("|cffffd700%sg|r |cffc7c7cf%ds|r |cffeda55f%dc|r", FormatNumber(gold), silver, copper)
-    elseif silver > 0 then
-        return string.format("|cffc7c7cf%ds|r |cffeda55f%dc|r", silver, copper)
+        table.insert(parts, FormatNumber(gold) .. GOLD_COIN)
     end
-    return string.format("|cffeda55f%dc|r", copper)
+    if silver > 0 then
+        table.insert(parts, silver .. SILVER_COIN)
+    end
+    if gold == 0 and (copper > 0 or silver == 0) then
+        table.insert(parts, copper .. COPPER_COIN)
+    end
+    return (isNegative and "-" or "") .. table.concat(parts, " ")
 end
 
 local function FormatDistance(yards)
@@ -2085,13 +2097,42 @@ local function StopTracking()
     mainFrame:Hide()
 end
 
+-- Recording only starts while the game logs in (exactly like the standalone
+-- LifeLog): starting it in the middle of a session made the game block Mentor
+-- ("blocked from an action only available to the Blizzard UI"). Turning it on
+-- mid-session therefore asks for a /reload; turning it off works at once.
+local isStartAllowed = false     -- true only during the PLAYER_LOGIN handler
+local hasAskedForReload = false
+
+local function AskForReload()
+    if hasAskedForReload then
+        return
+    end
+    hasAskedForReload = true
+    if StaticPopupDialogs and StaticPopup_Show then
+        StaticPopupDialogs["MENTOR_LIFELOG_RELOAD"] = {
+            text = "Mentor's Life log starts recording after a reload of the interface.\n\nReload now?",
+            button1 = "Reload", button2 = "Later",
+            OnAccept = function() ReloadUI() end,
+            timeout = 0, whileDead = true, hideOnEscape = true,
+        }
+        StaticPopup_Show("MENTOR_LIFELOG_RELOAD")
+    else
+        PrintMessage("it starts recording after /reload or your next login.")
+    end
+end
+
 -- Called after login and whenever the setting changes.
 function lifeLog.UpdateActivation()
     if not isLoggedIn then
         return
     end
     if IsWanted() then
-        StartTracking()
+        if isStartAllowed then
+            StartTracking()
+        elseif not isTracking then
+            AskForReload()
+        end
     else
         StopTracking()
     end
@@ -2116,7 +2157,9 @@ eventFrame:SetScript("OnEvent", function(self, eventName, ...)
                     .. "Disable the LifeLog addon and Mentor's life log carries on from where it was.")
             end
         end
+        isStartAllowed = true
         lifeLog.UpdateActivation()
+        isStartAllowed = false
         return
     elseif eventName == "PLAYER_LOGOUT" then
         -- Copy LifeLog's data once more, so this session is not lost.

@@ -688,7 +688,8 @@ end
 
 local function BuildSettingsPanel()
     settingsPanel = CreateFrame("Frame", "MentorSettingsPanel", mainFrame, BACKDROP_TEMPLATE)
-    settingsPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -8, -40)
+    settingsPanel:SetPoint("TOPLEFT", mainFrame, "TOPRIGHT", 2, 0)     -- to the right of the Mentor window
+    settingsPanel:SetClampedToScreen(true)
     settingsPanel:SetFrameStrata("DIALOG")
     settingsPanel:EnableMouse(true)
     ApplyBackdrop(settingsPanel)

@@ -6,6 +6,9 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Settings open to the right of the Mentor window.**
+- Life log: turning it on in the middle of a session made the game block Mentor ("blocked from an action only available to the Blizzard UI"). It now starts recording at login like the LifeLog addon did, and asks to reload the interface when you turn it on. Gold in the Life log window uses the game's coin icons.
+- Bug reports include actions the game blocked, with the name of the blocked function.
 - **Settings are organized:** two columns with sections - Talents & play, Gear & loot, Gold, Extra tools and Interface. "Details" sits under "Item tooltips" and is greyed out while tooltips are off.
 - **New: Level pace** (off by default): a small Mentor window with XP, XP to level, rested XP, XP per hour, time to level and kills to level. Turn it on under Settings or with `/mentor pace on`; `/mentor pace reset` starts the session statistics again.
 - **New: Auto vendor** (off by default): sells all grey items and repairs your gear when you open a vendor (hold Shift to skip once), with a small window showing the junk value and your lowest durability. Turn it on under Settings or with `/mentor vendor on`. `/mentor keep <item>` keeps a grey item from being sold.

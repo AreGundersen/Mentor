@@ -168,6 +168,21 @@ if geterrorhandler and seterrorhandler then
     end)
 end
 
+-- "Mentor has been blocked from an action ..." - the game tells which
+-- function it was; keep it like an error so it ends up in the bug report.
+local blockedActionFrame = CreateFrame("Frame")
+for _, eventName in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN" }) do
+    pcall(blockedActionFrame.RegisterEvent, blockedActionFrame, eventName)
+end
+blockedActionFrame:SetScript("OnEvent", function(_, eventName, blockedAddonName, functionName)
+    if blockedAddonName ~= ADDON_NAME then
+        return
+    end
+    pcall(RememberError, string.format("Interface/AddOns/%s/(blocked): %s - the game blocked %s()",
+        ADDON_NAME, eventName == "ADDON_ACTION_FORBIDDEN" and "forbidden action" or "blocked action",
+        IsReadableText(functionName) and functionName or "?"))
+end)
+
 -- Saved variables are only available once the addon has loaded.
 local loadFrame = CreateFrame("Frame")
 loadFrame:RegisterEvent("ADDON_LOADED")
