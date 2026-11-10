@@ -212,8 +212,8 @@ end
 --------------------------------------------------------------------------------
 local function GetItemDetails(itemLink)
     local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
-    local _, _, quality, itemLevel, _, _, _, stackSize, _, _, vendorPrice, classId, subclassId = getInfo(itemLink)
-    return quality, itemLevel, stackSize, vendorPrice, classId, subclassId
+    local _, _, quality, itemLevel, requiredLevel, _, _, stackSize, _, _, vendorPrice, classId, subclassId = getInfo(itemLink)
+    return quality, itemLevel, stackSize, vendorPrice, classId, subclassId, requiredLevel
 end
 
 -- Crafting reagents (item class "Tradeskill") you can use yourself are kept,
@@ -269,10 +269,23 @@ local function GetProfessionThatUsesReagent(classId, subclassId)
 end
 sellAdvice.GetProfessionThatUsesReagent = GetProfessionThatUsesReagent
 
+-- Potions, elixirs, food, bandages and scrolls are for using, not selling -
+-- unless they are far below your level (a level 5 potion at level 40).
+local ITEM_CLASS_CONSUMABLE = 0
+local OUTDATED_CONSUMABLE_LEVELS = 20
+local function IsUsefulConsumable(classId, requiredLevel)
+    if classId ~= ITEM_CLASS_CONSUMABLE then
+        return false
+    end
+    local playerLevel = UnitLevel and UnitLevel("player") or 1
+    return playerLevel - (requiredLevel or 0) <= OUTDATED_CONSUMABLE_LEVELS
+end
+
 -- isBound: true when this copy is soulbound (from the bag slot or the
 -- tooltip). Bind-on-pickup items are always treated as bound.
 -- Returns nil when there is nothing to say, otherwise:
---   { action = "keep", professionName }   reagent for one of your professions
+--   { action = "keep", keepReason }   reagent for your profession, or a potion,
+--                                     elixir, food or bandage for your level
 --   { action = "auction" | "disenchant" | "vendor", vendorValue, auctionValue,
 --     disenchantValue, canDisenchant, priceAgeDays }
 function sellAdvice.Evaluate(itemLink, isBound)
@@ -286,13 +299,19 @@ function sellAdvice.Evaluate(itemLink, isBound)
         return cachedEntry.advice
     end
 
-    local quality, itemLevel, stackSize, vendorPrice, classId, subclassId = GetItemDetails(itemLink)
+    local quality, itemLevel, stackSize, vendorPrice, classId, subclassId, requiredLevel = GetItemDetails(itemLink)
     if not quality then
         return nil      -- not loaded yet
     end
+    local keepReason
     local professionName = GetProfessionThatUsesReagent(classId, subclassId)
     if professionName then
-        local keepAdvice = { action = "keep", professionName = professionName }
+        keepReason = "for " .. professionName
+    elseif IsUsefulConsumable(classId, requiredLevel) then
+        keepReason = "use it"
+    end
+    if keepReason then
+        local keepAdvice = { action = "keep", keepReason = keepReason }
         adviceCache[cacheKey] = { time = now, advice = keepAdvice }
         return keepAdvice
     end
@@ -378,7 +397,7 @@ function sellAdvice.Describe(advice, isShort)
         return nil
     end
     if advice.action == "keep" then
-        return "Keep for " .. advice.professionName, 0.6, 0.9, 0.6
+        return "Keep - " .. advice.keepReason, 0.6, 0.9, 0.6
     end
     local otherValues = {}
     if advice.action ~= "vendor" then
