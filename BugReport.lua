@@ -249,6 +249,28 @@ end
 local function AddItemDetails(Add, itemString, label, advice)
     Add(label)
     Add("  Link: " .. itemString)
+    -- Sell advice: the verdict and the prices it was based on (copper).
+    local sellAdvice = Mentor.SellAdvice
+    if sellAdvice and MentorDB and MentorDB.isSellAdviceEnabled then
+        if not sellAdvice.IsAuctionatorLoaded() then
+            Add("  Sell advice: on, but Auctionator is not loaded")
+        else
+            sellAdvice.ClearCache()
+            local evaluateOk, sellResult = pcall(sellAdvice.Evaluate, itemString, false)
+            if not evaluateOk then
+                Add("  Sell advice: error - " .. PlainText(tostring(sellResult)))
+            elseif not sellResult then
+                Add("  Sell advice: nothing to say")
+            elseif sellResult.action == "keep" then
+                Add("  Sell advice: keep - " .. SafeValue(sellResult.keepReason))
+            else
+                Add(string.format("  Sell advice: %s (vendor %s, AH after cut %s, disenchant %s, bound %s, price age %s days, can disenchant %s)",
+                    SafeValue(sellResult.action), SafeValue(sellResult.vendorValue), SafeValue(sellResult.auctionValue),
+                    SafeValue(sellResult.disenchantValue), SafeValue(sellResult.isBound), SafeValue(sellResult.priceAgeDays),
+                    SafeValue(sellResult.canDisenchant)))
+            end
+        end
+    end
     local analysis = Mentor.AnalyzeItem and Mentor.AnalyzeItem(itemString)
     if not analysis then
         Add("  (item data not loaded yet - hover the item once and report again)")

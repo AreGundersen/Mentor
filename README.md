@@ -2,10 +2,11 @@
 
 An all-in-one leveling helper for new **WoW Forever** players: talent picks, gear upgrades, rotations and macros for every class and spec.
 
-- **Talents** - your next point, highlighted in the talent window. 23 of 27 specs follow the exact level-by-level order of the Mobalytics WoW Forever leveling guides.
-- **Gear** - arrows on bag items (Blizzard bags and Bagnon), a red cross on items you can't use, and tooltips that show how much better an item is for each spec and what every stat does for you.
+- **Talents** - your next point highlighted in the talent window, with the plan for the next 5 points. 23 of 27 specs follow the exact level-by-level order of the Mobalytics WoW Forever leveling guides.
+- **Gear** - arrows on bag items (Blizzard bags and Bagnon), a red cross on items you can't use, and tooltips that start with what to do ("Equip") and show how much better an item is for each spec and what every stat does for you.
 - **How to play** - rotation, 1 / 2 / 3+ mobs, pet and "in trouble" advice for all 27 specs that changes as you learn new abilities.
 - **New abilities as you level, racials and ready-made macros.**
+- **Sell advice** (optional, needs [Auctionator](https://www.curseforge.com/wow/addons/auctionator)) - tells you whether an item is worth selling on the auction house, disenchanting or just vendoring, and marks the ones worth money in your bags. Potions, food and reagents for your professions are kept. Off by default: turn it on under Settings.
 
 Download: [Mentor on CurseForge](https://www.curseforge.com/wow/addons/mentor-forever). Type `/mentor` in game.
 
