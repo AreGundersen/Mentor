@@ -1446,6 +1446,7 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.Fishing.panel:ResetPosition()
         Mentor.LifeLog.ResetWindowPosition()
         Mentor.ManaWarning.ResetPosition()
+        Mentor.Reminders.ResetPosition()
     else
         Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | tour | keep <item> | debug | lock | unlock | center")
     end

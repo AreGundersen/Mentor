@@ -12,7 +12,7 @@ number is only given when Are decides the release is finished (see
 - Macros: the Create button sits in the middle of the right side, and the description stops before it, so they no longer overlap.
 - Journey: long names no longer run into the tag on the right ("Secondary skills" for First Aid, Cooking and Fishing).
 - The tour bubble follows the Mentor window while you drag it, and switches side near the edge of the screen.
-- Reminders show in a small box under the Mentor window (with an X to dismiss each), and in the chat only while the Mentor window is hidden.
+- Reminders show in a small box with an X to dismiss each: under the Mentor window while it is open, and on its own while it is closed (drag it where you want it; `/mentor center` puts it back).
 - The settings, build and spells panels open on the left of the Mentor window when there is no room on the right, so they never cover it.
 - Journey includes WoW Forever's 9 new dungeons and the new zones (Zephras Isle, Riverglades, Shen'Dralas, Mount Hyjal), with Forever's level ranges.
 - Sell advice: profession tools (Flint and Tinder, Mining Pick, Skinning Knife, fishing poles, enchanting rods ...) say "Keep - profession tool". Auto vendor only offers gear for "vendor it" selling - never tools or other bag items.

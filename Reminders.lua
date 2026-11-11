@@ -8,8 +8,8 @@
 --   * Repair      your gear is almost broken
 --   * Profession  a profession is stuck at its cap: learn the next rank
 --   * Bags        an empty bag slot, or small bags you could replace
--- Reminders show in a small box under the Mentor window (with an X to dismiss
--- them), or in the chat while the Mentor window is hidden. Every reminder is
+-- Reminders show in a small box (with an X to dismiss each): under the
+-- Mentor window while it is open, on its own (movable) while it is closed. Every reminder is
 -- shown once, and again only when the situation changes.
 --------------------------------------------------------------------------------
 
@@ -55,7 +55,7 @@ end
 --------------------------------------------------------------------------------
 -- The reminder box: a small Mentor-style box under the Mentor window with
 -- the current reminders, newest first, each with an X to dismiss it.
--- When the Mentor window is hidden, reminders go to the chat instead.
+-- While the Mentor window is closed the box stands on its own and can be moved.
 --------------------------------------------------------------------------------
 local MAX_REMINDERS_SHOWN = 4
 local BOX_PADDING = 8
@@ -69,9 +69,28 @@ local function BuildReminderBox()
     if not mentorWindow then
         return nil
     end
-    reminderBox = CreateFrame("Frame", "MentorReminderBox", mentorWindow, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    reminderBox:SetPoint("TOPLEFT", mentorWindow, "BOTTOMLEFT", 0, -2)
-    reminderBox:SetPoint("TOPRIGHT", mentorWindow, "BOTTOMRIGHT", 0, -2)
+    reminderBox = CreateFrame("Frame", "MentorReminderBox", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    reminderBox:SetFrameStrata("MEDIUM")
+    reminderBox:SetClampedToScreen(true)
+    -- Draggable while it stands on its own (the Mentor window is closed).
+    reminderBox:SetMovable(true)
+    reminderBox:EnableMouse(true)
+    reminderBox:RegisterForDrag("LeftButton")
+    reminderBox:SetScript("OnDragStart", function(self)
+        if not self.isUnderWindow and not (MentorDB and MentorDB.isLocked) then
+            self:StartMoving()
+        end
+    end)
+    reminderBox:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        if not self.isUnderWindow then
+            local point, _, relativePoint, offsetX, offsetY = self:GetPoint()
+            MentorDB.reminderBoxPosition = { point = point, relativePoint = relativePoint, offsetX = offsetX, offsetY = offsetY }
+        end
+    end)
+    -- Follow the Mentor window opening and closing.
+    mentorWindow:HookScript("OnShow", function() reminders.Refresh() end)
+    mentorWindow:HookScript("OnHide", function() reminders.Refresh() end)
     if reminderBox.SetBackdrop then
         reminderBox:SetBackdrop({
             bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
@@ -101,9 +120,35 @@ local function BuildReminderBox()
     return reminderBox
 end
 
-local function UpdateReminderBox()
-    if not reminderBox and not BuildReminderBox() then
+-- Under the Mentor window while it is open; on its own (where you dragged
+-- it, the top of the screen at first) while it is closed.
+local STANDALONE_WIDTH = 320
+local DEFAULT_STANDALONE_POSITION = { point = "TOP", relativePoint = "TOP", offsetX = 0, offsetY = -140 }
+function reminders.PlaceBox()
+    if not reminderBox then
         return
+    end
+    local mentorWindow = _G["MentorFrame"]
+    reminderBox:ClearAllPoints()
+    if mentorWindow and mentorWindow:IsShown() then
+        reminderBox.isUnderWindow = true
+        reminderBox:SetPoint("TOPLEFT", mentorWindow, "BOTTOMLEFT", 0, -2)
+        reminderBox:SetPoint("TOPRIGHT", mentorWindow, "BOTTOMRIGHT", 0, -2)
+    else
+        reminderBox.isUnderWindow = false
+        local position = (MentorDB and type(MentorDB.reminderBoxPosition) == "table") and MentorDB.reminderBoxPosition
+            or DEFAULT_STANDALONE_POSITION
+        reminderBox:SetWidth(STANDALONE_WIDTH)
+        reminderBox:SetPoint(position.point, UIParent, position.relativePoint, position.offsetX, position.offsetY)
+    end
+end
+
+local function UpdateReminderBox()
+    if not reminderBox then
+        if not BuildReminderBox() then
+            return
+        end
+        reminders.PlaceBox()
     end
     local boxWidth = reminderBox:GetWidth() or 300
     local verticalOffset = BOX_PADDING + 18
@@ -127,6 +172,19 @@ local function UpdateReminderBox()
     reminderBox:SetShown(#activeReminders > 0)
 end
 
+-- Place the box again and lay out its rows (the width changes with the place).
+function reminders.Refresh()
+    reminders.PlaceBox()
+    UpdateReminderBox()
+end
+
+function reminders.ResetPosition()
+    if MentorDB then
+        MentorDB.reminderBoxPosition = nil
+    end
+    reminders.PlaceBox()
+end
+
 function reminders.Dismiss(reminderKey)
     for reminderIndex = #activeReminders, 1, -1 do
         if activeReminders[reminderIndex].key == reminderKey then
@@ -146,17 +204,16 @@ local function Remind(reminderKey, text)
         return
     end
     saidReminders[reminderKey] = true
-    local mentorWindow = _G["MentorFrame"]
-    if mentorWindow and mentorWindow:IsShown() then
-        reminders.Dismiss(reminderKey)
-        table.insert(activeReminders, 1, { key = reminderKey, text = text })
-        while #activeReminders > MAX_REMINDERS_SHOWN do
-            table.remove(activeReminders)
-        end
-        UpdateReminderBox()
-    else
+    if not _G["MentorFrame"] then
         Mentor.Print(MESSAGE_COLOR .. text .. "|r")
+        return
     end
+    reminders.Dismiss(reminderKey)
+    table.insert(activeReminders, 1, { key = reminderKey, text = text })
+    while #activeReminders > MAX_REMINDERS_SHOWN do
+        table.remove(activeReminders)
+    end
+    UpdateReminderBox()
 end
 
 -- The situation changed (bought ammo, repaired ...): the reminder goes away.
