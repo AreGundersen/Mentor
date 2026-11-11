@@ -74,16 +74,58 @@ local function BuildBubble()
     bubble:Hide()
 end
 
--- The frame a step points at, or nil for the middle of the screen.
+-- The frame a step points at (nil when it explains something else).
 local function GetStepTarget(step)
-    if step.target == "window" then
-        return _G["MentorFrame"]
-    end
-    local target = step.target and Mentor.tourTargets and Mentor.tourTargets[step.target]
+    local target = step.target and step.target ~= "window" and Mentor.tourTargets and Mentor.tourTargets[step.target]
     if target and target.IsVisible and target:IsVisible() then
         return target
     end
     return nil
+end
+
+-- A gold frame around the button the bubble talks about.
+local targetHighlight
+local function HighlightTarget(target)
+    if not targetHighlight then
+        targetHighlight = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+        targetHighlight:SetFrameStrata("FULLSCREEN_DIALOG")
+        if targetHighlight.SetBackdrop then
+            targetHighlight:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12 })
+            targetHighlight:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 1)
+        end
+    end
+    if target then
+        targetHighlight:ClearAllPoints()
+        targetHighlight:SetPoint("TOPLEFT", target, "TOPLEFT", -4, 4)
+        targetHighlight:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", 4, -4)
+        targetHighlight:Show()
+    else
+        targetHighlight:Hide()
+    end
+end
+
+-- Every bubble sits right beside the Mentor window (on the side with room),
+-- level with the button it explains, or at the top for general steps.
+local BUBBLE_GAP = 10
+local function PlaceBubble(target)
+    local mentorWindow = _G["MentorFrame"]
+    bubble:ClearAllPoints()
+    if not (mentorWindow and mentorWindow:IsShown()) then
+        bubble:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
+        return
+    end
+    local screenWidth = UIParent:GetWidth() or 0
+    local windowRight = mentorWindow:GetRight()
+    local isRoomOnRight = not windowRight or screenWidth <= 0 or windowRight + BUBBLE_GAP + BUBBLE_WIDTH <= screenWidth
+    local verticalOffset = 0
+    if target and target.GetTop and mentorWindow.GetTop and target:GetTop() and mentorWindow:GetTop() then
+        verticalOffset = target:GetTop() - mentorWindow:GetTop()      -- level with the button
+    end
+    if isRoomOnRight then
+        bubble:SetPoint("TOPLEFT", mentorWindow, "TOPRIGHT", BUBBLE_GAP, verticalOffset)
+    else
+        bubble:SetPoint("TOPRIGHT", mentorWindow, "TOPLEFT", -BUBBLE_GAP, verticalOffset)
+    end
 end
 
 function tour.ShowStep(stepIndex)
@@ -103,13 +145,9 @@ function tour.ShowStep(stepIndex)
     local textHeight = bubble.text:GetStringHeight() or 40
     bubble:SetHeight(BUBBLE_PADDING * 2 + 24 + textHeight + 34)
 
-    bubble:ClearAllPoints()
     local target = GetStepTarget(step)
-    if target then
-        bubble:SetPoint("TOPLEFT", target, "TOPRIGHT", 12, 0)     -- beside what it explains
-    else
-        bubble:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
-    end
+    PlaceBubble(target)
+    HighlightTarget(target)
     bubble:Show()
 end
 
@@ -125,6 +163,7 @@ function tour.Finish()
     if bubble then
         bubble:Hide()
     end
+    HighlightTarget(nil)
     currentStepIndex = 0
     if MentorDB then
         MentorDB.isTourDone = true
