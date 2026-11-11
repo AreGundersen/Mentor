@@ -443,7 +443,7 @@ local function CreateRow(rowIndex)
 
     row.actionButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
     row.actionButton:SetSize(64, 20)
-    row.actionButton:SetPoint("TOPRIGHT", -4, -4)
+    row.actionButton:SetPoint("RIGHT", -6, 0)          -- vertically centred in the row
     row.actionButton:SetScript("OnClick", function()
         if row.entry and row.entry.macro then
             CreateOrUpdateMacro(row.entry.macro)
@@ -522,7 +522,9 @@ local function FillRow(row, entry)
         rightSideWidth = (row.tagText:GetStringWidth() or 60) + 14
     end
     row.nameText:SetWidth(row:GetWidth() - textLeft - rightSideWidth)
-    row.descriptionText:SetWidth(row:GetWidth() - textLeft - 6)
+    -- The Create button sits on the right of the whole row, so the
+    -- description stops before it too (not only the name).
+    row.descriptionText:SetWidth(row:GetWidth() - textLeft - (entry.kind == "macro" and rightSideWidth or 6))
     row.iconFrame:ClearAllPoints()
     row.iconFrame:SetPoint("LEFT", hasLevelColumn and LEVEL_COLUMN_WIDTH or 6, 0)
     row.nameText:ClearAllPoints()
