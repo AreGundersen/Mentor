@@ -6,6 +6,8 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- "Support Mentor" button in Settings (and `/mentor support`): shows the CurseForge page with the Donate button, ready to copy. The GitHub page and README link to it too.
+
 ## 1.12.0 - 2026-11-11
 
 Where to go next, reminders, and a new look.

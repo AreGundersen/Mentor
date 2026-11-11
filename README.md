@@ -19,4 +19,8 @@ Download: [Mentor on CurseForge](https://www.curseforge.com/wow/addons/mentor-fo
 2. Pick the type of problem and describe it. For gear problems, shift-click the item into the box.
 3. Click **Create report**, then use the link and copy the report into a [new bug report](https://github.com/AreGundersen/Mentor/issues/new?template=bug_report.yml).
 
+## Support Mentor
+
+Mentor is free. If it helps you, you can support it with the **Donate** button on the [CurseForge page](https://www.curseforge.com/wow/addons/mentor-forever) - thank you!
+
 Guide content is based on the Mobalytics WoW Forever guides; trainer data and spell icons from WCLBox.

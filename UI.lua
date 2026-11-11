@@ -900,13 +900,48 @@ local function BuildSettingsPanel()
 
     local bugButton = CreateFrame("Button", nil, settingsPanel, "UIPanelButtonTemplate")
     bugButton:SetSize(140, 22)
-    bugButton:SetPoint("BOTTOM", 0, PADDING)
+    bugButton:SetPoint("BOTTOMRIGHT", settingsPanel, "BOTTOM", -4, PADDING)
     bugButton:SetText("Report a bug")
+    -- Support Mentor: shows the CurseForge page (with its Donate button) to copy.
+    local supportButton = CreateFrame("Button", nil, settingsPanel, "UIPanelButtonTemplate")
+    supportButton:SetSize(140, 22)
+    supportButton:SetPoint("BOTTOMLEFT", settingsPanel, "BOTTOM", 4, PADDING)
+    supportButton:SetText("Support Mentor")
+    supportButton:SetScript("OnClick", function()
+        Mentor.ShowSupportLink()
+    end)
     bugButton:SetScript("OnClick", function()
         settingsPanel:Hide()
         Mentor.BugReport.Open()
     end)
     settingsPanel:Hide()
+end
+
+-- The Donate button lives on the CurseForge page; addons cannot open web
+-- pages, so the link is shown ready to copy (Ctrl+C).
+local CURSEFORGE_PAGE = "https://www.curseforge.com/wow/addons/mentor-forever"
+function Mentor.ShowSupportLink()
+    if not (StaticPopupDialogs and StaticPopup_Show) then
+        Mentor.Print("Support Mentor with the Donate button on " .. CURSEFORGE_PAGE)
+        return
+    end
+    StaticPopupDialogs["MENTOR_SUPPORT"] = {
+        text = "Thank you for using Mentor!\n\nIf it helps you, you can support it with the Donate button on the CurseForge page. Copy the link (Ctrl+C) and open it in your browser:",
+        button1 = "Close",
+        hasEditBox = true,
+        editBoxWidth = 320,
+        OnShow = function(self)
+            local editBox = self.editBox or self.EditBox
+            if editBox then
+                editBox:SetText(CURSEFORGE_PAGE)
+                editBox:HighlightText()
+                editBox:SetFocus()
+            end
+        end,
+        EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+        timeout = 0, whileDead = true, hideOnEscape = true,
+    }
+    StaticPopup_Show("MENTOR_SUPPORT")
 end
 
 function Mentor.ToggleSettings()
@@ -1379,6 +1414,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.Print("Level pace: session statistics reset.")
     elseif command == "mana" then
         Mentor.ManaWarning.HandleCommand(argument)
+    elseif command == "support" or command == "donate" then
+        Mentor.ShowSupportLink()
     elseif command == "tour" then
         if not mainFrame:IsShown() then
             MentorDB.isShown = true
@@ -1448,6 +1485,6 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.ManaWarning.ResetPosition()
         Mentor.Reminders.ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | tour | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | tour | support | keep <item> | debug | lock | unlock | center")
     end
 end
