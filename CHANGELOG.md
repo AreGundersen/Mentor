@@ -6,27 +6,21 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
-- **Settings are remembered for your whole account:** a new character starts with the settings you used last, and changes carry over to your other characters at their next login. Window positions stay per character.
-- Warcraft-style boxes in the Mentor window and panels: tabs, spec buttons, the next-talent card, stat pills and list rows have rounded gold edges instead of flat lines, and icons get rounded frames.
-- Full build panel: each talent in its own rounded box with the step number and a framed icon; the next talent is marked with a gold box, and the title has the spec icon in a gold frame.
-- Macros: the Create button sits in the middle of the right side, and the description stops before it, so they no longer overlap.
-- Journey: long names no longer run into the tag on the right ("Secondary skills" for First Aid, Cooking and Fishing).
-- The tour bubble follows the Mentor window while you drag it, and switches side near the edge of the screen.
-- Reminders show in a small box with an X to dismiss each: under the Mentor window while it is open, and on its own while it is closed (drag it where you want it; `/mentor center` puts it back).
-- The settings, build and spells panels open on the left of the Mentor window when there is no room on the right, so they never cover it.
-- Journey includes WoW Forever's 9 new dungeons and the new zones (Zephras Isle, Riverglades, Shen'Dralas, Mount Hyjal), with Forever's level ranges.
-- Sell advice: profession tools (Flint and Tinder, Mining Pick, Skinning Knife, fishing poles, enchanting rods ...) say "Keep - profession tool". Auto vendor only offers gear for "vendor it" selling - never tools or other bag items.
-- Quest rewards: the "Mentor pick" marker has a rounded gold frame tight around the icon and name filled with a soft pulsing gold light and a tag with the Mentor logo and why it is the pick ("+12%", "new slot", "sells best").
-- The Report bug button only counts errors from the current Mentor version; older ones are cleared when Mentor is updated.
-- The tour starts after the loading screen (it did not show for everyone). Its bubbles sit beside the Mentor window, level with the button they explain, and that button gets a gold frame.
-- **New: Weapons tab** (next to Journey, or `/mentor weapons`): every weapon type your class can learn, which ones you know, and which weapon master in your faction's cities teaches the rest, with the price (10 silver) shown with the game's coin icon. The "Coming up" tab is now called "Spells".
-- **New: Journey tab** (Spells & racials panel, or `/mentor journey`): zones and dungeons for your level and faction, profession advice for your class, and professions that need a trainer.
-- **New: Reminders** (on by default, Settings > Reminders): new spells at your class trainer when you level up; low ammo, reagents or an unhappy pet when you leave town; gear that is almost broken; professions stuck at their cap; empty bag slots and small bags.
+## 1.12.0 - 2026-11-11
+
+Where to go next, reminders, and a new look.
+
+- **New: Journey tab** (`/mentor journey`): zones and dungeons for your level and faction - including WoW Forever's 9 new dungeons and new zones - and professions that suit your class.
+- **New: Weapons tab** (`/mentor weapons`): the weapon types your class can learn, which you know, and which weapon master teaches the rest (10 silver).
+- **New: Reminders** (on by default): new spells at your trainer when you level up, low ammo or reagents, almost broken gear, professions that need a trainer and empty bag slots - in a small box under the Mentor window, or on its own while the window is closed.
 - **New: Dungeon tips:** a short tip about the dungeon and your role when you enter one.
-- **Auto vendor:** can also sell the items Sell advice marks "Just vendor it" - it lists them with the total and asks first, and never sells an upgrade for any of your specs.
 - **New: a short tour** the first time you use Mentor (`/mentor tour` shows it again).
-- Sell advice: quest items ("Quest Item", "This Item Begins a Quest") and other items with a "Use:" line say "Keep" - unless the AH pays clearly more, then they say "Sell on the AH". Potions, food and reagents for your professions are always kept. "Use:" lines in colour were not recognised before.
-- Sell advice: items worth at least twice the vendor price on the AH are recommended for the AH from 1 silver gain (before: 10 silver), so a 7 silver item is no longer vendored for 62 copper.
+- **Settings are remembered for your whole account:** a new character starts with the settings you used last.
+- **New look:** rounded Warcraft-style boxes and icon frames everywhere, a new Full build panel, and a new "Mentor pick" marker on quest rewards that says why it is the pick.
+- Panels open on the left of the Mentor window when there is no room on the right.
+- **Auto vendor** can also sell gear that Sell advice marks "Just vendor it" - it lists them and asks first, and never sells an upgrade for any of your specs.
+- **Sell advice:** quest items and items with a "Use:" line say "Keep" unless the AH pays clearly more; profession tools are always kept; items worth twice the vendor price on the AH are recommended for the AH.
+- The Report bug button only counts errors from the current Mentor version.
 
 ## 1.11.0 - 2026-11-10
 
