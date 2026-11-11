@@ -1265,7 +1265,7 @@ local REFRESH_EVENTS = {
     "TRAIT_CONFIG_UPDATED", "TRAIT_NODE_CHANGED", "TRAIT_TREE_CURRENCY_INFO_UPDATED",
     "ACTIVE_COMBAT_CONFIG_CHANGED", "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
     "GET_ITEM_INFO_RECEIVED", "SPELLS_CHANGED", "LEARNED_SPELL_IN_SKILL_LINE",
-    "UPDATE_MACROS", "PLAYER_REGEN_ENABLED",
+    "UPDATE_MACROS", "PLAYER_REGEN_ENABLED", "SKILL_LINES_CHANGED", "LEARNED_SPELL_IN_TAB",
 }
 -- Unknown events throw on some clients, so register each one protected.
 for _, eventName in ipairs({ "ADDON_LOADED", "PLAYER_LOGOUT", "CHAT_MSG_LOOT", "QUEST_COMPLETE", "QUEST_FINISHED", "SPELL_UPDATE_COOLDOWN", "SPELL_DATA_LOAD_RESULT" }) do
@@ -1328,6 +1328,13 @@ eventFrame:SetScript("OnEvent", function(self, eventName, ...)
     else
         if eventName == "PLAYER_EQUIPMENT_CHANGED" or eventName == "PLAYER_LEVEL_UP" then
             Mentor.ClearItemCache() -- level requirements and comparisons change
+        elseif eventName == "SKILL_LINES_CHANGED" or eventName == "LEARNED_SPELL_IN_SKILL_LINE"
+            or eventName == "LEARNED_SPELL_IN_TAB" or eventName == "SPELLS_CHANGED" then
+            -- A new weapon skill (or spell) can make "You cannot use this item" wrong.
+            Mentor.ClearItemCache()
+            if Mentor.SellAdvice then
+                Mentor.SellAdvice.ClearCache()
+            end
         end
         Mentor.RequestRefresh()
     end
