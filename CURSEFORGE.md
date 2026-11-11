@@ -16,6 +16,7 @@
 
 ## Where next? and reminders
 - **Journey tab:** zones and dungeons for your level and faction, and professions that suit your class.
+- **Weapons tab:** every weapon type your class can learn, which you already know, and which weapon master teaches the rest.
 - **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, and empty bag slots.
 - **Dungeon tips:** a short tip about the dungeon and your role when you enter one.
 
@@ -52,6 +53,7 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor mana on|off|low|critical` - Mana warning
 - `/mentor fishing on|off` - One-key fishing window; `/mentor fish` starts / stops fishing, `/mentor fish key <KEY>` picks the key
 - `/mentor journey` - zones, dungeons and professions for your level
+- `/mentor weapons` - weapon skills and weapon masters
 - `/mentor tour` - the short tour again
 - `/mentor bug` - report a bug
 

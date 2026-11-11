@@ -7,6 +7,8 @@
 --   * Racials    your race's abilities and when to press them.
 --   * Macros     ready-made macros; "Create" makes the macro and puts it on
 --                your cursor so you can drop it on an action bar.
+--   * Weapons    weapon types your class can learn, and which weapon
+--                master teaches them (data in Weapons.lua).
 --   * Journey    where to go next: zones and dungeons for your level, and
 --                profession advice (data in Journey.lua).
 --------------------------------------------------------------------------------
@@ -39,10 +41,11 @@ local PANEL_BACKDROP = {
 }
 
 local TABS = {
-    { key = "spells",  label = "Coming up" },
+    { key = "spells",  label = "Spells" },
     { key = "racials", label = "Racials" },
     { key = "macros",  label = "Macros" },
     { key = "journey", label = "Journey" },
+    { key = "weapons", label = "Weapons" },
 }
 
 local extrasUI = {}
@@ -637,6 +640,11 @@ function extrasUI.Refresh(advice)
         panel.title:SetText((raceName or "Your race") .. " racials: use them!")
         panel.hint:SetText(MUTED_TEXT .. "Free extra buttons from your race. Put the ones marked \"Press it\" on your bars.|r")
         emptyMessage = "No racial abilities found for your race."
+    elseif selectedKey == "weapons" then
+        entries = Mentor.Weapons.GetEntries(advice)
+        panel.title:SetText("Weapon skills")
+        panel.hint:SetText(MUTED_TEXT .. "Weapons your class can learn. A weapon master in the big cities teaches them - you must learn a type before you can use it.|r")
+        emptyMessage = "No weapon list for your class."
     elseif selectedKey == "journey" then
         entries = Mentor.Journey.GetEntries(advice)
         panel.title:SetText("Where next?")

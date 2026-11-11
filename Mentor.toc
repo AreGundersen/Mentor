@@ -29,6 +29,7 @@ Fishing.lua
 LifeLog.lua
 ManaWarning.lua
 Journey.lua
+Weapons.lua
 Reminders.lua
 Tour.lua
 Alerts.lua

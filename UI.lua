@@ -1417,7 +1417,7 @@ SlashCmdList["MENTOR"] = function(input)
             Mentor.ExtrasUI.SetShown(false)
         end
         Mentor.RequestRefresh()
-    elseif command == "spells" or command == "racials" or command == "macros" or command == "journey" then
+    elseif command == "spells" or command == "racials" or command == "macros" or command == "journey" or command == "weapons" then
         if not mainFrame:IsShown() then
             MentorDB.isShown = true
             mainFrame:Show()
@@ -1448,6 +1448,6 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.ManaWarning.ResetPosition()
         Mentor.Reminders.ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | tour | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | tour | keep <item> | debug | lock | unlock | center")
     end
 end

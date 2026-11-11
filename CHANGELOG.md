@@ -19,6 +19,7 @@ number is only given when Are decides the release is finished (see
 - Quest rewards: the "Mentor pick" marker frames the whole reward (icon and name plate) and has a rounded gold frame with a soft pulsing glow and a tag with the Mentor logo and why it is the pick ("+12%", "new slot", "sells best").
 - The Report bug button only counts errors from the current Mentor version; older ones are cleared when Mentor is updated.
 - The tour starts after the loading screen (it did not show for everyone). Its bubbles sit beside the Mentor window, level with the button they explain, and that button gets a gold frame.
+- **New: Weapons tab** (next to Journey, or `/mentor weapons`): every weapon type your class can learn, which ones you know, and which weapon master in your faction's cities teaches the rest. The "Coming up" tab is now called "Spells".
 - **New: Journey tab** (Spells & racials panel, or `/mentor journey`): zones and dungeons for your level and faction, profession advice for your class, and professions that need a trainer.
 - **New: Reminders** (on by default, Settings > Reminders): new spells at your class trainer when you level up; low ammo, reagents or an unhappy pet when you leave town; gear that is almost broken; professions stuck at their cap; empty bag slots and small bags.
 - **New: Dungeon tips:** a short tip about the dungeon and your role when you enter one.
