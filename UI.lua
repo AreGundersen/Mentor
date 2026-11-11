@@ -55,7 +55,8 @@ local UPGRADE_ROW_HEIGHT      = 22
 local MAX_UPGRADE_ROWS        = 5
 local SECTION_GAP             = 10
 local BUILD_PANEL_WIDTH       = 280
-local BUILD_ROW_HEIGHT        = 18
+local BUILD_ROW_HEIGHT        = 26     -- one rounded box per talent in the "Full build" panel
+local BUILD_ROW_GAP           = 3
 local REFRESH_THROTTLE_SECONDS = 0.4
 local OVERLAY_REFRESH_SECONDS = 0.5
 
@@ -942,16 +943,25 @@ local function BuildBuildPanel()
     ApplyBackdrop(buildPanel)
 
     buildPanel.specIcon = buildPanel:CreateTexture(nil, "ARTWORK")
-    buildPanel.specIcon:SetSize(24, 24)
-    buildPanel.specIcon:SetPoint("TOPLEFT", PADDING, -PADDING)
+    buildPanel.specIcon:SetSize(26, 26)
+    buildPanel.specIcon:SetPoint("TOPLEFT", PADDING + 2, -PADDING - 2)
     buildPanel.specIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    buildPanel.title = CreateText(buildPanel, "GameFontNormal")
-    buildPanel.title:SetPoint("LEFT", buildPanel.specIcon, "RIGHT", 8, 0)
+    local specIconHolder = CreateFrame("Frame", nil, buildPanel)
+    specIconHolder:SetAllPoints(buildPanel.specIcon)
+    Mentor.AddRoundedBorder(specIconHolder, GOLD[1], GOLD[2], GOLD[3], 1, 10)
+    buildPanel.title = CreateText(buildPanel, "GameFontNormalLarge")
+    buildPanel.title:SetPoint("LEFT", buildPanel.specIcon, "RIGHT", 10, 0)
+    -- Thin gold line under the title, like the section headers.
+    local titleLine = buildPanel:CreateTexture(nil, "ARTWORK")
+    titleLine:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.3)
+    titleLine:SetHeight(1)
+    titleLine:SetPoint("TOPLEFT", PADDING, -PADDING - 34)
+    titleLine:SetPoint("TOPRIGHT", -PADDING, -PADDING - 34)
     buildPanel.legend = CreateText(buildPanel, "GameFontHighlightSmall", BUILD_PANEL_WIDTH - PADDING * 2)
-    buildPanel.legend:SetPoint("TOPLEFT", PADDING, -PADDING - 30)
+    buildPanel.legend:SetPoint("TOPLEFT", PADDING, -PADDING - 40)
 
     local scrollFrame = CreateFrame("ScrollFrame", "MentorBuildScroll", buildPanel, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 50)
+    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 72)
     scrollFrame:SetPoint("BOTTOMRIGHT", -30, PADDING)
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetSize(BUILD_PANEL_WIDTH - PADDING - 42, 1)
@@ -962,31 +972,42 @@ end
 
 local STATUS_STYLE = {
     done    = { icon = "Interface\\RaidFrame\\ReadyCheck-Ready", color = "|cff8fd18f" },
-    next    = { icon = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up", color = "|cffffd100" },
+    next    = { icon = nil, color = "|cffffd100" },          -- the gold box says it
     waiting = { icon = nil, color = "|cffffffff" },
     missing = { icon = "Interface\\RaidFrame\\ReadyCheck-NotReady", color = "|cff707070" },
 }
 
+-- Each talent is a small rounded box: step number, talent icon with a
+-- rounded frame, name, and the rank. The next talent has a gold edge, taken
+-- talents a green tick, talents missing in this game version are grey.
 local function GetBuildRow(rowIndex)
     local row = buildRows[rowIndex]
     if row then
         return row
     end
     local scrollChild = buildPanel.scrollChild
-    row = CreateFrame("Frame", nil, scrollChild)
+    row = CreateFrame("Frame", nil, scrollChild, BACKDROP_TEMPLATE)
     row:SetSize(scrollChild:GetWidth(), BUILD_ROW_HEIGHT)
-    row:SetPoint("TOPLEFT", 0, -(rowIndex - 1) * BUILD_ROW_HEIGHT)
-    row.statusIcon = row:CreateTexture(nil, "ARTWORK")
-    row.statusIcon:SetSize(12, 12)
-    row.statusIcon:SetPoint("LEFT", 0, 0)
-    row.talentIcon = row:CreateTexture(nil, "ARTWORK")
-    row.talentIcon:SetSize(BUILD_ROW_HEIGHT - 4, BUILD_ROW_HEIGHT - 4)
-    row.talentIcon:SetPoint("LEFT", 16, 0)
+    row:SetPoint("TOPLEFT", 0, -(rowIndex - 1) * (BUILD_ROW_HEIGHT + BUILD_ROW_GAP))
+    if row.SetBackdrop then
+        row:SetBackdrop(Mentor.BOX_BACKDROP)
+    end
+    row.stepText = CreateText(row, "GameFontDisableSmall", 18, "RIGHT")
+    row.stepText:SetPoint("LEFT", 2, 0)
+    row.talentIconHolder = CreateFrame("Frame", nil, row)
+    row.talentIconHolder:SetSize(BUILD_ROW_HEIGHT - 8, BUILD_ROW_HEIGHT - 8)
+    row.talentIconHolder:SetPoint("LEFT", 26, 0)
+    row.talentIcon = row.talentIconHolder:CreateTexture(nil, "ARTWORK")
+    row.talentIcon:SetAllPoints()
     row.talentIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    row.talentIconEdge = Mentor.AddRoundedBorder(row.talentIconHolder, 0.5, 0.5, 0.5, 0.8, 8)
+    row.statusIcon = row:CreateTexture(nil, "OVERLAY")
+    row.statusIcon:SetSize(12, 12)
+    row.statusIcon:SetPoint("BOTTOMRIGHT", row.talentIconHolder, "BOTTOMRIGHT", 5, -4)
     row.rankText = CreateText(row, "GameFontHighlightSmall", 40, "RIGHT")
-    row.rankText:SetPoint("RIGHT", 0, 0)
+    row.rankText:SetPoint("RIGHT", -8, 0)
     row.nameText = CreateText(row, "GameFontHighlightSmall")
-    row.nameText:SetPoint("LEFT", row.talentIcon, "RIGHT", 6, 0)
+    row.nameText:SetPoint("LEFT", row.talentIconHolder, "RIGHT", 8, 0)
     row.nameText:SetPoint("RIGHT", row.rankText, "LEFT", -4, 0)
     row.nameText:SetWordWrap(false)
     buildRows[rowIndex] = row
@@ -1014,12 +1035,26 @@ local function RefreshBuildPanel(advice)
         row.nameText:SetText(style.color .. step.talentName .. "|r" .. treeSuffix)
         local currentRank = step.talent and math.min(step.talent.rank, step.targetRank) or 0
         row.rankText:SetText(style.color .. currentRank .. "/" .. step.targetRank .. "|r")
+        row.stepText:SetText(tostring(stepIndex))
+        -- The box: gold edge for the next talent, faint for the rest.
+        local isNext = step.status == "next"
+        if row.SetBackdropColor then
+            row:SetBackdropColor(isNext and GOLD[1] or 0, isNext and GOLD[2] or 0, isNext and GOLD[3] or 0, isNext and 0.15 or 0.35)
+            row:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], isNext and 0.9 or 0.2)
+        end
+        if row.talentIconEdge.SetBackdropBorderColor then
+            if isNext then
+                row.talentIconEdge:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 1)
+            else
+                row.talentIconEdge:SetBackdropBorderColor(0.5, 0.5, 0.5, 0.8)
+            end
+        end
         row:Show()
     end
     for unusedIndex = #advice.steps + 1, #buildRows do
         buildRows[unusedIndex]:Hide()
     end
-    buildPanel.scrollChild:SetHeight(#advice.steps * BUILD_ROW_HEIGHT + 4)
+    buildPanel.scrollChild:SetHeight(#advice.steps * (BUILD_ROW_HEIGHT + BUILD_ROW_GAP) + 4)
 end
 
 --------------------------------------------------------------------------------

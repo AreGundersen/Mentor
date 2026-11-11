@@ -508,16 +508,25 @@ local function FillRow(row, entry)
     if entry.kind == "macro" then
         row.actionButton:SetText(entry.exists and "Pick up" or "Create")
         row.tagText:SetText("")
-        row.nameText:SetWidth(row:GetWidth() - (LEVEL_COLUMN_WIDTH + ICON_SIZE + 8) - 74)
-    else
-        row.nameText:SetWidth(row:GetWidth() - (LEVEL_COLUMN_WIDTH + ICON_SIZE + 8) - 4)
     end
-    -- No level column on the racial and macro tabs: move the icon left.
+    -- No level column on the racial and macro tabs (or for journey rows
+    -- without a level): move the icon left.
     local hasLevelColumn = entry.kind ~= "macro" and entry.kind ~= "racial" and entry.kind ~= "passive"
+        and not (entry.kind == "journey" and (entry.levelText or "") == "")
+    local textLeft = (hasLevelColumn and LEVEL_COLUMN_WIDTH or 6) + ICON_SIZE + 8
+    -- The name stops before the tag (or the Create button), so they never overlap.
+    local rightSideWidth = 4
+    if entry.kind == "macro" then
+        rightSideWidth = 74
+    elseif (row.tagText:GetText() or "") ~= "" then
+        rightSideWidth = (row.tagText:GetStringWidth() or 60) + 14
+    end
+    row.nameText:SetWidth(row:GetWidth() - textLeft - rightSideWidth)
+    row.descriptionText:SetWidth(row:GetWidth() - textLeft - 6)
     row.iconFrame:ClearAllPoints()
     row.iconFrame:SetPoint("LEFT", hasLevelColumn and LEVEL_COLUMN_WIDTH or 6, 0)
     row.nameText:ClearAllPoints()
-    row.nameText:SetPoint("TOPLEFT", (hasLevelColumn and LEVEL_COLUMN_WIDTH or 6) + ICON_SIZE + 8, -5)
+    row.nameText:SetPoint("TOPLEFT", textLeft, -5)
 end
 
 --------------------------------------------------------------------------------

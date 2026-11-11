@@ -151,8 +151,8 @@ local PROFESSION_ADVICE = {
     DRUID   = { { "Skinning + Leatherworking", "Make your own leather armor." },
                 { "Herbalism + Alchemy", "You can pick herbs in Travel Form." } },
 }
-local ALWAYS_USEFUL_ADVICE = { "First Aid + Cooking + Fishing",
-    "Free to learn next to your two main professions: bandages, food and fish. Everyone should take First Aid." }
+local ALWAYS_USEFUL_ADVICE = { "Secondary skills",
+    "First Aid, Cooking and Fishing are free next to your two main professions. Everyone should take First Aid." }
 
 -- Skill caps and the level needed to learn the next rank at a trainer.
 local PROFESSION_RANKS = {
