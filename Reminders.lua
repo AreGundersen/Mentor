@@ -1,7 +1,9 @@
 --------------------------------------------------------------------------------
 -- Mentor - Reminders.lua
--- Short chat reminders about things new players forget (Settings > Reminders,
--- all on by default): "Trainer", "Supplies & repair", "Bags & professions".
+-- Short reminders about things new players forget (Settings > Reminders,
+-- all on by default): "Trainer", "Supplies & repair", "Bags & professions",
+-- "Help tips" (what to do when you die, log out in an inn for rested XP) and
+-- "Mob warnings" (elites and mobs far above your level, in the mob tooltip).
 --   * Trainer     you levelled up and your class trainer has new spells
 --   * Supplies    low on ammo, soul shards or reagents for spells you know,
 --                 and an unhappy pet - checked when you leave a town/inn
@@ -405,13 +407,104 @@ function reminders.CheckBags()
 end
 
 --------------------------------------------------------------------------------
+-- Dying: how to get back without the spirit healer's penalty
+--------------------------------------------------------------------------------
+function reminders.OnPlayerDied()
+    if not IsOn("areHelpTipsEnabled") then
+        return
+    end
+    ForgetReminder("death")
+    Remind("death", "You died. Click Release, run back to your corpse as a ghost and click Resurrect there. "
+        .. "The spirit healer also revives you, but gives 10 minutes of Resurrection Sickness and damages your gear.")
+end
+
+function reminders.OnPlayerAlive()
+    if UnitIsDeadOrGhost and not UnitIsDeadOrGhost("player") then
+        ForgetReminder("death")
+    end
+end
+
+-- Logging out away from an inn or a city: no rested XP builds up.
+function reminders.OnCamping()
+    if not IsOn("areHelpTipsEnabled") then
+        return
+    end
+    local playerLevel = UnitLevel("player") or 1
+    local maxLevel = (GetMaxPlayerLevel and GetMaxPlayerLevel()) or 60
+    if playerLevel < maxLevel and IsResting and not IsResting() then
+        Mentor.Print(MESSAGE_COLOR .. "Tip: log out in an inn or a city instead - there you build up rested XP, "
+            .. "which doubles the XP from kills next time you play.|r")
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Mob tooltips: warn about elites and mobs far above your level
+--------------------------------------------------------------------------------
+local DANGEROUS_LEVEL_GAP = 4         -- this many levels above you is very dangerous
+local function IsSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
+
+function reminders.GetMobDanger(unitToken)
+    if not (UnitExists(unitToken) and UnitCanAttack and UnitCanAttack("player", unitToken))
+        or UnitIsDeadOrGhost(unitToken) or (UnitIsPlayer and UnitIsPlayer(unitToken)) then
+        return nil
+    end
+    local classification = UnitClassification and UnitClassification(unitToken)
+    local mobLevel = UnitLevel(unitToken)
+    if IsSecret(classification) or IsSecret(mobLevel) then
+        return nil
+    end
+    local playerLevel = UnitLevel("player") or 1
+    if classification == "worldboss" or mobLevel == -1 then
+        return "Far too strong for you - stay away.", 1.0, 0.2, 0.2
+    end
+    local isElite = classification == "elite" or classification == "rareelite"
+    local levelGap = (mobLevel or playerLevel) - playerLevel
+    if isElite and levelGap >= 0 then
+        return "Elite - bring a group.", 1.0, 0.55, 0.1
+    elseif levelGap >= DANGEROUS_LEVEL_GAP then
+        return string.format("%d levels above you - very dangerous.", levelGap), 1.0, 0.2, 0.2
+    elseif isElite then
+        return "Elite - hits hard; fight it with a friend.", 1.0, 0.75, 0.2
+    end
+    return nil
+end
+
+local function AddMobDangerToTooltip(tooltip)
+    if not IsOn("areMobWarningsEnabled") or not tooltip.GetUnit then
+        return
+    end
+    local _, unitToken = tooltip:GetUnit()
+    if not unitToken or IsSecret(unitToken) then
+        return
+    end
+    local warningText, red, green, blue = reminders.GetMobDanger(unitToken)
+    if warningText then
+        tooltip:AddLine("|cff66ccffMentor:|r " .. warningText, red, green, blue)
+        tooltip:Show()
+    end
+end
+
+if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
+        pcall(AddMobDangerToTooltip, tooltip)
+    end)
+elseif GameTooltip and GameTooltip.HookScript then
+    GameTooltip:HookScript("OnTooltipSetUnit", function(tooltip)
+        pcall(AddMobDangerToTooltip, tooltip)
+    end)
+end
+
+--------------------------------------------------------------------------------
 -- Events
 --------------------------------------------------------------------------------
 local wasResting = nil
 
 local eventFrame = CreateFrame("Frame")
 for _, eventName in ipairs({ "PLAYER_LOGIN", "PLAYER_LEVEL_UP", "PLAYER_UPDATE_RESTING",
-    "UPDATE_INVENTORY_DURABILITY", "SKILL_LINES_CHANGED", "BAG_UPDATE_DELAYED", "UNIT_HAPPINESS" }) do
+    "UPDATE_INVENTORY_DURABILITY", "SKILL_LINES_CHANGED", "BAG_UPDATE_DELAYED", "UNIT_HAPPINESS",
+    "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_CAMPING" }) do
     pcall(eventFrame.RegisterEvent, eventFrame, eventName)
 end
 eventFrame:SetScript("OnEvent", function(_, eventName, ...)
@@ -444,5 +537,11 @@ eventFrame:SetScript("OnEvent", function(_, eventName, ...)
         pcall(reminders.CheckBags)
     elseif eventName == "UNIT_HAPPINESS" then
         pcall(reminders.CheckSupplies)
+    elseif eventName == "PLAYER_DEAD" then
+        pcall(reminders.OnPlayerDied)
+    elseif eventName == "PLAYER_ALIVE" or eventName == "PLAYER_UNGHOST" then
+        pcall(reminders.OnPlayerAlive)
+    elseif eventName == "PLAYER_CAMPING" then
+        pcall(reminders.OnCamping)
     end
 end)

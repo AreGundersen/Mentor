@@ -27,9 +27,11 @@ LevelPace.lua
 AutoVendor.lua
 Fishing.lua
 LifeLog.lua
+LifeLogGraph.lua
 ManaWarning.lua
 Journey.lua
 Weapons.lua
+Glossary.lua
 Reminders.lua
 Tour.lua
 Alerts.lua

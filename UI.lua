@@ -97,6 +97,8 @@ local DEFAULT_SETTINGS = {
     areSupplyRemindersEnabled = true,
     areBagRemindersEnabled = true,
     areDungeonTipsEnabled = true,      -- tip when you enter a dungeon (Journey.lua)
+    areHelpTipsEnabled = true,         -- what to do when you die, rested XP (Reminders.lua)
+    areMobWarningsEnabled = true,      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
     isTourDone = false,                -- first-time tour (Tour.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
@@ -793,6 +795,9 @@ local SETTINGS_SECTIONS = {
         { "areBagRemindersEnabled",   "Bags & professions", "Empty bag slots and professions that need a trainer" },
         { "areDungeonTipsEnabled",    "Dungeon tips",  "A short tip for your role when you enter a dungeon" },
     } },
+    { column = 1, title = "Interface", rows = {
+        { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
+    } },
     { column = 2, title = "Gold", rows = {
         { "isSellAdviceEnabled",      "Sell advice",   "AH, disenchant or vendor? Needs Auctionator" },
         { "isAutoVendorEnabled",      "Auto vendor",   "Sell junk and repair at vendors (Shift skips)" },
@@ -808,8 +813,9 @@ local SETTINGS_SECTIONS = {
         { "isManaPartyMessageEnabled", "Tell the group", "Say \"Low mana!\" in party / raid", dependsOn = "isManaWarningEnabled" },
         { "isManaCombatOnly",         "Only in combat", "No warnings outside combat", dependsOn = "isManaWarningEnabled" },
     } },
-    { column = 2, title = "Interface", rows = {
-        { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
+    { column = 2, title = "Help", rows = {
+        { "areHelpTipsEnabled",       "Help tips",     "What to do when you die; where to log out for rested XP" },
+        { "areMobWarningsEnabled",    "Mob warnings",  "Elites and mobs far above you, in the mob tooltip" },
     } },
 }
 local SETTINGS_ROW_HEIGHT = 34
@@ -1454,7 +1460,7 @@ SlashCmdList["MENTOR"] = function(input)
             Mentor.ExtrasUI.SetShown(false)
         end
         Mentor.RequestRefresh()
-    elseif command == "spells" or command == "racials" or command == "macros" or command == "journey" or command == "weapons" then
+    elseif command == "spells" or command == "racials" or command == "macros" or command == "journey" or command == "weapons" or command == "words" then
         if not mainFrame:IsShown() then
             MentorDB.isShown = true
             mainFrame:Show()
@@ -1485,6 +1491,6 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.ManaWarning.ResetPosition()
         Mentor.Reminders.ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | tour | support | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | words | tour | support | keep <item> | debug | lock | unlock | center")
     end
 end

@@ -19,6 +19,9 @@
 - **Weapons tab:** every weapon type your class can learn, which you already know, and which weapon master teaches the rest.
 - **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, and empty bag slots.
 - **Dungeon tips:** a short tip about the dungeon and your role when you enter one.
+- **Mob warnings:** the mob tooltip says when a mob is elite or far above your level.
+- **Help tips:** what to do when you die, and where to log out for rested XP.
+- **Words tab:** what aggro, pull, CC, wipe, OOM and other words in group chat mean.
 
 ## Sell advice (optional)
 Needs the **Auctionator** addon. Off by default: turn it on under Settings or with `/mentor sell on`.
@@ -30,7 +33,7 @@ Needs the **Auctionator** addon. Off by default: turn it on under Settings or wi
 Life log is on (its window stays closed until you click "Life log" in the Mentor window). The others are off by default: turn them on under Settings.
 - **Level pace** (`/mentor pace on`) - a small window with your XP, XP per hour, time to level and kills to level.
 - **Auto vendor** (`/mentor vendor on`) - sells your grey items and repairs your gear when you open a vendor (hold Shift to skip once). A small window shows the value of your junk and your lowest durability. `/mentor keep <item>` keeps a grey item from being sold. Auto sell and auto repair each have their own check box in the window.
-- **Life log** (the "Life log" button, or `/mentor log`) - your character's story: kills, deaths, gold, loot, crafting, professions, consumables, reputation, travel, groups and more, for the session, this character and all your characters. Coming from the LifeLog addon? Keep it installed for one login: Mentor copies all your LifeLog data (LifeLog itself is not changed), then you can disable LifeLog.
+- **Life log** (the "Life log" button, or `/mentor log`) - your character's story: kills, deaths, gold, loot, crafting, professions, consumables, reputation, travel, groups and more, for the session, this character and all your characters, and a graph of your gold over time. Coming from the LifeLog addon? Keep it installed for one login: Mentor copies all your LifeLog data (LifeLog itself is not changed), then you can disable LifeLog.
 - **Mana warning** (`/mentor mana on`) - a small box with your mana and a big LOW MANA / OUT OF MANA warning with a sound, and optionally a message to your group. Set the levels with `/mentor mana low 30` and `/mentor mana critical 10`.
 - **One-key fishing** (`/mentor fishing on`) - press one key to cast Fishing and the same key to reel in. Auto loot is on and the sound is turned up while you fish, and your settings come back when you stop.
 
@@ -54,6 +57,7 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor fishing on|off` - One-key fishing window; `/mentor fish` starts / stops fishing, `/mentor fish key <KEY>` picks the key
 - `/mentor journey` - zones, dungeons and professions for your level
 - `/mentor weapons` - weapon skills and weapon masters
+- `/mentor words` - what the words in group chat mean
 - `/mentor tour` - the short tour again
 - `/mentor bug` - report a bug
 

@@ -9,13 +9,14 @@
 --                your cursor so you can drop it on an action bar.
 --   * Weapons    weapon types your class can learn, and which weapon
 --                master teaches them (data in Weapons.lua).
+--   * Words      what words like aggro, pull and CC mean (Glossary.lua).
 --   * Journey    where to go next: zones and dungeons for your level, and
 --                profession advice (data in Journey.lua).
 --------------------------------------------------------------------------------
 
 local _, Mentor = ...
 
-local PANEL_WIDTH          = 300
+local PANEL_WIDTH          = 340
 local PADDING              = 12
 local TAB_HEIGHT           = 22
 local TAB_GAP              = 4
@@ -46,6 +47,7 @@ local TABS = {
     { key = "macros",  label = "Macros" },
     { key = "journey", label = "Journey" },
     { key = "weapons", label = "Weapons" },
+    { key = "words",   label = "Words" },
 }
 
 local extrasUI = {}
@@ -640,6 +642,11 @@ function extrasUI.Refresh(advice)
         panel.title:SetText((raceName or "Your race") .. " racials: use them!")
         panel.hint:SetText(MUTED_TEXT .. "Free extra buttons from your race. Put the ones marked \"Press it\" on your bars.|r")
         emptyMessage = "No racial abilities found for your race."
+    elseif selectedKey == "words" then
+        entries = Mentor.Glossary.GetEntries()
+        panel.title:SetText("What does it mean?")
+        panel.hint:SetText(MUTED_TEXT .. "Words you will see in group chat and in guides.|r")
+        emptyMessage = ""
     elseif selectedKey == "weapons" then
         entries = Mentor.Weapons.GetEntries(advice)
         panel.title:SetText("Weapon skills")

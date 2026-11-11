@@ -6,6 +6,11 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **New: Gold graph** in the Life log ("Gold graph" button): your gold over time as a line, for the last 7 days, 30 days or everything, with the change over the period. Gold is recorded at most every 10 minutes from now on.
+- **New: Words tab** (`/mentor words`): what aggro, pull, add, CC, wipe, OOM, LFG, rested, BoP/BoE and other words mean.
+- **New: Mob warnings** in the mob tooltip: "Elite - bring a group" and "5 levels above you - very dangerous".
+- **New: Help tips:** when you die, how to get back without the spirit healer's penalty; when you log out outside an inn or a city, that you get no rested XP there.
+- Settings: new "Help" section (Help tips, Mob warnings); Interface moved under Reminders.
 - "Support Mentor" button in Settings (and `/mentor support`): shows the CurseForge page with the Donate button, ready to copy. The GitHub page and README link to it too.
 
 ## 1.12.0 - 2026-11-11

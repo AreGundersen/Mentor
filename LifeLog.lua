@@ -705,6 +705,39 @@ local function HandleCombatLogEvent()
 end
 
 --------------------------------------------------------------------------------
+-- Gold over time: a point { time = unix seconds, copper = money } at most
+-- every MONEY_POINT_SECONDS (and at login), for the gold graph. Old points are
+-- thinned out so the list stays small: the newest half keeps every point.
+--------------------------------------------------------------------------------
+local MONEY_HISTORY = { pointSeconds = 600, maxPoints = 600 }   -- one point per 10 minutes at most
+
+function lifeLog.RecordMoneyPoint(currentMoney, isForced)
+    if IsSecret(currentMoney) or not characterDB then
+        return
+    end
+    characterDB.moneyHistory = characterDB.moneyHistory or {}
+    local moneyHistory = characterDB.moneyHistory
+    local now = time()
+    local lastPoint = moneyHistory[#moneyHistory]
+    if lastPoint and not isForced and now - lastPoint.time < MONEY_HISTORY.pointSeconds then
+        lastPoint.copper = currentMoney     -- keep the latest value in the current 10-minute point
+        return
+    end
+    table.insert(moneyHistory, { time = now, copper = currentMoney })
+    if #moneyHistory > MONEY_HISTORY.maxPoints then
+        local thinnedHistory = {}
+        local oldHalfEnd = math.floor(#moneyHistory / 2)
+        for pointIndex, moneyPoint in ipairs(moneyHistory) do
+            if pointIndex > oldHalfEnd or pointIndex % 2 == 1 then
+                table.insert(thinnedHistory, moneyPoint)
+            end
+        end
+        characterDB.moneyHistory = thinnedHistory
+    end
+end
+lifeLog.FormatGold = function(copperAmount) return FormatGold(copperAmount) end
+
+--------------------------------------------------------------------------------
 -- Tracking: money (categorized by which window is open)
 --------------------------------------------------------------------------------
 local function HandleMoneyChange()
@@ -715,6 +748,7 @@ local function HandleMoneyChange()
     local moneyDelta = currentMoney - lastKnownMoney
     lastKnownMoney = currentMoney
     SetPeakStat("peakMoney", currentMoney)
+    lifeLog.RecordMoneyPoint(currentMoney, false)
 
     if moneyDelta > 0 then
         AddStat("moneyGained", moneyDelta)
@@ -1749,6 +1783,14 @@ local function BuildWindow()
         RefreshWindow()
     end)
 
+    local goldGraphButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+    goldGraphButton:SetSize(100, 20)
+    goldGraphButton:SetPoint("LEFT", resetButton, "RIGHT", 6, 0)
+    goldGraphButton:SetText("Gold graph")
+    goldGraphButton:SetScript("OnClick", function()
+        lifeLog.ToggleGoldGraph()
+    end)
+
     local hintText = mainFrame:CreateFontString(nil, "OVERLAY", ROW_FONT)
     hintText:SetPoint("BOTTOMRIGHT", -WINDOW_PADDING - 2, 11)
     hintText:SetTextColor(MUTED_TEXT_COLOR[1], MUTED_TEXT_COLOR[2], MUTED_TEXT_COLOR[3])
@@ -1923,6 +1965,7 @@ local function OnPlayerLogin()
     wasMounted = IsMounted() and true or false
     AddStat("logins")
     SetPeakStat("peakMoney", lastKnownMoney)
+    lifeLog.RecordMoneyPoint(lastKnownMoney, true)
     if REQUEST_PLAYED_ON_LOGIN then
         RequestTimePlayed()
     end
@@ -1985,6 +2028,7 @@ local function OnPlayerLogin()
         end
     end
 end
+
 
 --------------------------------------------------------------------------------
 -- Copying the standalone LifeLog addon's data (read only - never changed)
@@ -2144,6 +2188,10 @@ function lifeLog.UpdateActivation()
     end
 end
 
+function lifeLog.GetCharacterDB()
+    return characterDB
+end
+
 function lifeLog.IsTracking()
     return isTracking
 end
@@ -2216,6 +2264,9 @@ eventFrame:SetScript("OnUpdate", function(_, elapsedSinceLastFrame)
     if secondsSinceRefresh >= DISPLAY_REFRESH_SECONDS then
         secondsSinceRefresh = 0
         RefreshWindow()
+        if lifeLog.RefreshGoldGraph then
+            lifeLog.RefreshGoldGraph()
+        end
     end
 end)
 
