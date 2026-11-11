@@ -6,6 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- Auto vendor: the "only worth vendoring" list is now a Mentor window next to the vendor, with each item's icon, name in its quality colour and price. Untick the ones you want to keep (hover for the item tooltip), then "Sell" or "Keep all".
 - **New: Gold graph** in the Life log ("Gold graph" button): your gold over time as a line, for the last 7 days, 30 days or everything, with the change over the period. Gold is recorded at most every 10 minutes from now on.
 - **New: Words tab** (`/mentor words`): what aggro, pull, add, CC, wipe, OOM, LFG, rested, BoP/BoE and other words mean.
 - **New: Mob warnings** in the mob tooltip: "Elite - bring a group" and "5 levels above you - very dangerous".

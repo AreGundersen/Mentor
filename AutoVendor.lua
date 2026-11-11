@@ -202,8 +202,6 @@ end
 --------------------------------------------------------------------------------
 -- "Just vendor it" items from Sell advice (asks first)
 --------------------------------------------------------------------------------
-local VENDOR_ITEMS_POPUP = "MENTOR_SELL_VENDOR_ITEMS"
-local MAX_ITEM_NAMES_IN_POPUP = 6
 local pendingVendorItems = {}
 
 -- True when the item is an upgrade for one of your specs - never sold.
@@ -255,43 +253,206 @@ local function FindVendorAdviceItems()
     return foundItems
 end
 
+-- The "sell these?" window: one row per item with its icon, name in its
+-- quality colour, the price with coin icons and a check box (ticked = sell).
+-- Hovering a row shows the item tooltip. "Sell" sells the ticked items.
+local SELL_WINDOW_WIDTH = 320
+local SELL_ROW_HEIGHT = 28
+local MAX_SELL_ROWS = 10
+local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
+local sellWindow
+
+local function UpdateSellWindowTotal()
+    local totalPrice, tickedCount = 0, 0
+    for _, pendingItem in ipairs(pendingVendorItems) do
+        if pendingItem.isTicked then
+            totalPrice = totalPrice + pendingItem.totalPrice
+            tickedCount = tickedCount + 1
+        end
+    end
+    sellWindow.totalText:SetText(string.format("%d item%s: %s", tickedCount, tickedCount == 1 and "" or "s",
+        Mentor.FormatMoneyWithIcons(totalPrice)))
+    sellWindow.sellButton:SetEnabled(tickedCount > 0)
+end
+
+local function BuildSellWindow()
+    sellWindow = CreateFrame("Frame", "MentorSellVendorItemsWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    sellWindow:SetWidth(SELL_WINDOW_WIDTH)
+    sellWindow:SetFrameStrata("DIALOG")
+    sellWindow:SetClampedToScreen(true)
+    if sellWindow.SetBackdrop then
+        sellWindow:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 14,
+            insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        })
+        sellWindow:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
+    end
+    local logo = sellWindow:CreateTexture(nil, "ARTWORK")
+    logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
+    logo:SetSize(18, 18)
+    logo:SetPoint("TOPLEFT", 10, -9)
+    sellWindow.title = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    sellWindow.title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
+    sellWindow.title:SetText("Only worth vendoring")
+    sellWindow.hint = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    sellWindow.hint:SetPoint("TOPLEFT", 12, -32)
+    sellWindow.hint:SetWidth(SELL_WINDOW_WIDTH - 24)
+    sellWindow.hint:SetJustifyH("LEFT")
+    sellWindow.hint:SetText("|cffa6a6a6Not an upgrade for any of your specs, and not worth more on the AH. Untick what you want to keep.|r")
+
+    sellWindow.rows = {}
+    for rowIndex = 1, MAX_SELL_ROWS do
+        local row = CreateFrame("Button", nil, sellWindow, BackdropTemplateMixin and "BackdropTemplate" or nil)
+        row:SetSize(SELL_WINDOW_WIDTH - 20, SELL_ROW_HEIGHT)
+        row:SetPoint("TOPLEFT", 10, -56 - (rowIndex - 1) * (SELL_ROW_HEIGHT + 2))
+        if row.SetBackdrop and Mentor.BOX_BACKDROP then
+            row:SetBackdrop(Mentor.BOX_BACKDROP)
+            row:SetBackdropColor(0, 0, 0, 0.35)
+            row:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.2)
+        end
+        row.checkBox = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
+        row.checkBox:SetSize(22, 22)
+        row.checkBox:SetPoint("LEFT", 2, 0)
+        row.iconHolder = CreateFrame("Frame", nil, row)
+        row.iconHolder:SetSize(SELL_ROW_HEIGHT - 6, SELL_ROW_HEIGHT - 6)
+        row.iconHolder:SetPoint("LEFT", row.checkBox, "RIGHT", 2, 0)
+        row.icon = row.iconHolder:CreateTexture(nil, "ARTWORK")
+        row.icon:SetAllPoints()
+        row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        row.iconEdge = Mentor.AddRoundedBorder and Mentor.AddRoundedBorder(row.iconHolder, 0.5, 0.5, 0.5, 0.9, 8)
+        row.countText = row.iconHolder:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+        row.countText:SetPoint("BOTTOMRIGHT", 1, 0)
+        row.priceText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.priceText:SetPoint("RIGHT", -8, 0)
+        row.priceText:SetJustifyH("RIGHT")
+        row.nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.nameText:SetPoint("LEFT", row.iconHolder, "RIGHT", 8, 0)
+        row.nameText:SetPoint("RIGHT", row.priceText, "LEFT", -6, 0)
+        row.nameText:SetJustifyH("LEFT")
+        row.nameText:SetWordWrap(false)
+        local function ToggleRow()
+            if row.pendingItem then
+                row.pendingItem.isTicked = not row.pendingItem.isTicked
+                row.checkBox:SetChecked(row.pendingItem.isTicked)
+                row:SetAlpha(row.pendingItem.isTicked and 1 or 0.55)
+                UpdateSellWindowTotal()
+            end
+        end
+        row.checkBox:SetScript("OnClick", ToggleRow)
+        row:SetScript("OnClick", ToggleRow)
+        row:SetScript("OnEnter", function(self)
+            if self.pendingItem then
+                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                GameTooltip:SetHyperlink(self.pendingItem.itemLink)
+                GameTooltip:Show()
+            end
+        end)
+        row:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        sellWindow.rows[rowIndex] = row
+    end
+
+    sellWindow.totalText = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    sellWindow.moreText = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    sellWindow.sellButton = CreateFrame("Button", nil, sellWindow, "UIPanelButtonTemplate")
+    sellWindow.sellButton:SetSize(90, 22)
+    sellWindow.sellButton:SetText("Sell")
+    sellWindow.sellButton:SetScript("OnClick", function()
+        local wasQueueEmpty = #sellQueue == 0
+        for _, pendingItem in ipairs(pendingVendorItems) do
+            if pendingItem.isTicked then
+                table.insert(sellQueue, pendingItem)
+            end
+        end
+        wipe(pendingVendorItems)
+        sellWindow:Hide()
+        if wasQueueEmpty and #sellQueue > 0 then
+            SellNextBatch()
+        end
+    end)
+    sellWindow.keepButton = CreateFrame("Button", nil, sellWindow, "UIPanelButtonTemplate")
+    sellWindow.keepButton:SetSize(90, 22)
+    sellWindow.keepButton:SetText("Keep all")
+    sellWindow.keepButton:SetScript("OnClick", function()
+        wipe(pendingVendorItems)
+        sellWindow:Hide()
+    end)
+    sellWindow:Hide()
+end
+
+local function ShowSellWindow()
+    if not sellWindow then
+        BuildSellWindow()
+    end
+    local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+    local shownRows = math.min(#pendingVendorItems, MAX_SELL_ROWS)
+    for rowIndex, row in ipairs(sellWindow.rows) do
+        local pendingItem = pendingVendorItems[rowIndex]
+        row.pendingItem = pendingItem
+        if pendingItem then
+            local itemName, _, itemQuality, _, _, _, _, _, _, itemIcon = getInfo(pendingItem.itemLink)
+            local qualityColor = ITEM_QUALITY_COLORS and itemQuality and ITEM_QUALITY_COLORS[itemQuality]
+            row.icon:SetTexture(itemIcon or "Interface\\Icons\\INV_Misc_QuestionMark")
+            row.nameText:SetText((qualityColor and qualityColor.hex or "|cffffffff") .. (itemName or pendingItem.itemLink) .. "|r")
+            row.countText:SetText((pendingItem.stackCount or 1) > 1 and pendingItem.stackCount or "")
+            row.priceText:SetText(Mentor.FormatMoneyWithIcons(pendingItem.totalPrice))
+            if row.iconEdge and row.iconEdge.SetBackdropBorderColor and qualityColor then
+                row.iconEdge:SetBackdropBorderColor(qualityColor.r, qualityColor.g, qualityColor.b, 1)
+            end
+            row.checkBox:SetChecked(pendingItem.isTicked)
+            row:SetAlpha(pendingItem.isTicked and 1 or 0.55)
+            row:Show()
+        else
+            row:Hide()
+        end
+    end
+    -- Items beyond the first rows are sold too when ticked (they are all ticked).
+    local listBottom = 56 + shownRows * (SELL_ROW_HEIGHT + 2)
+    sellWindow.moreText:ClearAllPoints()
+    sellWindow.moreText:SetPoint("TOPLEFT", 14, -listBottom - 2)
+    if #pendingVendorItems > MAX_SELL_ROWS then
+        sellWindow.moreText:SetText(string.format("+ %d more items", #pendingVendorItems - MAX_SELL_ROWS))
+        listBottom = listBottom + 16
+    else
+        sellWindow.moreText:SetText("")
+    end
+    sellWindow.totalText:ClearAllPoints()
+    sellWindow.totalText:SetPoint("TOPLEFT", 14, -listBottom - 8)
+    sellWindow.keepButton:ClearAllPoints()
+    sellWindow.keepButton:SetPoint("TOPRIGHT", -10, -listBottom - 30)
+    sellWindow.sellButton:ClearAllPoints()
+    sellWindow.sellButton:SetPoint("RIGHT", sellWindow.keepButton, "LEFT", -6, 0)
+    sellWindow:SetHeight(listBottom + 62)
+    UpdateSellWindowTotal()
+
+    -- Next to the vendor window, or in the middle when it is not there.
+    sellWindow:ClearAllPoints()
+    if MerchantFrame and MerchantFrame:IsShown() then
+        sellWindow:SetPoint("TOPLEFT", MerchantFrame, "TOPRIGHT", 8, 0)
+    else
+        sellWindow:SetPoint("CENTER", UIParent, "CENTER", 0, 80)
+    end
+    sellWindow:Show()
+end
+
 local function OfferToSellVendorAdviceItems()
-    if not (MentorDB.isSellVendorItemsEnabled ~= false and StaticPopupDialogs and StaticPopup_Show) then
+    if MentorDB.isSellVendorItemsEnabled == false then
         return
     end
     pendingVendorItems = FindVendorAdviceItems()
     if #pendingVendorItems == 0 then
         return
     end
-    local itemNames, totalPrice = {}, 0
-    for itemIndex, pendingItem in ipairs(pendingVendorItems) do
-        totalPrice = totalPrice + pendingItem.totalPrice
-        if itemIndex <= MAX_ITEM_NAMES_IN_POPUP then
-            table.insert(itemNames, pendingItem.itemLink)
-        end
+    for _, pendingItem in ipairs(pendingVendorItems) do
+        pendingItem.isTicked = true
     end
-    if #pendingVendorItems > MAX_ITEM_NAMES_IN_POPUP then
-        table.insert(itemNames, string.format("and %d more", #pendingVendorItems - MAX_ITEM_NAMES_IN_POPUP))
+    ShowSellWindow()
+end
+function autoVendor.HideSellWindow()
+    if sellWindow then
+        sellWindow:Hide()
     end
-    StaticPopupDialogs[VENDOR_ITEMS_POPUP] = {
-        text = string.format("Mentor: sell %d item%s that %s only worth vendoring, for %s?\n\n%s",
-            #pendingVendorItems, #pendingVendorItems == 1 and "" or "s", #pendingVendorItems == 1 and "is" or "are",
-            Mentor.FormatMoneyWithIcons(totalPrice),
-            table.concat(itemNames, "\n")),
-        button1 = "Sell", button2 = "Keep them",
-        OnAccept = function()
-            local wasQueueEmpty = #sellQueue == 0
-            for _, pendingItem in ipairs(pendingVendorItems) do
-                table.insert(sellQueue, pendingItem)
-            end
-            wipe(pendingVendorItems)
-            if wasQueueEmpty then
-                SellNextBatch()
-            end
-        end,
-        timeout = 0, whileDead = true, hideOnEscape = true,
-    }
-    StaticPopup_Show(VENDOR_ITEMS_POPUP)
+    wipe(pendingVendorItems)
 end
 autoVendor.FindVendorAdviceItems = FindVendorAdviceItems     -- for tests
 
@@ -408,9 +569,7 @@ eventFrame:SetScript("OnEvent", function(_, eventName)
         end
         OfferToSellVendorAdviceItems()
     elseif eventName == "MERCHANT_CLOSED" then
-        if StaticPopup_Hide then
-            StaticPopup_Hide(VENDOR_ITEMS_POPUP)
-        end
+        autoVendor.HideSellWindow()
         isMerchantOpen = false
     else
         UpdateDisplay()          -- bags or durability changed
