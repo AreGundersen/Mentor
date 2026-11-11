@@ -6,6 +6,12 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Settings are remembered for your whole account:** a new character starts with the settings you used last, and changes carry over to your other characters at their next login. Window positions stay per character.
+- **New: Journey tab** (Spells & racials panel, or `/mentor journey`): zones and dungeons for your level and faction, profession advice for your class, and professions that need a trainer.
+- **New: Reminders** (on by default, Settings > Reminders): new spells at your class trainer when you level up; low ammo, reagents or an unhappy pet when you leave town; gear that is almost broken; professions stuck at their cap; empty bag slots and small bags.
+- **New: Dungeon tips:** a short tip about the dungeon and your role when you enter one.
+- **Auto vendor:** can also sell the items Sell advice marks "Just vendor it" - it lists them with the total and asks first, and never sells an upgrade for any of your specs.
+- **New: a short tour** the first time you use Mentor (`/mentor tour` shows it again).
 - Sell advice: quest items ("Quest Item", "This Item Begins a Quest") and other items with a "Use:" line say "Keep" - unless the AH pays clearly more, then they say "Sell on the AH". Potions, food and reagents for your professions are always kept. "Use:" lines in colour were not recognised before.
 - Sell advice: items worth at least twice the vendor price on the AH are recommended for the AH from 1 silver gain (before: 10 silver), so a 7 silver item is no longer vendored for 62 copper.
 

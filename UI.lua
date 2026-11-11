@@ -28,6 +28,8 @@
 --   /mentor fishing on|off    One-key fishing window (Fishing.lua)
 --   /mentor fish [key <KEY> | reset]   start / stop fishing mode
 --   /mentor mana on|off|low|critical|...   Mana warning (ManaWarning.lua)
+--   /mentor journey           zones, dungeons and professions for your level
+--   /mentor tour              show the first-time tour again
 --   /mentor lifelog on|off    Life log (LifeLog.lua); /mentor log [reset | wipe confirm | forget <name>]
 --   /mentor guide             open the "How to play" guide
 --   /mentor spells | racials | macros   open the "Spells & macros" panel on that tab
@@ -90,10 +92,68 @@ local DEFAULT_SETTINGS = {
     isManaSoundEnabled = true,
     isManaPartyMessageEnabled = true,
     isManaCombatOnly = false,
+    isTrainerReminderEnabled = true,   -- chat reminders (Reminders.lua)
+    areSupplyRemindersEnabled = true,
+    areBagRemindersEnabled = true,
+    areDungeonTipsEnabled = true,      -- tip when you enter a dungeon (Journey.lua)
+    isTourDone = false,                -- first-time tour (Tour.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
     point = "CENTER", relativePoint = "CENTER", offsetX = -320, offsetY = 80,
 }
+
+--------------------------------------------------------------------------------
+-- Settings shared by all your characters (MentorAccountDB.settings)
+-- Window positions and which panels are open stay per character; every
+-- on/off setting and option is remembered for the whole account: a new
+-- character starts with the settings you used last, and a change on one
+-- character carries over to the others at their next login.
+--------------------------------------------------------------------------------
+local PER_CHARACTER_SETTINGS = {
+    isShown = true, isBuildShown = true, guideTab = true, extrasTab = true,
+    point = true, relativePoint = true, offsetX = true, offsetY = true,
+    isLifeLogImported = true, isManaWarningImported = true, keptJunkItemIds = true,
+}
+-- Settings that are not in DEFAULT_SETTINGS but are still shared.
+local EXTRA_ACCOUNT_SETTINGS = {
+    "isAutoSellEnabled", "isAutoRepairEnabled", "isSellVendorItemsEnabled",
+    "manaLowPercent", "manaCriticalPercent", "fishingKey", "minimapAngle",
+}
+
+local function ForEachAccountSettingName(handleSettingName)
+    for settingName in pairs(DEFAULT_SETTINGS) do
+        if not PER_CHARACTER_SETTINGS[settingName] then
+            handleSettingName(settingName)
+        end
+    end
+    for _, settingName in ipairs(EXTRA_ACCOUNT_SETTINGS) do
+        handleSettingName(settingName)
+    end
+end
+
+-- At load: take the account's settings over this character's.
+function Mentor.ApplyAccountSettings()
+    MentorAccountDB = MentorAccountDB or {}
+    MentorAccountDB.settings = MentorAccountDB.settings or {}
+    local accountSettings = MentorAccountDB.settings
+    ForEachAccountSettingName(function(settingName)
+        if accountSettings[settingName] ~= nil then
+            MentorDB[settingName] = accountSettings[settingName]
+        end
+    end)
+end
+
+-- After every change and at logout: remember this character's settings for the account.
+function Mentor.SaveAccountSettings()
+    if not (MentorDB and MentorAccountDB and MentorAccountDB.settings) then
+        return
+    end
+    ForEachAccountSettingName(function(settingName)
+        if type(MentorDB[settingName]) ~= "table" then
+            MentorAccountDB.settings[settingName] = MentorDB[settingName]
+        end
+    end)
+end
 
 --------------------------------------------------------------------------------
 -- Shared helpers
@@ -333,6 +393,10 @@ local function BuildMainWindow()
         GameTooltip:Show()
     end)
     lifeLogButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- Things the first-time tour (Tour.lua) points at.
+    Mentor.tourTargets = Mentor.tourTargets or {}
+    Mentor.tourTargets.settingsButton = settingsButton
+    Mentor.tourTargets.lifeLogButton = lifeLogButton
     -- Report a bug, right under Settings so it is always in view.
     local bugButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
     bugButton:SetSize(70, 18)
@@ -448,6 +512,8 @@ local function BuildMainWindow()
         return extrasButton
     end
     widgets.spellsButton = CreateExtrasButton("spells", "TOPLEFT", PADDING)
+    Mentor.tourTargets = Mentor.tourTargets or {}
+    Mentor.tourTargets.spellsButton = widgets.spellsButton
     widgets.macrosButton = CreateExtrasButton("macros", "TOPRIGHT", -PADDING)
     verticalOffset = verticalOffset - 24 - SECTION_GAP
     AddDivider(verticalOffset)
@@ -630,6 +696,7 @@ end
 --------------------------------------------------------------------------------
 -- Messages and updates right after a setting is switched.
 function Mentor.OnSettingChanged(settingName)
+    Mentor.SaveAccountSettings()
     -- Sell advice needs Auctionator's prices.
     if settingName == "isSellAdviceEnabled" and MentorDB.isSellAdviceEnabled
         and Mentor.SellAdvice and not Mentor.SellAdvice.IsAuctionatorLoaded() then
@@ -677,6 +744,12 @@ local SETTINGS_SECTIONS = {
         { "areLootAlertsEnabled",     "Loot alerts",   "Chat message when you loot an upgrade" },
         { "areQuestPicksEnabled",     "Quest rewards", "Mark the best reward when you hand in a quest" },
     } },
+    { column = 1, title = "Reminders", rows = {
+        { "isTrainerReminderEnabled", "Trainer",       "New spells to train when you level up" },
+        { "areSupplyRemindersEnabled", "Supplies & repair", "Ammo, reagents, pet food and broken gear" },
+        { "areBagRemindersEnabled",   "Bags & professions", "Empty bag slots and professions that need a trainer" },
+        { "areDungeonTipsEnabled",    "Dungeon tips",  "A short tip for your role when you enter a dungeon" },
+    } },
     { column = 2, title = "Gold", rows = {
         { "isSellAdviceEnabled",      "Sell advice",   "AH, disenchant or vendor? Needs Auctionator" },
         { "isAutoVendorEnabled",      "Auto vendor",   "Sell junk and repair at vendors (Shift skips)" },
@@ -692,7 +765,7 @@ local SETTINGS_SECTIONS = {
         { "isManaPartyMessageEnabled", "Tell the group", "Say \"Low mana!\" in party / raid", dependsOn = "isManaWarningEnabled" },
         { "isManaCombatOnly",         "Only in combat", "No warnings outside combat", dependsOn = "isManaWarningEnabled" },
     } },
-    { column = 1, title = "Interface", rows = {
+    { column = 2, title = "Interface", rows = {
         { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },
     } },
 }
@@ -1078,7 +1151,7 @@ local REFRESH_EVENTS = {
     "UPDATE_MACROS", "PLAYER_REGEN_ENABLED",
 }
 -- Unknown events throw on some clients, so register each one protected.
-for _, eventName in ipairs({ "ADDON_LOADED", "CHAT_MSG_LOOT", "QUEST_COMPLETE", "QUEST_FINISHED", "SPELL_UPDATE_COOLDOWN", "SPELL_DATA_LOAD_RESULT" }) do
+for _, eventName in ipairs({ "ADDON_LOADED", "PLAYER_LOGOUT", "CHAT_MSG_LOOT", "QUEST_COMPLETE", "QUEST_FINISHED", "SPELL_UPDATE_COOLDOWN", "SPELL_DATA_LOAD_RESULT" }) do
     pcall(eventFrame.RegisterEvent, eventFrame, eventName)
 end
 for _, eventName in ipairs(REFRESH_EVENTS) do
@@ -1090,10 +1163,15 @@ local function OnTalentWindowChanged()
 end
 
 eventFrame:SetScript("OnEvent", function(self, eventName, ...)
+    if eventName == "PLAYER_LOGOUT" then
+        Mentor.SaveAccountSettings()   -- slash commands and switches change settings too
+        return
+    end
     if eventName == "ADDON_LOADED" then
         local loadedAddonName = ...
         if loadedAddonName == ADDON_NAME then
             MentorDB = MentorDB or {}
+            Mentor.ApplyAccountSettings()
             for settingName, defaultValue in pairs(DEFAULT_SETTINGS) do
                 if MentorDB[settingName] == nil then
                     MentorDB[settingName] = defaultValue
@@ -1224,6 +1302,12 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.Print("Level pace: session statistics reset.")
     elseif command == "mana" then
         Mentor.ManaWarning.HandleCommand(argument)
+    elseif command == "tour" then
+        if not mainFrame:IsShown() then
+            MentorDB.isShown = true
+            mainFrame:Show()
+        end
+        Mentor.Tour.Start()
     elseif command == "log" then
         Mentor.LifeLog.HandleCommand(argument)
     elseif command == "fish" then
@@ -1256,7 +1340,7 @@ SlashCmdList["MENTOR"] = function(input)
             Mentor.ExtrasUI.SetShown(false)
         end
         Mentor.RequestRefresh()
-    elseif command == "spells" or command == "racials" or command == "macros" then
+    elseif command == "spells" or command == "racials" or command == "macros" or command == "journey" then
         if not mainFrame:IsShown() then
             MentorDB.isShown = true
             mainFrame:Show()
@@ -1286,6 +1370,6 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.LifeLog.ResetWindowPosition()
         Mentor.ManaWarning.ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | tour | keep <item> | debug | lock | unlock | center")
     end
 end

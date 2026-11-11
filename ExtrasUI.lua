@@ -7,6 +7,8 @@
 --   * Racials    your race's abilities and when to press them.
 --   * Macros     ready-made macros; "Create" makes the macro and puts it on
 --                your cursor so you can drop it on an action bar.
+--   * Journey    where to go next: zones and dungeons for your level, and
+--                profession advice (data in Journey.lua).
 --------------------------------------------------------------------------------
 
 local _, Mentor = ...
@@ -40,6 +42,7 @@ local TABS = {
     { key = "spells",  label = "Coming up" },
     { key = "racials", label = "Racials" },
     { key = "macros",  label = "Macros" },
+    { key = "journey", label = "Journey" },
 }
 
 local extrasUI = {}
@@ -466,7 +469,11 @@ local function FillRow(row, entry)
     SetBorderColor(row, isTalent and GOLD or GREY, isTalent and 1 or 0.6)
     row.icon:SetDesaturated(entry.kind == "macro" and not entry.isReady)
 
-    if entry.kind == "macro" then
+    -- Level ranges ("10-20") need the smaller font to fit the column.
+    row.levelText:SetFontObject(entry.kind == "journey" and GameFontNormalSmall or GameFontNormal)
+    if entry.kind == "journey" then
+        row.levelText:SetText(GOLD_TEXT .. (entry.levelText or "") .. "|r")
+    elseif entry.kind == "macro" then
         row.levelText:SetText("")
     elseif entry.kind == "racial" or entry.kind == "passive" then
         row.levelText:SetText("")
@@ -488,7 +495,7 @@ local function FillRow(row, entry)
         passive   = MUTED_TEXT .. "Passive|r",
         macro     = "",
     }
-    row.tagText:SetText(tagByKind[entry.kind] or "")
+    row.tagText:SetText(entry.kind == "journey" and (entry.tag or "") or tagByKind[entry.kind] or "")
 
     local descriptionText = entry.description or GetSpellDescription(entry.spellId) or ""
     if entry.kind == "macro" and not entry.isReady then
@@ -619,6 +626,11 @@ function extrasUI.Refresh(advice)
         panel.title:SetText((raceName or "Your race") .. " racials: use them!")
         panel.hint:SetText(MUTED_TEXT .. "Free extra buttons from your race. Put the ones marked \"Press it\" on your bars.|r")
         emptyMessage = "No racial abilities found for your race."
+    elseif selectedKey == "journey" then
+        entries = Mentor.Journey.GetEntries(advice)
+        panel.title:SetText("Where next?")
+        panel.hint:SetText(MUTED_TEXT .. "Zones and dungeons for your level (number = level range), and professions that suit you.|r")
+        emptyMessage = "Nothing to suggest right now."
     elseif selectedKey == "macros" then
         entries = GetMacroEntries(advice)
         panel.title:SetText("Helpful macros")

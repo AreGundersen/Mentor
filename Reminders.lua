@@ -1,0 +1,287 @@
+--------------------------------------------------------------------------------
+-- Mentor - Reminders.lua
+-- Short chat reminders about things new players forget (Settings > Reminders,
+-- all on by default): "Trainer", "Supplies & repair", "Bags & professions".
+--   * Trainer     you levelled up and your class trainer has new spells
+--   * Supplies    low on ammo, soul shards or reagents for spells you know,
+--                 and an unhappy pet - checked when you leave a town/inn
+--   * Repair      your gear is almost broken
+--   * Profession  a profession is stuck at its cap: learn the next rank
+--   * Bags        an empty bag slot, or small bags you could replace
+-- Every reminder is said once, and again only when the situation changes.
+--------------------------------------------------------------------------------
+
+local _, Mentor = ...
+
+local SECONDS_AFTER_LEVEL_UP = 1.5          -- the spellbook needs a moment after a level-up
+local REPAIR_WARNING_PERCENT = 20           -- warn when any item is at or below this durability
+local REPAIR_REARM_PERCENT = 50             -- warn again only after a repair above this
+local FIRST_EQUIPMENT_SLOT, LAST_EQUIPMENT_SLOT = 1, 18
+local LOW_AMMO_COUNT = 200
+local FIRST_BAG_SLOT, LAST_BAG_SLOT = 1, NUM_BAG_SLOTS or 4
+local SMALL_BAG_SLOTS = 8                   -- bags smaller than this are worth replacing ...
+local SMALL_BAG_REMINDER_LEVEL = 15         -- ... from this level ...
+local SMALL_BAG_REMINDER_MONEY = 20000      -- ... when you have 2 gold
+local PET_UNHAPPY = 1                       -- GetPetHappiness: 1 unhappy, 2 content, 3 happy
+
+local MESSAGE_COLOR = "|cffffd100"
+
+-- Reagents for spells you know: { class, spell that needs it, item id, item name, warn below }.
+local REAGENT_CHECKS = {
+    { "WARLOCK", "Summon Voidwalker", 6265, "Soul Shards", 3 },
+    { "SHAMAN", "Reincarnation", 17030, "Ankh", 1 },
+    { "ROGUE", "Vanish", 5140, "Flash Powder", 2 },
+    { "MAGE", "Teleport: Stormwind", 17031, "Rune of Teleportation", 1 },
+    { "MAGE", "Teleport: Ironforge", 17031, "Rune of Teleportation", 1 },
+    { "MAGE", "Teleport: Darnassus", 17031, "Rune of Teleportation", 1 },
+    { "MAGE", "Teleport: Orgrimmar", 17031, "Rune of Teleportation", 1 },
+    { "MAGE", "Teleport: Undercity", 17031, "Rune of Teleportation", 1 },
+    { "MAGE", "Teleport: Thunder Bluff", 17031, "Rune of Teleportation", 1 },
+}
+
+local reminders = {}
+Mentor.Reminders = reminders
+
+local saidReminders = {}            -- reminder key -> true once said this session
+local isRepairWarningArmed = true
+
+local function IsOn(settingName)
+    return MentorDB and MentorDB[settingName] ~= false
+end
+
+-- Says a reminder once per key (and again after ForgetReminder).
+local function Remind(reminderKey, text)
+    if saidReminders[reminderKey] then
+        return
+    end
+    saidReminders[reminderKey] = true
+    Mentor.Print(MESSAGE_COLOR .. text .. "|r")
+end
+
+local function ForgetReminder(reminderKey)
+    saidReminders[reminderKey] = nil
+end
+
+local function GetItemCountCompat(itemId)
+    if C_Item and C_Item.GetItemCount then
+        return C_Item.GetItemCount(itemId) or 0
+    end
+    return GetItemCount and GetItemCount(itemId) or 0
+end
+
+local function IsSpellKnownByName(spellName)
+    if not Mentor.ResolveSpell then
+        return false
+    end
+    local success, resolvedSpell = pcall(Mentor.ResolveSpell, spellName)
+    return success and resolvedSpell and resolvedSpell.isKnown == true
+end
+
+--------------------------------------------------------------------------------
+-- Trainer: new spells after a level-up
+--------------------------------------------------------------------------------
+-- Names the spells that are new at this level; older spells you have not
+-- trained yet are only counted (the Spells panel lists them).
+function reminders.CheckTrainer(newLevel)
+    if not IsOn("isTrainerReminderEnabled") then
+        return
+    end
+    local _, classFileName = UnitClass("player")
+    local newSpellNames, olderUntrainedCount = {}, 0
+    for _, trainerEntry in ipairs(Mentor.TRAINER_SPELLS and Mentor.TRAINER_SPELLS[classFileName] or {}) do
+        local spellLevel, spellName = trainerEntry[1], trainerEntry[2]
+        if spellLevel <= newLevel and not IsSpellKnownByName(spellName) then
+            if spellLevel == newLevel then
+                table.insert(newSpellNames, spellName)
+            else
+                olderUntrainedCount = olderUntrainedCount + 1
+            end
+        end
+    end
+    local olderText = olderUntrainedCount > 0
+        and string.format(" (+%d older spell%s you have not trained yet - see Spells & racials.)",
+            olderUntrainedCount, olderUntrainedCount == 1 and "" or "s") or ""
+    if #newSpellNames > 0 then
+        Remind("trainer" .. newLevel, string.format("Level %d! New at your class trainer: %s.%s",
+            newLevel, table.concat(newSpellNames, ", "), olderText))
+    elseif olderUntrainedCount > 0 then
+        Remind("trainer" .. newLevel, string.format("Level %d! Visit your class trainer:%s", newLevel, olderText))
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Supplies: ammo, reagents, pet
+--------------------------------------------------------------------------------
+function reminders.CheckSupplies()
+    if not IsOn("areSupplyRemindersEnabled") then
+        return
+    end
+    local _, classFileName = UnitClass("player")
+
+    -- Hunters: ammo in the ammo slot.
+    if classFileName == "HUNTER" and GetInventorySlotInfo then
+        local slotFound, ammoSlot = pcall(GetInventorySlotInfo, "AmmoSlot")
+        if slotFound and ammoSlot then
+            local ammoCount = GetInventoryItemCount("player", ammoSlot) or 0
+            if ammoCount < LOW_AMMO_COUNT then
+                Remind("ammo", string.format("Only %d arrows / bullets left - buy more before you leave town.", ammoCount))
+            else
+                ForgetReminder("ammo")
+            end
+        end
+    end
+
+    -- Hunters and warlocks: a pet that is unhappy fights badly.
+    if GetPetHappiness and UnitExists and UnitExists("pet") then
+        local petHappiness = GetPetHappiness()
+        if petHappiness == PET_UNHAPPY then
+            Remind("pet", "Your pet is unhappy and does less damage - feed it (Feed Pet).")
+        else
+            ForgetReminder("pet")
+        end
+    end
+
+    -- Reagents for spells you already know.
+    local remindedItems = {}
+    for _, reagentCheck in ipairs(REAGENT_CHECKS) do
+        local checkClass, spellName, itemId, itemName, warnBelow = unpack(reagentCheck)
+        if checkClass == classFileName and not remindedItems[itemId] and IsSpellKnownByName(spellName) then
+            remindedItems[itemId] = true
+            local itemCount = GetItemCountCompat(itemId)
+            if itemCount < warnBelow then
+                Remind("reagent" .. itemId, string.format("You have %d %s - %s needs it.", itemCount, itemName, spellName))
+            else
+                ForgetReminder("reagent" .. itemId)
+            end
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Repair
+--------------------------------------------------------------------------------
+function reminders.CheckRepair()
+    if not IsOn("areSupplyRemindersEnabled") then
+        return
+    end
+    local lowestPercent
+    for inventorySlot = FIRST_EQUIPMENT_SLOT, LAST_EQUIPMENT_SLOT do
+        local currentDurability, maxDurability = GetInventoryItemDurability(inventorySlot)
+        if currentDurability and maxDurability and maxDurability > 0 then
+            local slotPercent = currentDurability / maxDurability * 100
+            lowestPercent = math.min(lowestPercent or slotPercent, slotPercent)
+        end
+    end
+    if not lowestPercent then
+        return
+    end
+    if lowestPercent <= REPAIR_WARNING_PERCENT and isRepairWarningArmed then
+        isRepairWarningArmed = false
+        if lowestPercent <= 0 then
+            Mentor.Print(MESSAGE_COLOR .. "Some of your gear is broken and gives no stats - repair it at a vendor with an anvil icon.|r")
+        else
+            Mentor.Print(MESSAGE_COLOR .. string.format("Your gear is at %d%% durability - repair soon at a vendor with an anvil icon.", math.floor(lowestPercent)) .. "|r")
+        end
+    elseif lowestPercent >= REPAIR_REARM_PERCENT then
+        isRepairWarningArmed = true
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Professions stuck at their cap
+--------------------------------------------------------------------------------
+function reminders.CheckProfessions()
+    if not (IsOn("areBagRemindersEnabled") and Mentor.Journey) then
+        return
+    end
+    local playerLevel = UnitLevel("player") or 1
+    for _, profession in ipairs(Mentor.Journey.GetPlayerProfessions()) do
+        local trainerHint = Mentor.Journey.GetProfessionTrainerHint(profession, playerLevel)
+        local reminderKey = "profession" .. profession.name .. profession.maximum
+        if trainerHint and profession.skill >= profession.maximum then
+            Remind(reminderKey, trainerHint)
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Bags: empty bag slots and small bags
+--------------------------------------------------------------------------------
+local function GetBagSlotCountCompat(bagIndex)
+    if C_Container and C_Container.GetContainerNumSlots then
+        return C_Container.GetContainerNumSlots(bagIndex) or 0
+    end
+    return GetContainerNumSlots and GetContainerNumSlots(bagIndex) or 0
+end
+
+function reminders.CheckBags()
+    if not IsOn("areBagRemindersEnabled") then
+        return
+    end
+    local emptyBagSlots, smallestBagSlots = 0, nil
+    for bagIndex = FIRST_BAG_SLOT, LAST_BAG_SLOT do
+        local slotCount = GetBagSlotCountCompat(bagIndex)
+        if slotCount == 0 then
+            emptyBagSlots = emptyBagSlots + 1
+        else
+            smallestBagSlots = math.min(smallestBagSlots or slotCount, slotCount)
+        end
+    end
+    if emptyBagSlots > 0 then
+        Remind("bagsEmpty" .. emptyBagSlots, string.format(
+            "You have %d empty bag slot%s - buy a bag at a General Goods vendor, the auction house or a tailor for more space.",
+            emptyBagSlots, emptyBagSlots == 1 and "" or "s"))
+        return
+    end
+    ForgetReminder("bagsEmpty1"); ForgetReminder("bagsEmpty2"); ForgetReminder("bagsEmpty3"); ForgetReminder("bagsEmpty4")
+    local playerLevel = UnitLevel("player") or 1
+    if smallestBagSlots and smallestBagSlots < SMALL_BAG_SLOTS and playerLevel >= SMALL_BAG_REMINDER_LEVEL
+        and (GetMoney() or 0) >= SMALL_BAG_REMINDER_MONEY then
+        Remind("bagsSmall" .. smallestBagSlots, string.format(
+            "Your smallest bag has only %d slots. A bigger bag (10 slots or more) from the auction house or a tailor gives you more room for loot.",
+            smallestBagSlots))
+    end
+end
+
+--------------------------------------------------------------------------------
+-- Events
+--------------------------------------------------------------------------------
+local wasResting = nil
+
+local eventFrame = CreateFrame("Frame")
+for _, eventName in ipairs({ "PLAYER_LOGIN", "PLAYER_LEVEL_UP", "PLAYER_UPDATE_RESTING",
+    "UPDATE_INVENTORY_DURABILITY", "SKILL_LINES_CHANGED", "BAG_UPDATE_DELAYED", "UNIT_HAPPINESS" }) do
+    pcall(eventFrame.RegisterEvent, eventFrame, eventName)
+end
+eventFrame:SetScript("OnEvent", function(_, eventName, ...)
+    if eventName == "PLAYER_LOGIN" then
+        wasResting = IsResting and IsResting()
+        C_Timer.After(5, function()
+            pcall(reminders.CheckRepair)
+            pcall(reminders.CheckProfessions)
+            pcall(reminders.CheckBags)
+        end)
+    elseif eventName == "PLAYER_LEVEL_UP" then
+        local newLevel = ...
+        C_Timer.After(SECONDS_AFTER_LEVEL_UP, function()
+            pcall(reminders.CheckTrainer, newLevel)
+            pcall(reminders.CheckProfessions)
+            pcall(reminders.CheckBags)
+        end)
+    elseif eventName == "PLAYER_UPDATE_RESTING" then
+        -- Leaving a town or inn is the moment to check what you are bringing.
+        local isResting = IsResting and IsResting()
+        if wasResting and not isResting then
+            pcall(reminders.CheckSupplies)
+        end
+        wasResting = isResting
+    elseif eventName == "UPDATE_INVENTORY_DURABILITY" then
+        pcall(reminders.CheckRepair)
+    elseif eventName == "SKILL_LINES_CHANGED" then
+        pcall(reminders.CheckProfessions)
+    elseif eventName == "BAG_UPDATE_DELAYED" then
+        pcall(reminders.CheckBags)
+    elseif eventName == "UNIT_HAPPINESS" then
+        pcall(reminders.CheckSupplies)
+    end
+end)

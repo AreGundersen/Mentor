@@ -14,6 +14,11 @@
 - See exactly which stats change, and what each stat does for you.
 - Chat alert when you loot an upgrade, and the best quest reward marked when you hand in a quest.
 
+## Where next? and reminders
+- **Journey tab:** zones and dungeons for your level and faction, and professions that suit your class.
+- **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, and empty bag slots.
+- **Dungeon tips:** a short tip about the dungeon and your role when you enter one.
+
 ## Sell advice (optional)
 Needs the **Auctionator** addon. Off by default: turn it on under Settings or with `/mentor sell on`.
 - Tells you whether an item is worth **selling on the auction house**, **disenchanting** or **just vendoring**, based on Auctionator's prices (the 5% AH cut is included).
@@ -34,7 +39,7 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 - New abilities by level, your racials and ready-made macros (place them with one click).
 
 ## Settings
-Everything can be turned on or off in the Settings window (`/mentor settings`), including "Tooltip details" for shorter tooltips.
+Everything can be turned on or off in the Settings window (`/mentor settings`), including "Tooltip details" for shorter tooltips. Your settings are remembered for all your characters.
 
 ## Commands
 - `/mentor` - show or hide the window
@@ -46,6 +51,8 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor log` - Life log window (`/mentor lifelog off` turns it off)
 - `/mentor mana on|off|low|critical` - Mana warning
 - `/mentor fishing on|off` - One-key fishing window; `/mentor fish` starts / stops fishing, `/mentor fish key <KEY>` picks the key
+- `/mentor journey` - zones, dungeons and professions for your level
+- `/mentor tour` - the short tour again
 - `/mentor bug` - report a bug
 
 ## Found a bug?

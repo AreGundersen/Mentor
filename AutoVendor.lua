@@ -5,6 +5,8 @@
 --   * every grey (junk) item in your bags is sold
 --   * all your gear is repaired (if the vendor can repair)
 --   * one chat line says what was sold and what the repair cost
+--   * with Sell advice on: Mentor lists the items marked "Just vendor it"
+--     (never upgrades for any of your specs) and asks before selling them
 -- Hold SHIFT while opening the vendor to skip both for that visit.
 -- A small Mentor window shows the value of the junk in your bags and the
 -- lowest durability of your gear.
@@ -46,6 +48,10 @@ local ROW_DEFINITIONS = {
         isOn = IsAutoRepairOn,
         setOn = function(newValue) MentorDB.isAutoRepairEnabled = newValue end,
         tooltip = "Repair all your gear when you open a vendor that can repair" } },
+    { key = "sellAdviceItems", label = "Sell \"vendor it\" items", toggle = {
+        isOn = function() return MentorDB and MentorDB.isSellVendorItemsEnabled ~= false end,
+        setOn = function(newValue) MentorDB.isSellVendorItemsEnabled = newValue end,
+        tooltip = "Also sell what Sell advice marks \"Just vendor it\". Mentor lists them and asks first. Needs Sell advice." } },
 }
 
 local autoVendor = {}
@@ -74,14 +80,14 @@ local function GetBagSlotCount(bagIndex)
     return GetContainerNumSlots(bagIndex) or 0
 end
 
--- itemId, itemLink, stackCount, quality, isLocked for a bag slot (or nil).
+-- itemId, itemLink, stackCount, quality, isLocked, isBound for a bag slot (or nil).
 local function GetBagSlotItem(bagIndex, slotIndex)
     if C_Container and C_Container.GetContainerItemInfo then
         local slotInfo = C_Container.GetContainerItemInfo(bagIndex, slotIndex)
         if not slotInfo then
             return nil
         end
-        return slotInfo.itemID, slotInfo.hyperlink, slotInfo.stackCount, slotInfo.quality, slotInfo.isLocked
+        return slotInfo.itemID, slotInfo.hyperlink, slotInfo.stackCount, slotInfo.quality, slotInfo.isLocked, slotInfo.isBound
     end
     local _, stackCount, isLocked, quality, _, _, itemLink, _, _, itemId = GetContainerItemInfo(bagIndex, slotIndex)
     if not itemLink then
@@ -150,7 +156,7 @@ end
 --------------------------------------------------------------------------------
 local function FinishSelling()
     if soldItemCount > 0 then
-        Mentor.Print(string.format("Sold %d junk item%s for %s.", soldItemCount, soldItemCount == 1 and "" or "s",
+        Mentor.Print(string.format("Sold %d item%s for %s.", soldItemCount, soldItemCount == 1 and "" or "s",
             Mentor.FormatMoneyWithIcons(soldCopperTotal)))
     end
     soldItemCount, soldCopperTotal = 0, 0
@@ -191,6 +197,92 @@ local function SellAllJunk()
         SellNextBatch()
     end
 end
+
+--------------------------------------------------------------------------------
+-- "Just vendor it" items from Sell advice (asks first)
+--------------------------------------------------------------------------------
+local VENDOR_ITEMS_POPUP = "MENTOR_SELL_VENDOR_ITEMS"
+local MAX_ITEM_NAMES_IN_POPUP = 6
+local pendingVendorItems = {}
+
+-- True when the item is an upgrade for one of your specs - never sold.
+local function IsUpgradeForAnySpec(itemLink)
+    local advice = Mentor.currentAdvice
+    if not (advice and advice.classData and Mentor.CompareItem) then
+        return true        -- unknown: better safe than sold
+    end
+    for _, specData in ipairs(advice.classData.specs) do
+        local success, comparison = pcall(Mentor.CompareItem, itemLink, specData.weights)
+        if not success or comparison.kind == "upgrade" or comparison.kind == "empty" then
+            return true
+        end
+    end
+    return false
+end
+
+-- Bag items (not grey, not kept) that Sell advice says to vendor.
+local function FindVendorAdviceItems()
+    local foundItems = {}
+    local sellAdvice = Mentor.SellAdvice
+    if not (sellAdvice and sellAdvice.IsEnabled()) then
+        return foundItems
+    end
+    local keptItemIds = GetKeptItemIds()
+    for bagIndex = FIRST_BAG_INDEX, LAST_BAG_INDEX do
+        for slotIndex = 1, GetBagSlotCount(bagIndex) do
+            local itemId, itemLink, stackCount, quality, isLocked, isBound = GetBagSlotItem(bagIndex, slotIndex)
+            if itemLink and quality and quality > POOR_ITEM_QUALITY and not isLocked and not keptItemIds[itemId] then
+                local success, itemAdvice = pcall(sellAdvice.Evaluate, itemLink, isBound)
+                if success and itemAdvice and itemAdvice.action == "vendor" and (itemAdvice.vendorValue or 0) > 0
+                    and not IsUpgradeForAnySpec(itemLink) then
+                    table.insert(foundItems, { bagIndex = bagIndex, slotIndex = slotIndex, itemLink = itemLink,
+                        stackCount = stackCount or 1, totalPrice = itemAdvice.vendorValue * (stackCount or 1) })
+                end
+            end
+        end
+    end
+    return foundItems
+end
+
+local function OfferToSellVendorAdviceItems()
+    if not (MentorDB.isSellVendorItemsEnabled ~= false and StaticPopupDialogs and StaticPopup_Show) then
+        return
+    end
+    pendingVendorItems = FindVendorAdviceItems()
+    if #pendingVendorItems == 0 then
+        return
+    end
+    local itemNames, totalPrice = {}, 0
+    for itemIndex, pendingItem in ipairs(pendingVendorItems) do
+        totalPrice = totalPrice + pendingItem.totalPrice
+        if itemIndex <= MAX_ITEM_NAMES_IN_POPUP then
+            table.insert(itemNames, pendingItem.itemLink)
+        end
+    end
+    if #pendingVendorItems > MAX_ITEM_NAMES_IN_POPUP then
+        table.insert(itemNames, string.format("and %d more", #pendingVendorItems - MAX_ITEM_NAMES_IN_POPUP))
+    end
+    StaticPopupDialogs[VENDOR_ITEMS_POPUP] = {
+        text = string.format("Mentor: sell %d item%s that %s only worth vendoring, for %s?\n\n%s",
+            #pendingVendorItems, #pendingVendorItems == 1 and "" or "s", #pendingVendorItems == 1 and "is" or "are",
+            Mentor.FormatMoneyWithIcons(totalPrice),
+            table.concat(itemNames, "\n")),
+        button1 = "Sell", button2 = "Keep them",
+        OnAccept = function()
+            local wasQueueEmpty = #sellQueue == 0
+            for _, pendingItem in ipairs(pendingVendorItems) do
+                table.insert(sellQueue, pendingItem)
+            end
+            wipe(pendingVendorItems)
+            if wasQueueEmpty then
+                SellNextBatch()
+            end
+        end,
+        timeout = 0, whileDead = true, hideOnEscape = true,
+    }
+    StaticPopup_Show(VENDOR_ITEMS_POPUP)
+end
+autoVendor.FindVendorAdviceItems = FindVendorAdviceItems     -- for tests
 
 local function RepairEverything()
     if not (CanMerchantRepair and CanMerchantRepair()) then
@@ -303,7 +395,11 @@ eventFrame:SetScript("OnEvent", function(_, eventName)
         if IsAutoSellOn() then
             SellAllJunk()
         end
+        OfferToSellVendorAdviceItems()
     elseif eventName == "MERCHANT_CLOSED" then
+        if StaticPopup_Hide then
+            StaticPopup_Hide(VENDOR_ITEMS_POPUP)
+        end
         isMerchantOpen = false
     else
         UpdateDisplay()          -- bags or durability changed

@@ -6,7 +6,7 @@
 ## IconTexture: Interface\AddOns\Mentor\Media\Logo
 ## OptionalDeps: Auctionator
 ## X-Website: https://github.com/AreGundersen/Mentor
-## SavedVariables: MentorBugReports, MentorLifeLogAccountDB
+## SavedVariables: MentorBugReports, MentorLifeLogAccountDB, MentorAccountDB
 ## SavedVariablesPerCharacter: MentorDB, MentorLifeLogCharDB
 
 Data.lua
@@ -28,6 +28,9 @@ AutoVendor.lua
 Fishing.lua
 LifeLog.lua
 ManaWarning.lua
+Journey.lua
+Reminders.lua
+Tour.lua
 Alerts.lua
 BugReport.lua
 UI.lua
