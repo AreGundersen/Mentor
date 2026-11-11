@@ -314,9 +314,15 @@ questRewardLabel:SetPoint("LEFT", questRewardLogo, "RIGHT", 4, 0)
 local function HighlightQuestReward(choiceIndex, reasonText)
     local rewardButton = _G["QuestInfoRewardsFrameQuestInfoItem" .. choiceIndex] or _G["QuestRewardItem" .. choiceIndex]
     if rewardButton and rewardButton:IsVisible() then
+        -- Frame the visible parts (the icon and the name plate next to it);
+        -- the button itself is smaller than what you see.
+        local buttonName = rewardButton:GetName() or ""
+        local leftPart = rewardButton.Icon or rewardButton.icon or _G[buttonName .. "IconTexture"] or rewardButton
+        local rightPart = rewardButton.NameFrame or _G[buttonName .. "NameFrame"] or rewardButton
         questRewardGlow:ClearAllPoints()
-        questRewardGlow:SetPoint("TOPLEFT", rewardButton, "TOPLEFT", -4, 4)
-        questRewardGlow:SetPoint("BOTTOMRIGHT", rewardButton, "BOTTOMRIGHT", 4, -4)
+        questRewardGlow:SetPoint("TOPLEFT", leftPart, "TOPLEFT", -5, 5)
+        questRewardGlow:SetPoint("BOTTOMLEFT", leftPart, "BOTTOMLEFT", -5, -5)
+        questRewardGlow:SetPoint("RIGHT", rightPart, "RIGHT", 2, 0)
         questRewardLabel:SetText("Mentor pick" .. (reasonText and ("  |cff40ff40" .. reasonText .. "|r") or ""))
         questRewardTag:SetWidth((questRewardLabel:GetStringWidth() or 60) + 26)
         questRewardGlow:Show()
