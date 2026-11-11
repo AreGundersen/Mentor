@@ -16,7 +16,7 @@ number is only given when Are decides the release is finished (see
 - The settings, build and spells panels open on the left of the Mentor window when there is no room on the right, so they never cover it.
 - Journey includes WoW Forever's 9 new dungeons and the new zones (Zephras Isle, Riverglades, Shen'Dralas, Mount Hyjal), with Forever's level ranges.
 - Sell advice: profession tools (Flint and Tinder, Mining Pick, Skinning Knife, fishing poles, enchanting rods ...) say "Keep - profession tool". Auto vendor only offers gear for "vendor it" selling - never tools or other bag items.
-- Quest rewards: the "Mentor pick" marker frames the whole reward (icon and name plate) and has a rounded gold frame with a soft pulsing glow and a tag with the Mentor logo and why it is the pick ("+12%", "new slot", "sells best").
+- Quest rewards: the "Mentor pick" marker has a rounded gold frame filled with a soft pulsing gold light and a tag with the Mentor logo and why it is the pick ("+12%", "new slot", "sells best").
 - The Report bug button only counts errors from the current Mentor version; older ones are cleared when Mentor is updated.
 - The tour starts after the loading screen (it did not show for everyone). Its bubbles sit beside the Mentor window, level with the button they explain, and that button gets a gold frame.
 - **New: Weapons tab** (next to Journey, or `/mentor weapons`): every weapon type your class can learn, which ones you know, and which weapon master in your faction's cities teaches the rest. The "Coming up" tab is now called "Spells".

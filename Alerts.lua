@@ -273,20 +273,20 @@ if questRewardGlow.SetBackdrop then
 else
     Mentor.AddBorder(questRewardGlow, 2, MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1)
 end
--- Soft glow behind the frame (the game's own button glow), pulsing slowly.
-local questRewardShine = questRewardGlow:CreateTexture(nil, "BACKGROUND")
-questRewardShine:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+-- Soft gold light that fills the frame exactly (added on top of the reward
+-- so it brightens it), pulsing slowly.
+local questRewardShine = questRewardGlow:CreateTexture(nil, "ARTWORK")
+questRewardShine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.22)
 questRewardShine:SetBlendMode("ADD")
-questRewardShine:SetVertexColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.8)
-questRewardShine:SetPoint("TOPLEFT", -14, 14)
-questRewardShine:SetPoint("BOTTOMRIGHT", 14, -14)
+questRewardShine:SetPoint("TOPLEFT", 3, -3)
+questRewardShine:SetPoint("BOTTOMRIGHT", -3, 3)
 if questRewardGlow.CreateAnimationGroup then
     local pulse = questRewardGlow:CreateAnimationGroup()
     pulse:SetLooping("BOUNCE")
     local fade = pulse:CreateAnimation("Alpha")
     if fade and fade.SetFromAlpha then
         fade:SetTarget(questRewardShine)
-        fade:SetFromAlpha(0.35)
+        fade:SetFromAlpha(0.3)
         fade:SetToAlpha(1)
         fade:SetDuration(0.9)
     end
@@ -314,15 +314,9 @@ questRewardLabel:SetPoint("LEFT", questRewardLogo, "RIGHT", 4, 0)
 local function HighlightQuestReward(choiceIndex, reasonText)
     local rewardButton = _G["QuestInfoRewardsFrameQuestInfoItem" .. choiceIndex] or _G["QuestRewardItem" .. choiceIndex]
     if rewardButton and rewardButton:IsVisible() then
-        -- Frame the visible parts (the icon and the name plate next to it);
-        -- the button itself is smaller than what you see.
-        local buttonName = rewardButton:GetName() or ""
-        local leftPart = rewardButton.Icon or rewardButton.icon or _G[buttonName .. "IconTexture"] or rewardButton
-        local rightPart = rewardButton.NameFrame or _G[buttonName .. "NameFrame"] or rewardButton
         questRewardGlow:ClearAllPoints()
-        questRewardGlow:SetPoint("TOPLEFT", leftPart, "TOPLEFT", -5, 5)
-        questRewardGlow:SetPoint("BOTTOMLEFT", leftPart, "BOTTOMLEFT", -5, -5)
-        questRewardGlow:SetPoint("RIGHT", rightPart, "RIGHT", 2, 0)
+        questRewardGlow:SetPoint("TOPLEFT", rewardButton, "TOPLEFT", -4, 4)
+        questRewardGlow:SetPoint("BOTTOMRIGHT", rewardButton, "BOTTOMRIGHT", 4, -4)
         questRewardLabel:SetText("Mentor pick" .. (reasonText and ("  |cff40ff40" .. reasonText .. "|r") or ""))
         questRewardTag:SetWidth((questRewardLabel:GetStringWidth() or 60) + 26)
         questRewardGlow:Show()
