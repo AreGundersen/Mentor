@@ -305,6 +305,23 @@ local function HasUseLine(itemLink)
     return HasTooltipLineStartingWith(itemLink, { USE_PREFIX })
 end
 
+-- Tools for professions are always kept (they are cheap, but you need them).
+local PROFESSION_TOOL_IDS = {
+    [4471] = true,   -- Flint and Tinder (campfires for Cooking)
+    [2901] = true,   -- Mining Pick
+    [7005] = true,   -- Skinning Knife
+    [5956] = true,   -- Blacksmith Hammer
+    [6256] = true,   -- Fishing Pole
+    [6365] = true,   -- Strong Fishing Pole
+    [6219] = true,   -- Arclight Spanner (Engineering)
+    [6218] = true,   -- Runed Copper Rod (Enchanting)
+    [6339] = true,   -- Runed Silver Rod
+    [11130] = true,  -- Runed Golden Rod
+    [11145] = true,  -- Runed Truesilver Rod
+    [16207] = true,  -- Runed Arcanite Rod
+    [9149] = true,   -- Philosopher's Stone (Alchemy)
+}
+
 -- Quest items ("Quest Item", "This Item Begins a Quest", item class Quest)
 -- are kept: you need them for a quest, or they start one.
 local ITEM_CLASS_QUEST = 12
@@ -327,7 +344,7 @@ end
 -- isBound: true when this copy is soulbound (from the bag slot or the
 -- tooltip). Bind-on-pickup items are always treated as bound.
 -- Returns nil when there is nothing to say, otherwise:
---   { action = "keep", keepReason }   reagent for your profession, or something
+--   { action = "keep", keepReason }   profession tool, reagent for your profession, or something
 --                                     to use (potion, food, campfire ...)
 --   { action = "auction" | "disenchant" | "vendor", vendorValue, auctionValue,
 --     disenchantValue, canDisenchant, priceAgeDays }
@@ -352,7 +369,10 @@ function sellAdvice.Evaluate(itemLink, isBound)
     -- a quest page, selling it is the better advice.
     local keepReason, softKeepReason
     local professionName = GetProfessionThatUsesReagent(classId, subclassId)
-    if professionName then
+    local itemId = tonumber(itemLink:match("item:(%d+)"))
+    if itemId and PROFESSION_TOOL_IDS[itemId] then
+        keepReason = "profession tool"
+    elseif professionName then
         keepReason = "for " .. professionName
     elseif IsItemToUse(itemLink, classId, equipLocation, quality) then
         if classId == ITEM_CLASS_CONSUMABLE then

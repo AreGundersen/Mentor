@@ -525,8 +525,7 @@ end
 function extrasUI.Build(mainFrame)
     panel = CreateFrame("Frame", "MentorExtrasPanel", mainFrame, BACKDROP_TEMPLATE)
     panel:SetWidth(PANEL_WIDTH)
-    panel:SetPoint("TOPLEFT", mainFrame, "TOPRIGHT", 2, 0)
-    panel:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMRIGHT", 2, 0)
+    Mentor.RegisterSidePanel(panel, true)      -- right or left of the Mentor window, where there is room
     if panel.SetBackdrop then
         panel:SetBackdrop(PANEL_BACKDROP)
         panel:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)

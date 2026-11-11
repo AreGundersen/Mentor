@@ -8,7 +8,9 @@
 --   * Repair      your gear is almost broken
 --   * Profession  a profession is stuck at its cap: learn the next rank
 --   * Bags        an empty bag slot, or small bags you could replace
--- Every reminder is said once, and again only when the situation changes.
+-- Reminders show in a small box under the Mentor window (with an X to dismiss
+-- them), or in the chat while the Mentor window is hidden. Every reminder is
+-- shown once, and again only when the situation changes.
 --------------------------------------------------------------------------------
 
 local _, Mentor = ...
@@ -50,16 +52,117 @@ local function IsOn(settingName)
 end
 
 -- Says a reminder once per key (and again after ForgetReminder).
+--------------------------------------------------------------------------------
+-- The reminder box: a small Mentor-style box under the Mentor window with
+-- the current reminders, newest first, each with an X to dismiss it.
+-- When the Mentor window is hidden, reminders go to the chat instead.
+--------------------------------------------------------------------------------
+local MAX_REMINDERS_SHOWN = 4
+local BOX_PADDING = 8
+local ROW_GAP = 4
+local GOLD = { 1.00, 0.78, 0.10 }
+local activeReminders = {}        -- { key, text }, newest first
+local reminderBox
+
+local function BuildReminderBox()
+    local mentorWindow = _G["MentorFrame"]
+    if not mentorWindow then
+        return nil
+    end
+    reminderBox = CreateFrame("Frame", "MentorReminderBox", mentorWindow, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    reminderBox:SetPoint("TOPLEFT", mentorWindow, "BOTTOMLEFT", 0, -2)
+    reminderBox:SetPoint("TOPRIGHT", mentorWindow, "BOTTOMRIGHT", 0, -2)
+    if reminderBox.SetBackdrop then
+        reminderBox:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 14,
+            insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        })
+        reminderBox:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
+    end
+    reminderBox.title = reminderBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    reminderBox.title:SetPoint("TOPLEFT", BOX_PADDING + 2, -BOX_PADDING)
+    reminderBox.title:SetText("Reminders")
+    reminderBox.rows = {}
+    for rowIndex = 1, MAX_REMINDERS_SHOWN do
+        local row = CreateFrame("Frame", nil, reminderBox)
+        row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.text:SetPoint("TOPLEFT", 0, 0)
+        row.text:SetJustifyH("LEFT")
+        row.closeButton = CreateFrame("Button", nil, row, "UIPanelCloseButton")
+        row.closeButton:SetSize(18, 18)
+        row.closeButton:SetPoint("TOPRIGHT", 4, 4)
+        row.closeButton:SetScript("OnClick", function()
+            reminders.Dismiss(row.reminderKey)
+        end)
+        reminderBox.rows[rowIndex] = row
+    end
+    reminderBox:Hide()
+    return reminderBox
+end
+
+local function UpdateReminderBox()
+    if not reminderBox and not BuildReminderBox() then
+        return
+    end
+    local boxWidth = reminderBox:GetWidth() or 300
+    local verticalOffset = BOX_PADDING + 18
+    for rowIndex, row in ipairs(reminderBox.rows) do
+        local reminder = activeReminders[rowIndex]
+        if reminder then
+            row.reminderKey = reminder.key
+            row.text:SetWidth(boxWidth - BOX_PADDING * 2 - 22)
+            row.text:SetText("|cffffd100-|r " .. reminder.text)
+            local rowHeight = math.max(row.text:GetStringHeight() or 14, 14)
+            row:SetSize(boxWidth - BOX_PADDING * 2, rowHeight)
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", BOX_PADDING + 2, -verticalOffset)
+            row:Show()
+            verticalOffset = verticalOffset + rowHeight + ROW_GAP
+        else
+            row:Hide()
+        end
+    end
+    reminderBox:SetHeight(verticalOffset + BOX_PADDING - ROW_GAP)
+    reminderBox:SetShown(#activeReminders > 0)
+end
+
+function reminders.Dismiss(reminderKey)
+    for reminderIndex = #activeReminders, 1, -1 do
+        if activeReminders[reminderIndex].key == reminderKey then
+            table.remove(activeReminders, reminderIndex)
+        end
+    end
+    UpdateReminderBox()
+end
+
+function reminders.GetActive()
+    return activeReminders
+end
+
+-- Shows a reminder once per key (and again after ForgetReminder).
 local function Remind(reminderKey, text)
     if saidReminders[reminderKey] then
         return
     end
     saidReminders[reminderKey] = true
-    Mentor.Print(MESSAGE_COLOR .. text .. "|r")
+    local mentorWindow = _G["MentorFrame"]
+    if mentorWindow and mentorWindow:IsShown() then
+        reminders.Dismiss(reminderKey)
+        table.insert(activeReminders, 1, { key = reminderKey, text = text })
+        while #activeReminders > MAX_REMINDERS_SHOWN do
+            table.remove(activeReminders)
+        end
+        UpdateReminderBox()
+    else
+        Mentor.Print(MESSAGE_COLOR .. text .. "|r")
+    end
 end
 
+-- The situation changed (bought ammo, repaired ...): the reminder goes away.
 local function ForgetReminder(reminderKey)
     saidReminders[reminderKey] = nil
+    reminders.Dismiss(reminderKey)
 end
 
 local function GetItemCountCompat(itemId)
@@ -178,12 +281,13 @@ function reminders.CheckRepair()
     if lowestPercent <= REPAIR_WARNING_PERCENT and isRepairWarningArmed then
         isRepairWarningArmed = false
         if lowestPercent <= 0 then
-            Mentor.Print(MESSAGE_COLOR .. "Some of your gear is broken and gives no stats - repair it at a vendor with an anvil icon.|r")
+            Remind("repair", "Some of your gear is broken and gives no stats - repair it at a vendor with an anvil icon.")
         else
-            Mentor.Print(MESSAGE_COLOR .. string.format("Your gear is at %d%% durability - repair soon at a vendor with an anvil icon.", math.floor(lowestPercent)) .. "|r")
+            Remind("repair", string.format("Your gear is at %d%% durability - repair soon at a vendor with an anvil icon.", math.floor(lowestPercent)))
         end
     elseif lowestPercent >= REPAIR_REARM_PERCENT then
         isRepairWarningArmed = true
+        ForgetReminder("repair")
     end
 end
 

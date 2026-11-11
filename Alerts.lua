@@ -260,20 +260,65 @@ end
 --------------------------------------------------------------------------------
 -- Quest rewards
 --------------------------------------------------------------------------------
-local questRewardGlow = CreateFrame("Frame", nil, UIParent)
+-- The "Mentor pick" marker: a rounded gold frame around the reward with a
+-- soft pulsing glow, and a small tag with the Mentor logo above it that says
+-- why ("+3.2%" or "sells best").
+local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
+local questRewardGlow = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 questRewardGlow:SetFrameStrata("DIALOG")
 questRewardGlow:Hide()
-Mentor.AddBorder(questRewardGlow, 2, 0.25, 1.0, 0.25, 1)
-local questRewardLabel = questRewardGlow:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-questRewardLabel:SetPoint("BOTTOMRIGHT", questRewardGlow, "TOPRIGHT", 0, 1)
-questRewardLabel:SetText("|cff40ff40Mentor pick|r")
+if questRewardGlow.SetBackdrop then
+    questRewardGlow:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12 })
+    questRewardGlow:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1)
+else
+    Mentor.AddBorder(questRewardGlow, 2, MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1)
+end
+-- Soft glow behind the frame (the game's own button glow), pulsing slowly.
+local questRewardShine = questRewardGlow:CreateTexture(nil, "BACKGROUND")
+questRewardShine:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+questRewardShine:SetBlendMode("ADD")
+questRewardShine:SetVertexColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.8)
+questRewardShine:SetPoint("TOPLEFT", -14, 14)
+questRewardShine:SetPoint("BOTTOMRIGHT", 14, -14)
+if questRewardGlow.CreateAnimationGroup then
+    local pulse = questRewardGlow:CreateAnimationGroup()
+    pulse:SetLooping("BOUNCE")
+    local fade = pulse:CreateAnimation("Alpha")
+    if fade and fade.SetFromAlpha then
+        fade:SetTarget(questRewardShine)
+        fade:SetFromAlpha(0.35)
+        fade:SetToAlpha(1)
+        fade:SetDuration(0.9)
+    end
+    questRewardGlow:SetScript("OnShow", function() pulse:Play() end)
+    questRewardGlow:SetScript("OnHide", function() pulse:Stop() end)
+end
+-- Tag above the reward: [logo] Mentor pick  +3.2%
+local questRewardTag = CreateFrame("Frame", nil, questRewardGlow, BackdropTemplateMixin and "BackdropTemplate" or nil)
+questRewardTag:SetHeight(18)
+questRewardTag:SetPoint("BOTTOMLEFT", questRewardGlow, "TOPLEFT", 0, -3)
+if questRewardTag.SetBackdrop then
+    questRewardTag:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
+    questRewardTag:SetBackdropColor(0.06, 0.05, 0.03, 0.95)
+    questRewardTag:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1)
+end
+local questRewardLogo = questRewardTag:CreateTexture(nil, "ARTWORK")
+questRewardLogo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
+questRewardLogo:SetSize(13, 13)
+questRewardLogo:SetPoint("LEFT", 4, 0)
+local questRewardLabel = questRewardTag:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+questRewardLabel:SetPoint("LEFT", questRewardLogo, "RIGHT", 4, 0)
 
-local function HighlightQuestReward(choiceIndex)
+-- reasonText: "+3.2%", "new slot" or "sells best".
+local function HighlightQuestReward(choiceIndex, reasonText)
     local rewardButton = _G["QuestInfoRewardsFrameQuestInfoItem" .. choiceIndex] or _G["QuestRewardItem" .. choiceIndex]
     if rewardButton and rewardButton:IsVisible() then
         questRewardGlow:ClearAllPoints()
-        questRewardGlow:SetPoint("TOPLEFT", rewardButton, "TOPLEFT", -2, 2)
-        questRewardGlow:SetPoint("BOTTOMRIGHT", rewardButton, "BOTTOMRIGHT", 2, -2)
+        questRewardGlow:SetPoint("TOPLEFT", rewardButton, "TOPLEFT", -4, 4)
+        questRewardGlow:SetPoint("BOTTOMRIGHT", rewardButton, "BOTTOMRIGHT", 4, -4)
+        questRewardLabel:SetText("Mentor pick" .. (reasonText and ("  |cff40ff40" .. reasonText .. "|r") or ""))
+        questRewardTag:SetWidth((questRewardLabel:GetStringWidth() or 60) + 26)
         questRewardGlow:Show()
     end
 end
@@ -311,11 +356,12 @@ local function SuggestQuestReward()
             or Mentor.FormatPercentChange(bestUpgradeResult.percent)
         Mentor.Print("Best quest reward for you: " .. GetQuestItemLink("choice", bestUpgradeIndex)
             .. " (" .. GOOD_COLOR .. changeText .. "|r)")
-        HighlightQuestReward(bestUpgradeIndex)
+        HighlightQuestReward(bestUpgradeIndex, bestUpgradeResult.kind == "empty" and "new slot"
+            or Mentor.FormatPercentChange(bestUpgradeResult.percent))
     elseif bestValueIndex then
         Mentor.Print("No reward is an upgrade. Take " .. GetQuestItemLink("choice", bestValueIndex)
             .. " - it sells for the most.")
-        HighlightQuestReward(bestValueIndex)
+        HighlightQuestReward(bestValueIndex, "sells best")
     end
 end
 

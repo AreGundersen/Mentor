@@ -7,6 +7,13 @@ number is only given when Are decides the release is finished (see
 ## Unreleased
 
 - **Settings are remembered for your whole account:** a new character starts with the settings you used last, and changes carry over to your other characters at their next login. Window positions stay per character.
+- Reminders show in a small box under the Mentor window (with an X to dismiss each), and in the chat only while the Mentor window is hidden.
+- The settings, build and spells panels open on the left of the Mentor window when there is no room on the right, so they never cover it.
+- Journey includes WoW Forever's 9 new dungeons and the new zones (Zephras Isle, Riverglades, Shen'Dralas, Mount Hyjal), with Forever's level ranges.
+- Sell advice: profession tools (Flint and Tinder, Mining Pick, Skinning Knife, fishing poles, enchanting rods ...) say "Keep - profession tool". Auto vendor only offers gear for "vendor it" selling - never tools or other bag items.
+- Quest rewards: the "Mentor pick" marker has a rounded gold frame with a soft pulsing glow and a tag with the Mentor logo and why it is the pick ("+12%", "new slot", "sells best").
+- The Report bug button only counts errors from the current Mentor version; older ones are cleared when Mentor is updated.
+- The tour starts after the loading screen (it did not show for everyone).
 - **New: Journey tab** (Spells & racials panel, or `/mentor journey`): zones and dungeons for your level and faction, profession advice for your class, and professions that need a trainer.
 - **New: Reminders** (on by default, Settings > Reminders): new spells at your class trainer when you level up; low ammo, reagents or an unhappy pet when you leave town; gear that is almost broken; professions stuck at their cap; empty bag slots and small bags.
 - **New: Dungeon tips:** a short tip about the dungeon and your role when you enter one.

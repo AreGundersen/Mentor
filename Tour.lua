@@ -114,7 +114,11 @@ function tour.ShowStep(stepIndex)
 end
 
 function tour.Start()
-    tour.ShowStep(1)
+    local success, errorMessage = pcall(tour.ShowStep, 1)
+    if not success then
+        Mentor.Print("The tour could not start: " .. tostring(errorMessage))
+        error(errorMessage)          -- also caught by the bug report
+    end
 end
 
 function tour.Finish()
@@ -132,14 +136,23 @@ function tour.IsShowing()
 end
 
 -- First login with Mentor: start the tour once the window is up.
+-- PLAYER_ENTERING_WORLD comes after the loading screen, when windows can show.
+local hasTriedThisSession = false
 local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:SetScript("OnEvent", function()
-    if C_Timer then
-        C_Timer.After(SECONDS_AFTER_LOGIN, function()
-            if MentorDB and not MentorDB.isTourDone and MentorDB.isShown ~= false then
-                tour.Start()
-            end
-        end)
+    if hasTriedThisSession or not C_Timer then
+        return
     end
+    hasTriedThisSession = true
+    C_Timer.After(SECONDS_AFTER_LOGIN, function()
+        if MentorDB and not MentorDB.isTourDone then
+            local mentorWindow = _G["MentorFrame"]
+            if mentorWindow and not mentorWindow:IsShown() then
+                MentorDB.isShown = true          -- the tour points at the window
+                mentorWindow:Show()
+            end
+            tour.Start()
+        end
+    end)
 end)

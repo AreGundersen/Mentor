@@ -339,6 +339,41 @@ local function CreateUpgradeRow(rowIndex, verticalOffset)
     upgradeRows[rowIndex] = row
 end
 
+--------------------------------------------------------------------------------
+-- Side panels (settings, build, spells) open on the side of the Mentor
+-- window where there is room: right normally, left when the window is near
+-- the right edge of the screen - so they never cover the Mentor window.
+--------------------------------------------------------------------------------
+local sidePanels = {}      -- { frame = panel, stretch = true when it spans the window's height }
+local SIDE_PANEL_GAP = 2
+
+function Mentor.RegisterSidePanel(panel, isStretched)
+    table.insert(sidePanels, { frame = panel, stretch = isStretched })
+    Mentor.PlaceSidePanels()
+end
+
+function Mentor.PlaceSidePanels()
+    local screenWidth = UIParent:GetWidth() or 0
+    local windowRight = mainFrame:GetRight()
+    for _, sidePanel in ipairs(sidePanels) do
+        local panel = sidePanel.frame
+        local panelWidth = panel:GetWidth() or 0
+        local isRoomOnRight = not windowRight or screenWidth <= 0 or windowRight + SIDE_PANEL_GAP + panelWidth <= screenWidth
+        panel:ClearAllPoints()
+        if isRoomOnRight then
+            panel:SetPoint("TOPLEFT", mainFrame, "TOPRIGHT", SIDE_PANEL_GAP, 0)
+            if sidePanel.stretch then
+                panel:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMRIGHT", SIDE_PANEL_GAP, 0)
+            end
+        else
+            panel:SetPoint("TOPRIGHT", mainFrame, "TOPLEFT", -SIDE_PANEL_GAP, 0)
+            if sidePanel.stretch then
+                panel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMLEFT", -SIDE_PANEL_GAP, 0)
+            end
+        end
+    end
+end
+
 local function BuildMainWindow()
     mainFrame:SetFrameStrata("MEDIUM")
     mainFrame:SetClampedToScreen(true)
@@ -348,11 +383,15 @@ local function BuildMainWindow()
     mainFrame:SetScript("OnDragStart", function(self)
         if not MentorDB.isLocked then
             self:StartMoving()
+            -- While dragging, switch the side panels to the side with room.
+            self:SetScript("OnUpdate", function() Mentor.PlaceSidePanels() end)
         end
     end)
     mainFrame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
+        self:SetScript("OnUpdate", nil)
         SaveWindowPosition()
+        Mentor.PlaceSidePanels()
     end)
     ApplyBackdrop(mainFrame)
 
@@ -790,8 +829,6 @@ end
 
 local function BuildSettingsPanel()
     settingsPanel = CreateFrame("Frame", "MentorSettingsPanel", mainFrame, BACKDROP_TEMPLATE)
-    settingsPanel:SetPoint("TOPLEFT", mainFrame, "TOPRIGHT", 2, 0)     -- to the right of the Mentor window
-    settingsPanel:SetClampedToScreen(true)
     settingsPanel:SetFrameStrata("DIALOG")
     settingsPanel:EnableMouse(true)
     ApplyBackdrop(settingsPanel)
@@ -855,6 +892,7 @@ local function BuildSettingsPanel()
     end
     local tallestColumn = math.max(columnOffsets[1], columnOffsets[2])
     settingsPanel:SetSize(PADDING * 2 + SETTINGS_COLUMN_WIDTH * 2 - 10, tallestColumn + SETTINGS_BOTTOM_SPACE)
+    Mentor.RegisterSidePanel(settingsPanel, false)
 
     local bugButton = CreateFrame("Button", nil, settingsPanel, "UIPanelButtonTemplate")
     bugButton:SetSize(140, 22)
@@ -876,6 +914,7 @@ function Mentor.ToggleSettings()
         mainFrame:Show()
         Mentor.RequestRefresh()
     end
+    Mentor.PlaceSidePanels()
     -- Tick the boxes to match the saved settings each time it opens.
     for settingName, checkbox in pairs(settingsCheckboxes) do
         checkbox:SetChecked(MentorDB[settingName] ~= false)
@@ -896,8 +935,7 @@ local buildRows = {}
 local function BuildBuildPanel()
     buildPanel = CreateFrame("Frame", "MentorBuildPanel", mainFrame, BACKDROP_TEMPLATE)
     buildPanel:SetWidth(BUILD_PANEL_WIDTH)
-    buildPanel:SetPoint("TOPLEFT", mainFrame, "TOPRIGHT", 2, 0)
-    buildPanel:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMRIGHT", 2, 0)
+    Mentor.RegisterSidePanel(buildPanel, true)
     ApplyBackdrop(buildPanel)
 
     buildPanel.specIcon = buildPanel:CreateTexture(nil, "ARTWORK")
@@ -1185,6 +1223,7 @@ eventFrame:SetScript("OnEvent", function(self, eventName, ...)
             Mentor.GuideUI.BuildRotationBar()
             Mentor.MinimapButton.Create()
             RestoreWindowPosition()
+            Mentor.PlaceSidePanels()
             mainFrame:SetShown(MentorDB.isShown)
             Mentor.HookItemTooltips()
             Mentor.TalentOverlay.TryHookModernWindow(OnTalentWindowChanged)

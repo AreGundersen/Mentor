@@ -191,6 +191,14 @@ loadFrame:SetScript("OnEvent", function(self, _, loadedAddonName)
         return
     end
     local savedData = GetSavedData()
+    -- Errors from an older Mentor version are fixed or already reported:
+    -- drop them, so the Report bug button only counts errors in this version.
+    local currentVersion = GetAddonVersion(ADDON_NAME)
+    for errorIndex = #savedData.errors, 1, -1 do
+        if savedData.errors[errorIndex].version ~= currentVersion then
+            table.remove(savedData.errors, errorIndex)
+        end
+    end
     for _, earlyError in ipairs(errorsBeforeLoad) do
         StoreError(earlyError, savedData.errors)
     end

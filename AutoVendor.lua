@@ -5,8 +5,9 @@
 --   * every grey (junk) item in your bags is sold
 --   * all your gear is repaired (if the vendor can repair)
 --   * one chat line says what was sold and what the repair cost
---   * with Sell advice on: Mentor lists the items marked "Just vendor it"
---     (never upgrades for any of your specs) and asks before selling them
+--   * with Sell advice on: Mentor lists the gear marked "Just vendor it"
+--     (never upgrades for any of your specs, never tools or other bag items)
+--     and asks before selling them
 -- Hold SHIFT while opening the vendor to skip both for that visit.
 -- A small Mentor window shows the value of the junk in your bags and the
 -- lowest durability of your gear.
@@ -220,7 +221,16 @@ local function IsUpgradeForAnySpec(itemLink)
     return false
 end
 
--- Bag items (not grey, not kept) that Sell advice says to vendor.
+-- Only gear is offered (things you can wear that are no upgrade): tools,
+-- reagents and other bag items are never sold this way.
+local function IsWearableGear(itemLink)
+    local getInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+    local equipLocation = select(9, getInfo(itemLink))
+    return equipLocation ~= nil and equipLocation ~= "" and equipLocation ~= "INVTYPE_NON_EQUIP_IGNORE"
+        and equipLocation ~= "INVTYPE_BAG" and equipLocation ~= "INVTYPE_AMMO" and equipLocation ~= "INVTYPE_QUIVER"
+end
+
+-- Bag items (gear, not grey, not kept) that Sell advice says to vendor.
 local function FindVendorAdviceItems()
     local foundItems = {}
     local sellAdvice = Mentor.SellAdvice
@@ -231,7 +241,8 @@ local function FindVendorAdviceItems()
     for bagIndex = FIRST_BAG_INDEX, LAST_BAG_INDEX do
         for slotIndex = 1, GetBagSlotCount(bagIndex) do
             local itemId, itemLink, stackCount, quality, isLocked, isBound = GetBagSlotItem(bagIndex, slotIndex)
-            if itemLink and quality and quality > POOR_ITEM_QUALITY and not isLocked and not keptItemIds[itemId] then
+            if itemLink and quality and quality > POOR_ITEM_QUALITY and not isLocked and not keptItemIds[itemId]
+                and IsWearableGear(itemLink) then
                 local success, itemAdvice = pcall(sellAdvice.Evaluate, itemLink, isBound)
                 if success and itemAdvice and itemAdvice.action == "vendor" and (itemAdvice.vendorValue or 0) > 0
                     and not IsUpgradeForAnySpec(itemLink) then
