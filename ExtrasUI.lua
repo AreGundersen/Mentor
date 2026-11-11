@@ -411,8 +411,9 @@ local function CreateRow(rowIndex)
     row:SetSize(PANEL_WIDTH - PADDING * 2 - 22, ROW_HEIGHT)
     row:EnableMouse(true)
     if row.SetBackdrop then
-        row:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
-        row:SetBackdropColor(1, 1, 1, 0.04)
+        row:SetBackdrop(Mentor.BOX_BACKDROP)
+        row:SetBackdropColor(0, 0, 0, 0.35)
+        row:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.25)
     end
 
     row.levelText = CreateText(row, "GameFontNormal", LEVEL_COLUMN_WIDTH, "CENTER")
@@ -424,7 +425,7 @@ local function CreateRow(rowIndex)
     row.icon = row.iconFrame:CreateTexture(nil, "ARTWORK")
     row.icon:SetAllPoints()
     row.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    row.border = Mentor.AddBorder(row.iconFrame, 2, GOLD[1], GOLD[2], GOLD[3], 1)
+    row.border = Mentor.AddRoundedBorder(row.iconFrame, GOLD[1], GOLD[2], GOLD[3], 1, 10)
 
     local textLeft = LEVEL_COLUMN_WIDTH + ICON_SIZE + 8
     local textWidth = row:GetWidth() - textLeft - 4
@@ -457,8 +458,8 @@ end
 
 -- Colours a row's icon border: gold for talents, grey for everything else.
 local function SetBorderColor(row, color, alpha)
-    for _, edgeTexture in ipairs(row.border or {}) do
-        edgeTexture:SetColorTexture(color[1], color[2], color[3], alpha)
+    if row.border and row.border.SetBackdropBorderColor then
+        row.border:SetBackdropBorderColor(color[1], color[2], color[3], alpha)
     end
 end
 
@@ -540,7 +541,7 @@ function extrasUI.Build(mainFrame)
         tabButton:SetSize(tabWidth, TAB_HEIGHT)
         tabButton:SetPoint("TOPLEFT", PADDING + (tabIndex - 1) * (tabWidth + TAB_GAP), -PADDING - 26)
         if tabButton.SetBackdrop then
-            tabButton:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
+            tabButton:SetBackdrop(Mentor.BOX_BACKDROP)
         end
         tabButton.label = CreateText(tabButton, "GameFontHighlightSmall", tabWidth, "CENTER")
         tabButton.label:SetPoint("CENTER")

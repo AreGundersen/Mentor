@@ -170,6 +170,14 @@ function tour.Finish()
     end
 end
 
+-- Called while the Mentor window is dragged: the bubble follows it and
+-- switches side when it gets close to the edge of the screen.
+function tour.Reposition()
+    if bubble and bubble:IsShown() and TOUR_STEPS[currentStepIndex] then
+        PlaceBubble(GetStepTarget(TOUR_STEPS[currentStepIndex]))
+    end
+end
+
 function tour.IsShowing()
     return bubble ~= nil and bubble:IsShown()
 end

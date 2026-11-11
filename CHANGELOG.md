@@ -7,6 +7,8 @@ number is only given when Are decides the release is finished (see
 ## Unreleased
 
 - **Settings are remembered for your whole account:** a new character starts with the settings you used last, and changes carry over to your other characters at their next login. Window positions stay per character.
+- Warcraft-style boxes in the Mentor window and panels: tabs, spec buttons, the next-talent card, stat pills and list rows have rounded gold edges instead of flat lines, and icons get rounded frames.
+- The tour bubble follows the Mentor window while you drag it, and switches side near the edge of the screen.
 - Reminders show in a small box under the Mentor window (with an X to dismiss each), and in the chat only while the Mentor window is hidden.
 - The settings, build and spells panels open on the left of the Mentor window when there is no room on the right, so they never cover it.
 - Journey includes WoW Forever's 9 new dungeons and the new zones (Zephras Isle, Riverglades, Shen'Dralas, Mount Hyjal), with Forever's level ranges.

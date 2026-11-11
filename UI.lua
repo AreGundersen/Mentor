@@ -259,7 +259,7 @@ local function CreateSpecButton(specIndex, verticalOffset)
     specButton:SetSize(buttonWidth, SPEC_BUTTON_HEIGHT)
     specButton:SetPoint("TOPLEFT", PADDING + (specIndex - 1) * (buttonWidth + SPEC_BUTTON_GAP), verticalOffset)
     if specButton.SetBackdrop then
-        specButton:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
+        specButton:SetBackdrop(Mentor.BOX_BACKDROP)
     end
     specButton.specNumber = specIndex
 
@@ -353,6 +353,9 @@ function Mentor.RegisterSidePanel(panel, isStretched)
 end
 
 function Mentor.PlaceSidePanels()
+    if Mentor.Tour then
+        Mentor.Tour.Reposition()
+    end
     local screenWidth = UIParent:GetWidth() or 0
     local windowRight = mainFrame:GetRight()
     for _, sidePanel in ipairs(sidePanels) do
@@ -483,8 +486,8 @@ local function BuildMainWindow()
     card:SetSize(CONTENT_WIDTH, CARD_HEIGHT)
     card:SetPoint("TOPLEFT", PADDING, verticalOffset)
     if card.SetBackdrop then
-        card:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
-        card:SetBackdropColor(1, 1, 1, 0.05)
+        card:SetBackdrop(Mentor.BOX_BACKDROP)
+        card:SetBackdropColor(0, 0, 0, 0.35)
         card:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.35)
     end
     widgets.talentIconFrame = CreateFrame("Frame", nil, card)
@@ -494,7 +497,7 @@ local function BuildMainWindow()
     widgets.talentIcon:SetPoint("TOPLEFT", 2, -2)
     widgets.talentIcon:SetPoint("BOTTOMRIGHT", -2, 2)
     widgets.talentIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    Mentor.AddBorder(widgets.talentIconFrame, 2, GOLD[1], GOLD[2], GOLD[3], 1)
+    Mentor.AddRoundedBorder(widgets.talentIconFrame, GOLD[1], GOLD[2], GOLD[3], 1, 12)
     widgets.talentName = CreateText(card, "GameFontNormalLarge", CONTENT_WIDTH - 70)
     widgets.talentName:SetPoint("TOPLEFT", widgets.talentIconFrame, "TOPRIGHT", 10, -3)
     widgets.talentName:SetWordWrap(false)
@@ -609,7 +612,7 @@ local function GetStatPill(pillIndex)
     pill = CreateFrame("Frame", nil, widgets.lowerFrame, BACKDROP_TEMPLATE)
     pill:SetHeight(PILL_HEIGHT)
     if pill.SetBackdrop then
-        pill:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
+        pill:SetBackdrop(Mentor.BOX_BACKDROP)
     end
     pill.rankText = CreateText(pill, "GameFontNormalSmall")
     pill.rankText:SetPoint("LEFT", PILL_PADDING, 0)

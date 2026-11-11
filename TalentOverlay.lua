@@ -49,6 +49,30 @@ local function AddBorder(frame, thickness, red, green, blue, alpha, drawLayer)
 end
 Mentor.AddBorder = AddBorder
 
+-- Warcraft-style boxes: dark fill with the game's rounded tooltip edge.
+-- Used for tabs, spec buttons, cards and list rows (colours are set with
+-- SetBackdropColor / SetBackdropBorderColor as before).
+Mentor.BOX_BACKDROP = {
+    bgFile = "Interface\\Buttons\\WHITE8x8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 10,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+}
+
+-- A rounded edge around an icon (a little outside it). Returns the edge
+-- frame; change its colour with edgeFrame:SetBackdropBorderColor(r, g, b, a).
+function Mentor.AddRoundedBorder(frame, red, green, blue, alpha, edgeSize)
+    local edgeFrame = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    local outset = math.floor((edgeSize or 10) / 3)
+    edgeFrame:SetPoint("TOPLEFT", -outset, outset)
+    edgeFrame:SetPoint("BOTTOMRIGHT", outset, -outset)
+    edgeFrame:SetFrameLevel((frame:GetFrameLevel() or 1) + 2)
+    if edgeFrame.SetBackdrop then
+        edgeFrame:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = edgeSize or 10 })
+        edgeFrame:SetBackdropBorderColor(red, green, blue, alpha or 1)
+    end
+    return edgeFrame
+end
+
 local function CreateNextMarker()
     local marker = CreateFrame("Frame", "MentorNextTalentMarker", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     marker:Hide()
