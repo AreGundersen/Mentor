@@ -314,9 +314,21 @@ questRewardLabel:SetPoint("LEFT", questRewardLogo, "RIGHT", 4, 0)
 local function HighlightQuestReward(choiceIndex, reasonText)
     local rewardButton = _G["QuestInfoRewardsFrameQuestInfoItem" .. choiceIndex] or _G["QuestRewardItem" .. choiceIndex]
     if rewardButton and rewardButton:IsVisible() then
+        -- Tight around what you see: the icon on the left (top and bottom) and
+        -- the name plate on the right (its texture has some empty space at the
+        -- right end, so the frame stops a little before it).
+        local buttonName = rewardButton:GetName() or ""
+        local iconPart = rewardButton.Icon or rewardButton.icon or _G[buttonName .. "IconTexture"]
+        local namePart = rewardButton.NameFrame or _G[buttonName .. "NameFrame"]
         questRewardGlow:ClearAllPoints()
-        questRewardGlow:SetPoint("TOPLEFT", rewardButton, "TOPLEFT", -4, 4)
-        questRewardGlow:SetPoint("BOTTOMRIGHT", rewardButton, "BOTTOMRIGHT", 4, -4)
+        if iconPart and namePart then
+            questRewardGlow:SetPoint("TOPLEFT", iconPart, "TOPLEFT", -3, 3)
+            questRewardGlow:SetPoint("BOTTOMLEFT", iconPart, "BOTTOMLEFT", -3, -3)
+            questRewardGlow:SetPoint("RIGHT", namePart, "RIGHT", -10, 0)
+        else
+            questRewardGlow:SetPoint("TOPLEFT", rewardButton, "TOPLEFT", -2, 2)
+            questRewardGlow:SetPoint("BOTTOMRIGHT", rewardButton, "BOTTOMRIGHT", 0, -2)
+        end
         questRewardLabel:SetText("Mentor pick" .. (reasonText and ("  |cff40ff40" .. reasonText .. "|r") or ""))
         questRewardTag:SetWidth((questRewardLabel:GetStringWidth() or 60) + 26)
         questRewardGlow:Show()

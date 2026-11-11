@@ -643,7 +643,7 @@ function extrasUI.Refresh(advice)
     elseif selectedKey == "weapons" then
         entries = Mentor.Weapons.GetEntries(advice)
         panel.title:SetText("Weapon skills")
-        panel.hint:SetText(MUTED_TEXT .. "Weapons your class can learn. A weapon master in the big cities teaches them - you must learn a type before you can use it.|r")
+        panel.hint:SetText(MUTED_TEXT .. "Weapons your class can learn. A weapon master in the big cities teaches each type for " .. "|r" .. Mentor.FormatMoneyWithIcons(1000) .. MUTED_TEXT .. " - you must learn a type before you can use it.|r")
         emptyMessage = "No weapon list for your class."
     elseif selectedKey == "journey" then
         entries = Mentor.Journey.GetEntries(advice)

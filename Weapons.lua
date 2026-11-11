@@ -61,6 +61,8 @@ local WEAPON_MASTERS = {
       { "Guns", "One-Handed Maces", "Two-Handed Maces", "Staves" } },
 }
 
+local TRAINING_COST_COPPER = 1000     -- 10 silver per weapon type at a weapon master
+
 local weapons = {}
 Mentor.Weapons = weapons
 
@@ -108,10 +110,12 @@ function weapons.GetEntries(advice)
         else
             local teachers = GetTeachers(weaponName, playerFaction)
             local description = #teachers > 0
-                and (table.concat(teachers, " or ") .. ". 10 silver.")
+                and ("Weapon master: " .. table.concat(teachers, " or ") .. ".")
                 or "Ask a city guard for a weapon master (another faction's city may teach it)."
+            -- The price stands out on the right, with the game's coin icons.
+            local priceText = Mentor.FormatMoneyWithIcons(TRAINING_COST_COPPER)
             table.insert(toLearn, { kind = "journey", name = weaponName, icon = weaponType.icon, levelText = "",
-                tag = "|cffff9933Learn|r", description = description })
+                tag = "|cffff9933Learn|r  |cffffffff" .. priceText .. "|r", description = description })
         end
     end
     for _, knownEntry in ipairs(known) do
