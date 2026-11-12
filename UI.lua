@@ -810,7 +810,7 @@ local SETTINGS_SECTIONS = {
     { column = 2, title = "Mana warning", rows = {
         { "isManaWarningEnabled",     "Mana warning",  "Big LOW MANA warning (/mentor mana low 30)" },
         { "isManaSoundEnabled",       "Sound",         "Play a sound with the warning", dependsOn = "isManaWarningEnabled" },
-        { "isManaPartyMessageEnabled", "Tell the group", "Say \"Low mana!\" in party / raid", dependsOn = "isManaWarningEnabled" },
+        { "isManaPartyMessageEnabled", "Tell the group", "A button to say \"Low mana!\" in party / raid", dependsOn = "isManaWarningEnabled" },
         { "isManaCombatOnly",         "Only in combat", "No warnings outside combat", dependsOn = "isManaWarningEnabled" },
     } },
     { column = 2, title = "Help", rows = {

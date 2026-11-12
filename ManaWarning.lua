@@ -8,8 +8,9 @@
 -- Each warning fires once per dip; it re-arms when your mana is back above
 -- the threshold (plus a small margin, so it does not spam while hovering).
 --
--- The warning is a big text in the middle of the screen plus a sound, and is
--- also said in party/raid chat ("Low mana! (28%)") when you are in a group.
+-- The warning is a big text in the middle of the screen plus a sound. In a
+-- group a "Tell group" button appears: one click says "Low mana! (28%)" in
+-- party/raid chat (the game does not let addons send chat by themselves).
 --
 -- WoW Forever hides your current mana from addons ("secret value"), so the
 -- addon cannot know when it is low. There a different mode is used: a step
@@ -30,7 +31,7 @@
 --   /mentor mana low <percent>     low mana threshold, e.g. /mentor mana low 25
 --   /mentor mana critical <percent>  critical threshold, e.g. 10
 --   /mentor mana sound on|off      play a sound with the warning
---   /mentor mana party on|off      say "Low mana!" in party/raid chat
+--   /mentor mana party on|off      offer a "Tell group" button with the warning
 --   /mentor mana combat on|off     only warn while in combat
 --   /mentor mana say               say "Low mana!" in party/raid chat now (macro)
 --   /mentor mana test              show a test warning
@@ -189,6 +190,51 @@ warningFrame:SetScript("OnUpdate", function(self, elapsedSinceLastFrame)
     end
 end)
 
+--------------------------------------------------------------------------------
+-- "Tell group" button. On WoW Forever an addon may not send chat messages by
+-- itself (the game blocks it: "Mentor has been blocked from an action"), only
+-- from a click. So instead of sending "Low mana!" automatically, a small
+-- button appears for a few seconds; one click tells your party or raid.
+--------------------------------------------------------------------------------
+local TELL_GROUP_BUTTON_SECONDS = 10
+local tellGroupButton = CreateFrame("Button", "MentorManaTellGroupButton", UIParent, "UIPanelButtonTemplate")
+tellGroupButton:SetSize(130, 22)
+tellGroupButton:SetFrameStrata("HIGH")
+tellGroupButton:SetText("Tell group")
+tellGroupButton:Hide()
+tellGroupButton:SetScript("OnClick", function(self)
+    if self.chatMessage and IsInGroup() then
+        local chatChannel = IsInRaid() and "RAID" or "PARTY"
+        SendChatMessage(self.chatMessage, chatChannel)       -- allowed: it is your click
+    end
+    self:Hide()
+end)
+tellGroupButton:SetScript("OnUpdate", function(self, elapsedSinceLastFrame)
+    self.secondsShown = (self.secondsShown or 0) + elapsedSinceLastFrame
+    if self.secondsShown >= TELL_GROUP_BUTTON_SECONDS then
+        self:Hide()
+    end
+end)
+
+-- Offers the "Tell group" button with this message (only in a party or raid).
+local function OfferToTellGroup(chatMessage)
+    if not (GetSettings().isPartyMessageEnabled and IsInGroup()) then
+        return
+    end
+    tellGroupButton.chatMessage = chatMessage
+    tellGroupButton.secondsShown = 0
+    tellGroupButton:SetText("Tell group: " .. chatMessage)
+    tellGroupButton:SetWidth(math.max(130, (tellGroupButton:GetFontString() and tellGroupButton:GetFontString():GetStringWidth() or 110) + 24))
+    tellGroupButton:ClearAllPoints()
+    local manaBoxFrame = _G["MentorManaWarningBox"]
+    if manaBoxFrame and manaBoxFrame:IsShown() then
+        tellGroupButton:SetPoint("TOP", manaBoxFrame, "BOTTOM", 0, -4)
+    else
+        tellGroupButton:SetPoint("CENTER", UIParent, "CENTER", 0, WARNING_TEXT_OFFSET_Y - 50)
+    end
+    tellGroupButton:Show()
+end
+
 -- chatText is a format string with the mana percent (or nil for no chat message).
 local function ShowWarning(displayText, textColor, chatText, manaPercent)
     warningText:SetText(displayText)
@@ -201,11 +247,9 @@ local function ShowWarning(displayText, textColor, chatText, manaPercent)
         pcall(PlaySound, WARNING_SOUND_KIT_ID, "Master")
     end
 
-    -- Tell the group (only when actually in a party or raid).
-    if GetSettings().isPartyMessageEnabled and chatText and IsInGroup() then
-        local chatChannel = IsInRaid() and "RAID" or "PARTY"
-        local chatMessage = string.format(chatText, math.floor((manaPercent or 0) + 0.5))
-        pcall(SendChatMessage, chatMessage, chatChannel)
+    -- Offer to tell the group (a click sends it - see OfferToTellGroup).
+    if chatText then
+        OfferToTellGroup(string.format(chatText, math.floor((manaPercent or 0) + 0.5)))
     end
 end
 
@@ -610,10 +654,7 @@ local function HandleNotEnoughMana()
     if GetSettings().isSoundEnabled then
         pcall(PlaySound, WARNING_SOUND_KIT_ID, "Master")
     end
-    if GetSettings().isPartyMessageEnabled and IsInGroup() then
-        local chatChannel = IsInRaid() and "RAID" or "PARTY"
-        pcall(SendChatMessage, NOT_ENOUGH_MANA_CHAT_TEXT, chatChannel)
-    end
+    OfferToTellGroup(NOT_ENOUGH_MANA_CHAT_TEXT)
 end
 eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
 eventFrame:RegisterUnitEvent("UNIT_MAXPOWER", "player")

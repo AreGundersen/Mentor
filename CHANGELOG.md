@@ -6,6 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- Fixed (#4): Mana warning made the game block Mentor ("blocked from an action") when you were in a group, because it sent "Low mana!" / "Out of mana!" to party chat by itself - WoW Forever only lets addons send chat from a click. Now a "Tell group" button appears under the mana box for 10 seconds; one click tells your group.
 - Fixed: after learning a weapon skill (for example Staves at a weapon master), items of that type still said "You cannot use this item" and had a red cross until you logged out. Mentor now checks again as soon as you learn a skill or spell.
 - Auto vendor: the "only worth vendoring" list is now a Mentor window next to the vendor, with each item's icon, name in its quality colour and price. Untick the ones you want to keep (hover for the item tooltip), then "Sell" or "Keep all".
 - **New: Gold graph** in the Life log ("Gold graph" button): your gold over time as a line, for the last 7 days, 30 days or everything, with the change over the period. Gold is recorded at most every 10 minutes from now on.
