@@ -98,7 +98,8 @@ local DEFAULT_SETTINGS = {
     areBagRemindersEnabled = true,
     areDungeonTipsEnabled = true,      -- tip when you enter a dungeon (Journey.lua)
     areHelpTipsEnabled = true,         -- what to do when you die, rested XP (Reminders.lua)
-    areMobWarningsEnabled = true,      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
+    areMobWarningsEnabled = true,
+    areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
     isTourDone = false,                -- first-time tour (Tour.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
@@ -788,6 +789,7 @@ local SETTINGS_SECTIONS = {
         { "areTooltipDetailsShown",   "Details",       "Stat explanations and extra lines", dependsOn = "areTooltipLinesEnabled" },
         { "areLootAlertsEnabled",     "Loot alerts",   "Chat message when you loot an upgrade" },
         { "areQuestPicksEnabled",     "Quest rewards", "Mark the best reward when you hand in a quest" },
+        { "areLootRollPicksEnabled",  "Loot rolls",    "Need or Greed? Marked on group loot rolls" },
     } },
     { column = 1, title = "Reminders", rows = {
         { "isTrainerReminderEnabled", "Trainer",       "New spells to train when you level up" },

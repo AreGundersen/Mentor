@@ -35,5 +35,6 @@ Glossary.lua
 Reminders.lua
 Tour.lua
 Alerts.lua
+LootRolls.lua
 BugReport.lua
 UI.lua

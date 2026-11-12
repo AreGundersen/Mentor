@@ -12,7 +12,7 @@
 - **Arrows on bag items** (Blizzard bags and Bagnon): green = upgrade, yellow = upgrade at a higher level, red = worse. A red cross marks items you can't use.
 - **Tooltips start with what to do:** "Equip", "Equip at level 24" or "Keep - upgrade for <your other spec>", followed by how much better or worse the item is for each of your specs.
 - See exactly which stats change, and what each stat does for you.
-- Chat alert when you loot an upgrade, and the best quest reward marked when you hand in a quest.
+- Chat alert when you loot an upgrade, the best quest reward marked when you hand in a quest, and Need or Greed marked on group loot rolls.
 
 ## Where next? and reminders
 - **Journey tab:** zones and dungeons for your level and faction, and professions that suit your class.

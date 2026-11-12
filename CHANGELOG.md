@@ -6,6 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **New: Loot roll advice** (on by default, "Loot rolls" under Gear & loot): when a group loot roll appears, a "Mentor: Need" or "Mentor: Greed" tag sits above it with the reason ("upgrade +12%", "new slot", "only for Feral", "not an upgrade", "you can't use it"), and the recommended button gets a gold frame. Need is only for the spec you play.
 - Fixed (#4): Mana warning made the game block Mentor ("blocked from an action") when you were in a group, because it sent "Low mana!" / "Out of mana!" to party chat by itself - WoW Forever only lets addons send chat from a click. Now a "Tell group" button appears under the mana box for 10 seconds; one click tells your group.
 - Fixed: after learning a weapon skill (for example Staves at a weapon master), items of that type still said "You cannot use this item" and had a red cross until you logged out. Mentor now checks again as soon as you learn a skill or spell.
 - Auto vendor: the "only worth vendoring" list is now a Mentor window next to the vendor, with each item's icon, name in its quality colour and price. Untick the ones you want to keep (hover for the item tooltip), then "Sell" or "Keep all".
