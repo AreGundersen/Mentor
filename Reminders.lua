@@ -425,26 +425,93 @@ function reminders.OnPlayerAlive()
 end
 
 -- Logging out away from an inn or a city: no rested XP builds up.
--- Shown in the reminder box (like the death tip), not only in chat, so it is
--- seen during the 20-second logout countdown. Several hooks can start it
--- (PLAYER_CAMPING, Logout(), Quit(), the CAMP / QUIT popup) because not every
--- client fires PLAYER_CAMPING; the "camping" key makes sure it is said once.
+-- The tip gets its own small box right under the logout countdown (the
+-- reminder box sits behind that popup, so it would not be seen). Several hooks
+-- can start it (PLAYER_CAMPING, Logout(), Quit(), the CAMP / QUIT popup)
+-- because not every client fires PLAYER_CAMPING.
+local LOGOUT_TIP_TEXT = "Tip: log out in an inn or a city instead - there you build up rested XP, "
+    .. "which doubles the XP from kills next time you play."
+local LOGOUT_TIP_WIDTH = 320
+local logoutTipBox
+
+-- The visible logout countdown popup, or nil.
+local function FindLogoutPopup()
+    if not StaticPopup_Visible then
+        return nil
+    end
+    for _, popupName in ipairs({ "CAMP", "QUIT" }) do
+        local popupFrameName = StaticPopup_Visible(popupName)
+        if popupFrameName and _G[popupFrameName] then
+            return _G[popupFrameName]
+        end
+    end
+    return nil
+end
+
+local function GetLogoutTipBox()
+    if logoutTipBox then
+        return logoutTipBox
+    end
+    logoutTipBox = CreateFrame("Frame", "MentorLogoutTipBox", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    -- Same layer as the popup, one step above it, so nothing covers the tip.
+    logoutTipBox:SetFrameStrata("DIALOG")
+    logoutTipBox:SetFrameLevel(100)
+    logoutTipBox:SetWidth(LOGOUT_TIP_WIDTH)
+    if logoutTipBox.SetBackdrop then
+        logoutTipBox:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 14,
+            insets = { left = 3, right = 3, top = 3, bottom = 3 },
+        })
+        logoutTipBox:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
+    end
+    local logo = logoutTipBox:CreateTexture(nil, "ARTWORK")
+    logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
+    logo:SetSize(16, 16)
+    logo:SetPoint("TOPLEFT", BOX_PADDING + 2, -BOX_PADDING)
+    logoutTipBox.text = logoutTipBox:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    logoutTipBox.text:SetPoint("TOPLEFT", logo, "TOPRIGHT", 6, 0)
+    logoutTipBox.text:SetWidth(LOGOUT_TIP_WIDTH - 2 * BOX_PADDING - 26)
+    logoutTipBox.text:SetJustifyH("LEFT")
+    logoutTipBox.text:SetText(LOGOUT_TIP_TEXT)
+    logoutTipBox:SetHeight((logoutTipBox.text:GetStringHeight() or 24) + 2 * BOX_PADDING + 4)
+    logoutTipBox:Hide()
+    return logoutTipBox
+end
+
 function reminders.OnCamping()
     if not IsOn("areHelpTipsEnabled") then
         return
     end
     local playerLevel = UnitLevel("player") or 1
     local maxLevel = (GetMaxPlayerLevel and GetMaxPlayerLevel()) or 60
-    if playerLevel < maxLevel and IsResting and not IsResting() then
-        Remind("camping", "Tip: log out in an inn or a city instead - there you build up rested XP, "
-            .. "which doubles the XP from kills next time you play.")
+    if not (playerLevel < maxLevel and IsResting and not IsResting()) then
+        return
+    end
+    local tipBox = GetLogoutTipBox()
+    tipBox:ClearAllPoints()
+    local logoutPopup = FindLogoutPopup()
+    if logoutPopup then
+        tipBox:SetPoint("TOP", logoutPopup, "BOTTOM", 0, -6)
+        -- Goes away together with the countdown (logout cancelled or done).
+        if not logoutPopup.isMentorTipHooked then
+            logoutPopup:HookScript("OnHide", function() if logoutTipBox then logoutTipBox:Hide() end end)
+            logoutPopup.isMentorTipHooked = true
+        end
+    else
+        tipBox:SetPoint("TOP", UIParent, "TOP", 0, -200)
+    end
+    if not tipBox:IsShown() then
+        tipBox:Show()
+        Mentor.Print(MESSAGE_COLOR .. LOGOUT_TIP_TEXT .. "|r")
     end
 end
 
--- Logout cancelled (you moved or clicked Cancel): the tip can come again next time.
+-- Logout cancelled (you moved or clicked Cancel): hide the tip.
 function reminders.OnLogoutCancelled()
-    ForgetReminder("camping")
-    reminders.Dismiss("camping")
+    if logoutTipBox then
+        logoutTipBox:Hide()
+    end
 end
 
 if hooksecurefunc then
