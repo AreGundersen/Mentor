@@ -79,9 +79,35 @@ local function GetRollFrames()
     return rollFrames
 end
 
+-- The Need / Greed button of a roll frame. Blizzard's roll buttons carry the
+-- roll type as their ID (1 = Need, 2 = Greed, 0 = Pass, 3 = Disenchant), so
+-- they are found by ID among the frame's children when the names differ.
+local ROLL_TYPE_IDS = { need = 1, greed = 2 }
+local function FindButtonById(parentFrame, wantedId, depth)
+    if depth > 3 or not parentFrame.GetChildren then
+        return nil
+    end
+    for _, childFrame in ipairs({ parentFrame:GetChildren() }) do
+        if childFrame.GetObjectType and childFrame:GetObjectType() == "Button" and childFrame.GetID
+            and childFrame:GetID() == wantedId and childFrame:IsShown() then
+            return childFrame
+        end
+        local foundButton = FindButtonById(childFrame, wantedId, depth + 1)
+        if foundButton then
+            return foundButton
+        end
+    end
+    return nil
+end
+
 local function GetRollButton(rollFrame, choice)
-    local buttonName = choice == "need" and "NeedButton" or "GreedButton"
-    return rollFrame[buttonName] or (rollFrame:GetName() and _G[rollFrame:GetName() .. buttonName])
+    local keyName = choice == "need" and "NeedButton" or "GreedButton"
+    local frameName = rollFrame.GetName and rollFrame:GetName()
+    local namedButton = rollFrame[keyName] or (frameName and _G[frameName .. keyName])
+    if type(namedButton) == "table" and namedButton.IsShown then
+        return namedButton
+    end
+    return FindButtonById(rollFrame, ROLL_TYPE_IDS[choice], 1)
 end
 
 local function GetMarker(rollFrame)
@@ -137,6 +163,10 @@ local function GetMarker(rollFrame)
     return marker
 end
 
+function lootRolls.GetMarkerForTests(rollFrame)
+    return markersByFrame[rollFrame]
+end
+
 local function HideMarker(rollFrame)
     local marker = markersByFrame[rollFrame]
     if marker then
@@ -183,5 +213,6 @@ end
 eventFrame:SetScript("OnEvent", function()
     if C_Timer then
         C_Timer.After(SECONDS_BEFORE_MARKING, function() pcall(lootRolls.MarkRollFrames) end)
+        C_Timer.After(0.5, function() pcall(lootRolls.MarkRollFrames) end)
     end
 end)
