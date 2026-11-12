@@ -276,23 +276,11 @@ end
 -- Soft gold light that fills the frame exactly (added on top of the reward
 -- so it brightens it), pulsing slowly.
 local questRewardShine = questRewardGlow:CreateTexture(nil, "ARTWORK")
-questRewardShine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.22)
+questRewardShine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.35)
 questRewardShine:SetBlendMode("ADD")
 questRewardShine:SetPoint("TOPLEFT", 3, -3)
 questRewardShine:SetPoint("BOTTOMRIGHT", -3, 3)
-if questRewardGlow.CreateAnimationGroup then
-    local pulse = questRewardGlow:CreateAnimationGroup()
-    pulse:SetLooping("BOUNCE")
-    local fade = pulse:CreateAnimation("Alpha")
-    if fade and fade.SetFromAlpha then
-        fade:SetTarget(questRewardShine)
-        fade:SetFromAlpha(0.3)
-        fade:SetToAlpha(1)
-        fade:SetDuration(0.9)
-    end
-    questRewardGlow:SetScript("OnShow", function() pulse:Play() end)
-    questRewardGlow:SetScript("OnHide", function() pulse:Stop() end)
-end
+Mentor.StartPulse(questRewardGlow, questRewardShine)
 -- Tag above the reward: [logo] Mentor pick  +3.2%
 local questRewardTag = CreateFrame("Frame", nil, questRewardGlow, BackdropTemplateMixin and "BackdropTemplate" or nil)
 questRewardTag:SetHeight(18)

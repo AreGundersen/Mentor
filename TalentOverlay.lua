@@ -58,6 +58,19 @@ Mentor.BOX_BACKDROP = {
     insets = { left = 2, right = 2, top = 2, bottom = 2 },
 }
 
+-- Pulses a texture's alpha slowly while its frame is shown (done by hand in
+-- OnUpdate, so it works on every client). Used by the quest and loot picks.
+local PULSE_SECONDS = 1.6
+local PULSE_LOWEST_ALPHA = 0.25
+function Mentor.StartPulse(frame, pulsingTexture)
+    local elapsedSeconds = 0
+    frame:HookScript("OnUpdate", function(_, elapsedSinceLastFrame)
+        elapsedSeconds = (elapsedSeconds + elapsedSinceLastFrame) % PULSE_SECONDS
+        local wave = 0.5 + 0.5 * math.sin(elapsedSeconds / PULSE_SECONDS * 2 * math.pi)
+        pulsingTexture:SetAlpha(PULSE_LOWEST_ALPHA + (1 - PULSE_LOWEST_ALPHA) * wave)
+    end)
+end
+
 -- A rounded edge around an icon (a little outside it). Returns the edge
 -- frame; change its colour with edgeFrame:SetBackdropBorderColor(r, g, b, a).
 function Mentor.AddRoundedBorder(frame, red, green, blue, alpha, edgeSize)

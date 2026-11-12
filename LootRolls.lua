@@ -137,28 +137,17 @@ local function GetMarker(rollFrame)
     marker.buttonFrame = CreateFrame("Frame", nil, rollFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
     marker.buttonFrame:SetFrameLevel((rollFrame:GetFrameLevel() or 1) + 10)
     if marker.buttonFrame.SetBackdrop then
-        marker.buttonFrame:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 10 })
+        marker.buttonFrame:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 8 })
         marker.buttonFrame:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1)
     end
     -- Soft gold light inside the frame, pulsing slowly (like the quest pick).
+    -- The pulse is done by hand in OnUpdate: it works on every client.
     local buttonShine = marker.buttonFrame:CreateTexture(nil, "ARTWORK")
-    buttonShine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.3)
+    buttonShine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.45)
     buttonShine:SetBlendMode("ADD")
-    buttonShine:SetPoint("TOPLEFT", 3, -3)
-    buttonShine:SetPoint("BOTTOMRIGHT", -3, 3)
-    if marker.buttonFrame.CreateAnimationGroup then
-        local pulse = marker.buttonFrame:CreateAnimationGroup()
-        pulse:SetLooping("BOUNCE")
-        local fade = pulse:CreateAnimation("Alpha")
-        if fade and fade.SetFromAlpha then
-            fade:SetTarget(buttonShine)
-            fade:SetFromAlpha(0.3)
-            fade:SetToAlpha(1)
-            fade:SetDuration(0.9)
-        end
-        marker.buttonFrame:SetScript("OnShow", function() pulse:Play() end)
-        marker.buttonFrame:SetScript("OnHide", function() pulse:Stop() end)
-    end
+    buttonShine:SetPoint("TOPLEFT", 2, -2)
+    buttonShine:SetPoint("BOTTOMRIGHT", -2, 2)
+    Mentor.StartPulse(marker.buttonFrame, buttonShine)
     markersByFrame[rollFrame] = marker
     return marker
 end
@@ -191,8 +180,9 @@ function lootRolls.MarkRollFrames()
                 local rollButton = GetRollButton(rollFrame, choice)
                 if rollButton and rollButton:IsShown() then
                     marker.buttonFrame:ClearAllPoints()
-                    marker.buttonFrame:SetPoint("TOPLEFT", rollButton, "TOPLEFT", -4, 4)
-                    marker.buttonFrame:SetPoint("BOTTOMRIGHT", rollButton, "BOTTOMRIGHT", 4, -4)
+                    -- Tight around the button so it does not cover its neighbours.
+                    marker.buttonFrame:SetPoint("TOPLEFT", rollButton, "TOPLEFT", -1, 1)
+                    marker.buttonFrame:SetPoint("BOTTOMRIGHT", rollButton, "BOTTOMRIGHT", 1, -1)
                     marker.buttonFrame:Show()
                 else
                     marker.buttonFrame:Hide()
