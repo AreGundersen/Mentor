@@ -98,8 +98,9 @@ local DEFAULT_SETTINGS = {
     areBagRemindersEnabled = true,
     areDungeonTipsEnabled = true,      -- tip when you enter a dungeon (Journey.lua)
     areHelpTipsEnabled = true,         -- what to do when you die, rested XP (Reminders.lua)
-    areMobWarningsEnabled = true,
-    areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
+    areMobWarningsEnabled = true,      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
+    isMobKillCountEnabled = true,      -- "You have killed 23" in mob tooltips (Reminders.lua, needs Life log)
+    areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)
     isTourDone = false,                -- first-time tour (Tour.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
@@ -818,6 +819,7 @@ local SETTINGS_SECTIONS = {
     { column = 2, title = "Help", rows = {
         { "areHelpTipsEnabled",       "Help tips",     "What to do when you die; where to log out for rested XP" },
         { "areMobWarningsEnabled",    "Mob warnings",  "Elites and mobs far above you, in the mob tooltip" },
+        { "isMobKillCountEnabled",    "Kill count",    "How many of a mob you have killed, in its tooltip (Life log)" },
     } },
 }
 local SETTINGS_ROW_HEIGHT = 34

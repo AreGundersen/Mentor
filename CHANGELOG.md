@@ -12,9 +12,10 @@ number is only given when Are decides the release is finished (see
 - Auto vendor: the "only worth vendoring" list is now a Mentor window next to the vendor, with each item's icon, name in its quality colour and price. Untick the ones you want to keep (hover for the item tooltip), then "Sell" or "Keep all".
 - **New: Gold graph** in the Life log ("Gold graph" button): your gold over time as a line, for the last 7 days, 30 days or everything, with the change over the period. Gold is recorded at most every 10 minutes from now on.
 - **New: Words tab** (`/mentor words`): what aggro, pull, add, CC, wipe, OOM, LFG, rested, BoP/BoE and other words mean.
+- **New: Kill count** in the mob tooltip ("Mentor: Killed: 23"), from the Life log, once you have killed one. "Kill count" under Help (on by default). Only kills that give experience are counted.
 - **New: Mob warnings** in the mob tooltip: "Elite - bring a group" and "5 levels above you - very dangerous".
 - **New: Help tips:** when you die, how to get back without the spirit healer's penalty; when you log out outside an inn or a city, that you get no rested XP there.
-- Settings: new "Help" section (Help tips, Mob warnings); Interface moved under Reminders.
+- Settings: new "Help" section (Help tips, Mob warnings, Kill count); Interface moved under Reminders.
 - "Support Mentor" button in Settings (and `/mentor support`): shows the CurseForge page with the Donate button, ready to copy. The GitHub page and README link to it too.
 
 ## 1.12.0 - 2026-11-11

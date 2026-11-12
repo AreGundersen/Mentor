@@ -438,7 +438,8 @@ function reminders.OnCamping()
 end
 
 --------------------------------------------------------------------------------
--- Mob tooltips: warn about elites and mobs far above your level
+-- Mob tooltips: warn about elites and mobs far above your level, and show
+-- how many of the mob you have killed
 --------------------------------------------------------------------------------
 local DANGEROUS_LEVEL_GAP = 4         -- this many levels above you is very dangerous
 local function IsSecret(value)
@@ -471,28 +472,63 @@ function reminders.GetMobDanger(unitToken)
     return nil
 end
 
-local function AddMobDangerToTooltip(tooltip)
-    if not IsOn("areMobWarningsEnabled") or not tooltip.GetUnit then
+-- How many of this mob this character has killed, from the Life log's
+-- "most killed" list. Life log counts kills that give experience, so mobs
+-- that are grey to you are not counted. Returns nil when nothing is known.
+function reminders.GetMobKillCount(unitToken)
+    local lifeLog = Mentor.LifeLog
+    if not (lifeLog and lifeLog.GetCharacterDB and lifeLog.IsTracking and lifeLog.IsTracking()) then
+        return nil
+    end
+    if not (UnitExists(unitToken) and UnitCanAttack and UnitCanAttack("player", unitToken))
+        or (UnitIsPlayer and UnitIsPlayer(unitToken)) then
+        return nil
+    end
+    local mobName = UnitName(unitToken)
+    if not mobName or IsSecret(mobName) then
+        return nil
+    end
+    local characterDB = lifeLog.GetCharacterDB()
+    local killsByCreature = characterDB and characterDB.killsByCreature
+    return killsByCreature and killsByCreature[mobName] or 0
+end
+
+local function AddMobLinesToTooltip(tooltip)
+    if not tooltip.GetUnit then
         return
     end
     local _, unitToken = tooltip:GetUnit()
     if not unitToken or IsSecret(unitToken) then
         return
     end
-    local warningText, red, green, blue = reminders.GetMobDanger(unitToken)
-    if warningText then
-        tooltip:AddLine("|cff66ccffMentor:|r " .. warningText, red, green, blue)
+    local isTooltipChanged = false
+    if IsOn("areMobWarningsEnabled") then
+        local warningText, red, green, blue = reminders.GetMobDanger(unitToken)
+        if warningText then
+            tooltip:AddLine("|cff66ccffMentor:|r " .. warningText, red, green, blue)
+            isTooltipChanged = true
+        end
+    end
+    if IsOn("isMobKillCountEnabled") then
+        local killCount = reminders.GetMobKillCount(unitToken)
+        -- Only once you have killed one: a "0" on every new mob is just noise.
+        if killCount and killCount > 0 then
+            tooltip:AddLine("|cff66ccffMentor:|r Killed: |cffffffff" .. killCount .. "|r", 0.65, 0.65, 0.65)
+            isTooltipChanged = true
+        end
+    end
+    if isTooltipChanged then
         tooltip:Show()
     end
 end
 
 if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
-        pcall(AddMobDangerToTooltip, tooltip)
+        pcall(AddMobLinesToTooltip, tooltip)
     end)
 elseif GameTooltip and GameTooltip.HookScript then
     GameTooltip:HookScript("OnTooltipSetUnit", function(tooltip)
-        pcall(AddMobDangerToTooltip, tooltip)
+        pcall(AddMobLinesToTooltip, tooltip)
     end)
 end
 

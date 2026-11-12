@@ -19,7 +19,7 @@
 - **Weapons tab:** every weapon type your class can learn, which you already know, and which weapon master teaches the rest.
 - **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, and empty bag slots.
 - **Dungeon tips:** a short tip about the dungeon and your role when you enter one.
-- **Mob warnings:** the mob tooltip says when a mob is elite or far above your level.
+- **Mob warnings:** the mob tooltip says when a mob is elite or far above your level, and how many of it you have killed.
 - **Help tips:** what to do when you die, and where to log out for rested XP.
 - **Words tab:** what aggro, pull, CC, wipe, OOM and other words in group chat mean.
 
