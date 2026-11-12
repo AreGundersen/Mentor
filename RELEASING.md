@@ -19,7 +19,12 @@
 2. `Mentor.toc`: set `## Version:` to the new number (remove `+dev`).
 3. `CHANGELOG.md`: rename `## Unreleased` to `## <version> - <date>` and add a
    new empty `## Unreleased` section on top.
-4. Commit, then tag and push: `git tag v<version> && git push --tags`.
-5. `tools/package.sh` -> `Mentor-<version>.zip`. Upload it to CurseForge
-   (game version: Forever, type: Release) and paste that version's changelog.
+4. Commit and push to main (and tag: `git tag v<version> && git push --tags`).
+5. The GitHub Action "CurseForge upload" (.github/workflows/curseforge.yml)
+   sees the new version number in Mentor.toc, builds the zip with
+   `tools/package.sh` and uploads it to CurseForge as a Release (game version:
+   Forever) with this version's changelog. It needs the repository secret
+   `CF_API_KEY`. If the Action can't be used: `tools/package.sh` ->
+   `Mentor-<version>.zip`, upload it by hand (Forever, Release) and paste the
+   changelog.
 6. After the release the next change sets the version to `<version>+dev` again.

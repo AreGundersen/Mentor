@@ -1,0 +1,68 @@
+# Uploads finished Mentor releases to CurseForge.
+#
+# Runs when a push to main changes Mentor.toc's "## Version:" to a number
+# without "+dev" (that only happens when Are says a release is finished - see
+# RELEASING.md). Test builds (+dev) are never uploaded.
+#
+# Can also be started by hand (Actions -> CurseForge upload -> Run workflow):
+#   list-versions  dry run: checks the token and shows the Forever game version
+#   upload         uploads the version that is in Mentor.toc right now
+#
+# Needs the repository secret CF_API_KEY (a CurseForge API token). The
+# optional repository variable CF_GAME_VERSION_ID picks the game version by hand.
+
+name: CurseForge upload
+
+on:
+  push:
+    branches: [main]
+    paths: [Mentor.toc]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "list-versions (dry run) or upload"
+        required: true
+        default: list-versions
+        type: choice
+        options: [list-versions, upload]
+
+env:
+  CF_API_KEY: ${{ secrets.CF_API_KEY }}
+  CF_PROJECT_ID: "1795097"
+  CF_GAME_VERSION_ID: ${{ vars.CF_GAME_VERSION_ID }}
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # On a push: only continue when the version changed to a release number.
+      - name: Check whether this push is a release
+        id: release_check
+        run: |
+          new_version="$(sed -n 's/^## Version: *//p' Mentor.toc | tr -d '\r')"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          old_version="$(git show "${{ github.event.before }}:Mentor.toc" 2>/dev/null | sed -n 's/^## Version: *//p' | tr -d '\r' || true)"
+          echo "Version before: '$old_version'  now: '$new_version'"
+          if [[ "$new_version" != *+dev* && "$new_version" != "$old_version" ]]; then
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not a release (test build or unchanged version) - nothing to upload."
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dry run - list Forever game versions
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'list-versions'
+        run: python3 tools/curseforge_upload.py list-versions
+
+      - name: Build and upload
+        if: steps.release_check.outputs.is_release == 'true' && (github.event_name == 'push' || inputs.mode == 'upload')
+        run: |
+          bash tools/package.sh "$PWD/dist"
+          python3 tools/curseforge_upload.py upload dist/Mentor-*.zip
