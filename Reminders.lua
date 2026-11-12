@@ -425,6 +425,10 @@ function reminders.OnPlayerAlive()
 end
 
 -- Logging out away from an inn or a city: no rested XP builds up.
+-- Shown in the reminder box (like the death tip), not only in chat, so it is
+-- seen during the 20-second logout countdown. Several hooks can start it
+-- (PLAYER_CAMPING, Logout(), Quit(), the CAMP / QUIT popup) because not every
+-- client fires PLAYER_CAMPING; the "camping" key makes sure it is said once.
 function reminders.OnCamping()
     if not IsOn("areHelpTipsEnabled") then
         return
@@ -432,115 +436,39 @@ function reminders.OnCamping()
     local playerLevel = UnitLevel("player") or 1
     local maxLevel = (GetMaxPlayerLevel and GetMaxPlayerLevel()) or 60
     if playerLevel < maxLevel and IsResting and not IsResting() then
-        Mentor.Print(MESSAGE_COLOR .. "Tip: log out in an inn or a city instead - there you build up rested XP, "
-            .. "which doubles the XP from kills next time you play.|r")
+        Remind("camping", "Tip: log out in an inn or a city instead - there you build up rested XP, "
+            .. "which doubles the XP from kills next time you play.")
     end
 end
 
---------------------------------------------------------------------------------
--- Mob tooltips: warn about elites and mobs far above your level, and show
--- how many of the mob you have killed
---------------------------------------------------------------------------------
-local DANGEROUS_LEVEL_GAP = 4         -- this many levels above you is very dangerous
-local function IsSecret(value)
-    return issecretvalue and issecretvalue(value)
+-- Logout cancelled (you moved or clicked Cancel): the tip can come again next time.
+function reminders.OnLogoutCancelled()
+    ForgetReminder("camping")
+    reminders.Dismiss("camping")
 end
 
-function reminders.GetMobDanger(unitToken)
-    if not (UnitExists(unitToken) and UnitCanAttack and UnitCanAttack("player", unitToken))
-        or UnitIsDeadOrGhost(unitToken) or (UnitIsPlayer and UnitIsPlayer(unitToken)) then
-        return nil
-    end
-    local classification = UnitClassification and UnitClassification(unitToken)
-    local mobLevel = UnitLevel(unitToken)
-    if IsSecret(classification) or IsSecret(mobLevel) then
-        return nil
-    end
-    local playerLevel = UnitLevel("player") or 1
-    if classification == "worldboss" or mobLevel == -1 then
-        return "Far too strong for you - stay away.", 1.0, 0.2, 0.2
-    end
-    local isElite = classification == "elite" or classification == "rareelite"
-    local levelGap = (mobLevel or playerLevel) - playerLevel
-    if isElite and levelGap >= 0 then
-        return "Elite - bring a group.", 1.0, 0.55, 0.1
-    elseif levelGap >= DANGEROUS_LEVEL_GAP then
-        return string.format("%d levels above you - very dangerous.", levelGap), 1.0, 0.2, 0.2
-    elseif isElite then
-        return "Elite - hits hard; fight it with a friend.", 1.0, 0.75, 0.2
-    end
-    return nil
-end
-
--- How many of this mob this character has killed, from the Life log's
--- "most killed" list. Life log counts kills that give experience, so mobs
--- that are grey to you are not counted. Returns nil when nothing is known.
-function reminders.GetMobKillCount(unitToken)
-    local lifeLog = Mentor.LifeLog
-    if not (lifeLog and lifeLog.GetCharacterDB and lifeLog.IsTracking and lifeLog.IsTracking()) then
-        return nil
-    end
-    if not (UnitExists(unitToken) and UnitCanAttack and UnitCanAttack("player", unitToken))
-        or (UnitIsPlayer and UnitIsPlayer(unitToken)) then
-        return nil
-    end
-    local mobName = UnitName(unitToken)
-    if not mobName or IsSecret(mobName) then
-        return nil
-    end
-    local characterDB = lifeLog.GetCharacterDB()
-    local killsByCreature = characterDB and characterDB.killsByCreature
-    return killsByCreature and killsByCreature[mobName] or 0
-end
-
-local function AddMobLinesToTooltip(tooltip)
-    if not tooltip.GetUnit then
-        return
-    end
-    local _, unitToken = tooltip:GetUnit()
-    if not unitToken or IsSecret(unitToken) then
-        return
-    end
-    local isTooltipChanged = false
-    if IsOn("areMobWarningsEnabled") then
-        local warningText, red, green, blue = reminders.GetMobDanger(unitToken)
-        if warningText then
-            tooltip:AddLine("|cff66ccffMentor:|r " .. warningText, red, green, blue)
-            isTooltipChanged = true
+if hooksecurefunc then
+    for _, logoutFunctionName in ipairs({ "Logout", "Quit" }) do
+        if type(_G[logoutFunctionName]) == "function" then
+            hooksecurefunc(logoutFunctionName, function() pcall(reminders.OnCamping) end)
         end
     end
-    if IsOn("isMobKillCountEnabled") then
-        local killCount = reminders.GetMobKillCount(unitToken)
-        -- Only once you have killed one: a "0" on every new mob is just noise.
-        if killCount and killCount > 0 then
-            tooltip:AddLine("|cff66ccffMentor:|r Killed: |cffffffff" .. killCount .. "|r", 0.65, 0.65, 0.65)
-            isTooltipChanged = true
-        end
-    end
-    if isTooltipChanged then
-        tooltip:Show()
+    if type(StaticPopup_Show) == "function" then
+        hooksecurefunc("StaticPopup_Show", function(popupName)
+            if popupName == "CAMP" or popupName == "QUIT" then
+                pcall(reminders.OnCamping)
+            end
+        end)
     end
 end
 
-if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
-    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip)
-        pcall(AddMobLinesToTooltip, tooltip)
-    end)
-elseif GameTooltip and GameTooltip.HookScript then
-    GameTooltip:HookScript("OnTooltipSetUnit", function(tooltip)
-        pcall(AddMobLinesToTooltip, tooltip)
-    end)
-end
-
---------------------------------------------------------------------------------
--- Events
 --------------------------------------------------------------------------------
 local wasResting = nil
 
 local eventFrame = CreateFrame("Frame")
 for _, eventName in ipairs({ "PLAYER_LOGIN", "PLAYER_LEVEL_UP", "PLAYER_UPDATE_RESTING",
     "UPDATE_INVENTORY_DURABILITY", "SKILL_LINES_CHANGED", "BAG_UPDATE_DELAYED", "UNIT_HAPPINESS",
-    "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_CAMPING" }) do
+    "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_CAMPING", "LOGOUT_CANCEL" }) do
     pcall(eventFrame.RegisterEvent, eventFrame, eventName)
 end
 eventFrame:SetScript("OnEvent", function(_, eventName, ...)
@@ -579,5 +507,7 @@ eventFrame:SetScript("OnEvent", function(_, eventName, ...)
         pcall(reminders.OnPlayerAlive)
     elseif eventName == "PLAYER_CAMPING" then
         pcall(reminders.OnCamping)
+    elseif eventName == "LOGOUT_CANCEL" then
+        pcall(reminders.OnLogoutCancelled)
     end
 end)
