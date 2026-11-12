@@ -15,6 +15,8 @@ local _, Mentor = ...
 local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
 local MAX_ROLL_FRAMES = 4
 local SECONDS_BEFORE_MARKING = 0.1       -- the roll frame is filled in right after the event
+local BIG_UPGRADE_PERCENT = 100          -- above this the tag says "big upgrade" instead of a number
+local BUTTON_FRAME_INSET = 2             -- the gold frame sits this many pixels inside the button edge
 
 local lootRolls = {}
 Mentor.LootRolls = lootRolls
@@ -39,6 +41,11 @@ function lootRolls.GetAdvice(itemLink)
     end
     local currentResult = Mentor.CompareItem(itemLink, advice.specData.weights)
     if currentResult.kind == "upgrade" then
+        -- Against a very weak item the percent gets silly (+11900%), so big
+        -- upgrades just say "big upgrade".
+        if currentResult.percent and currentResult.percent > BIG_UPGRADE_PERCENT then
+            return "need", "big upgrade"
+        end
         local percentText = Mentor.FormatPercentChange and Mentor.FormatPercentChange(currentResult.percent) or ""
         return "need", "upgrade " .. percentText
     elseif currentResult.kind == "empty" then
@@ -118,7 +125,7 @@ local function GetMarker(rollFrame)
     marker = {}
     -- Tag above the roll window: [logo] Mentor: Need  upgrade +12%
     marker.tag = CreateFrame("Frame", nil, rollFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    marker.tag:SetHeight(18)
+    marker.tag:SetHeight(16)
     marker.tag:SetPoint("BOTTOMLEFT", rollFrame, "TOPLEFT", 6, -2)
     marker.tag:SetFrameLevel((rollFrame:GetFrameLevel() or 1) + 10)
     if marker.tag.SetBackdrop then
@@ -129,7 +136,7 @@ local function GetMarker(rollFrame)
     end
     marker.logo = marker.tag:CreateTexture(nil, "ARTWORK")
     marker.logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
-    marker.logo:SetSize(13, 13)
+    marker.logo:SetSize(11, 11)
     marker.logo:SetPoint("LEFT", 4, 0)
     marker.label = marker.tag:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     marker.label:SetPoint("LEFT", marker.logo, "RIGHT", 4, 0)
@@ -180,9 +187,9 @@ function lootRolls.MarkRollFrames()
                 local rollButton = GetRollButton(rollFrame, choice)
                 if rollButton and rollButton:IsShown() then
                     marker.buttonFrame:ClearAllPoints()
-                    -- Tight around the button so it does not cover its neighbours.
-                    marker.buttonFrame:SetPoint("TOPLEFT", rollButton, "TOPLEFT", -1, 1)
-                    marker.buttonFrame:SetPoint("BOTTOMRIGHT", rollButton, "BOTTOMRIGHT", 1, -1)
+                    -- Just inside the button's own edge, so it never reaches its neighbours.
+                    marker.buttonFrame:SetPoint("TOPLEFT", rollButton, "TOPLEFT", BUTTON_FRAME_INSET, -BUTTON_FRAME_INSET)
+                    marker.buttonFrame:SetPoint("BOTTOMRIGHT", rollButton, "BOTTOMRIGHT", -BUTTON_FRAME_INSET, BUTTON_FRAME_INSET)
                     marker.buttonFrame:Show()
                 else
                     marker.buttonFrame:Hide()
