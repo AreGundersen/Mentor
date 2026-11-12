@@ -114,6 +114,25 @@ local function GetMarker(rollFrame)
         marker.buttonFrame:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 10 })
         marker.buttonFrame:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1)
     end
+    -- Soft gold light inside the frame, pulsing slowly (like the quest pick).
+    local buttonShine = marker.buttonFrame:CreateTexture(nil, "ARTWORK")
+    buttonShine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.3)
+    buttonShine:SetBlendMode("ADD")
+    buttonShine:SetPoint("TOPLEFT", 3, -3)
+    buttonShine:SetPoint("BOTTOMRIGHT", -3, 3)
+    if marker.buttonFrame.CreateAnimationGroup then
+        local pulse = marker.buttonFrame:CreateAnimationGroup()
+        pulse:SetLooping("BOUNCE")
+        local fade = pulse:CreateAnimation("Alpha")
+        if fade and fade.SetFromAlpha then
+            fade:SetTarget(buttonShine)
+            fade:SetFromAlpha(0.3)
+            fade:SetToAlpha(1)
+            fade:SetDuration(0.9)
+        end
+        marker.buttonFrame:SetScript("OnShow", function() pulse:Play() end)
+        marker.buttonFrame:SetScript("OnHide", function() pulse:Stop() end)
+    end
     markersByFrame[rollFrame] = marker
     return marker
 end
