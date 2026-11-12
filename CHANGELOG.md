@@ -6,6 +6,12 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Life log is easier to read:**
+  - A new **Overview** at the top: gold now, time played, kills, deaths, quests and level-ups.
+  - **Gold on all your characters** together ("Gold now" in the All chars column), and each character's gold in the Characters list. Other characters are counted from their last login with Mentor 1.13.0 or newer.
+  - Sections fold: click a header to open or close it. Overview and Characters start open; Mentor remembers what you open.
+  - Rows that are 0 everywhere are hidden.
+
 - **New: Feral (Tank) for druids.** Druids now pick between "Feral DPS" and "Feral Tank" (a fourth spec button). Feral (Tank) follows the Mobalytics Bear Tank leveling order, rates gear for a bear (more Stamina, Armor and Dodge), and has its own How to play page and a Mouseover Growl macro.
 - Talent orders checked against the latest guides (Nov 2026):
   - **Now from a guide** (before Mentor's own order): Protection Paladin and Discipline Priest (Mobalytics), Survival Hunter (LudiDeo's 1-60 guide on Mobalytics), Destruction Warlock (Warcraft Tavern - Mobalytics has none).

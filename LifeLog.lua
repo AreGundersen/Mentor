@@ -1531,6 +1531,55 @@ local function RefreshWindow()
     local allCharactersValues, characterDatabases = BuildAllCharactersValues()
 
     local rowsToShow = {}
+
+    -- Gold you hold right now: this character live, the others from the last
+    -- point of their gold history (saved since the gold graph came in, so a
+    -- character that has not logged in since then is not counted yet).
+    local function GetGoldNow(storedDatabase)
+        if storedDatabase == characterDB then
+            local currentMoney = GetMoney and GetMoney()
+            if currentMoney and not IsSecret(currentMoney) then
+                return currentMoney
+            end
+        end
+        local moneyHistory = storedDatabase.moneyHistory
+        local lastPoint = moneyHistory and moneyHistory[#moneyHistory]
+        return lastPoint and lastPoint.copper or nil
+    end
+    local goldOnAllCharacters, charactersWithKnownGold = 0, 0
+    for _, storedDatabase in ipairs(characterDatabases) do
+        local goldNow = GetGoldNow(storedDatabase)
+        if goldNow then
+            goldOnAllCharacters = goldOnAllCharacters + goldNow
+            charactersWithKnownGold = charactersWithKnownGold + 1
+        end
+    end
+
+    -- Overview: the numbers most people look for, always at the top.
+    local sessionGoldChange = (sessionStats.moneyGained or 0) - (sessionStats.moneySpent or 0)
+    local goldLabel = "Gold now"
+    if charactersWithKnownGold < #characterDatabases then
+        goldLabel = goldLabel .. string.format(" |cffa6a6a6(%d of %d chars known)|r", charactersWithKnownGold, #characterDatabases)
+    end
+    table.insert(rowsToShow, { kind = "header", label = "Overview", sectionKey = "Overview" })
+    table.insert(rowsToShow, { kind = "stat", label = goldLabel,
+        sessionText = (sessionGoldChange >= 0 and "+" or "-") .. FormatGold(math.abs(sessionGoldChange)),
+        totalText = FormatGold(GetGoldNow(characterDB) or 0),
+        allText = FormatGold(goldOnAllCharacters) })
+    for _, overviewKey in ipairs({ "timePlayed", "kills", "deaths", "questsCompleted", "levelUps" }) do
+        for _, section in ipairs(STAT_SECTIONS) do
+            for _, statDefinition in ipairs(section.stats) do
+                if statDefinition.key == overviewKey then
+                    local totalValue = computedTotal[overviewKey] or characterDB.stats[overviewKey] or 0
+                    table.insert(rowsToShow, { kind = "stat", label = statDefinition.label, keepWhenZero = true,
+                        sessionText = FormatStatValue(computedSession[overviewKey] or sessionStats[overviewKey] or 0, statDefinition.format),
+                        totalText = FormatStatValue(totalValue, statDefinition.format),
+                        allText = FormatStatValue(allCharactersValues[overviewKey] or 0, statDefinition.format) })
+                end
+            end
+        end
+    end
+
     for _, section in ipairs(STAT_SECTIONS) do
         table.insert(rowsToShow, { kind = "header", label = section.title })
         for _, statDefinition in ipairs(section.stats) do
@@ -1558,7 +1607,7 @@ local function RefreshWindow()
     end
 
     -- Characters on this account, most played first.
-    table.insert(rowsToShow, { kind = "header", label = "Characters", totalText = "Level", allText = "Played" })
+    table.insert(rowsToShow, { kind = "header", label = "Characters", sessionText = "Gold", totalText = "Level", allText = "Played" })
     table.sort(characterDatabases, function(first, second)
         return (GetCharacterPlayedSeconds(first) or 0) > (GetCharacterPlayedSeconds(second) or 0)
     end)
@@ -1575,9 +1624,11 @@ local function RefreshWindow()
             characterName = characterName .. " |cffa6a6a6(you)|r"
         end
         local playedSeconds = GetCharacterPlayedSeconds(storedDatabase)
+        local characterGold = GetGoldNow(storedDatabase)
         table.insert(rowsToShow, {
             kind = "stat",
             label = characterName .. " |cffa6a6a6" .. (characterInfo.className or "") .. "|r",
+            sessionText = characterGold and FormatGold(characterGold) or "--",
             totalText = characterInfo.level and tostring(characterInfo.level) or "--",
             allText = playedSeconds and FormatDuration(playedSeconds) or "--",
         })
@@ -1650,6 +1701,37 @@ local function RefreshWindow()
         })
     end
 
+    -- Sections fold: click a header to open or close it. Overview and
+    -- Characters start open, the rest closed, so the window fits on one screen.
+    -- The choice is remembered per character.
+    characterDB.settings.openSections = characterDB.settings.openSections or { Overview = true, Characters = true }
+    local openSections = characterDB.settings.openSections
+    local visibleRows, isCurrentSectionOpen = {}, true
+    for _, rowData in ipairs(rowsToShow) do
+        if rowData.kind == "header" then
+            rowData.sectionKey = rowData.sectionKey or rowData.label
+            isCurrentSectionOpen = openSections[rowData.sectionKey] == true
+            rowData.label = (isCurrentSectionOpen and "|cffffd100-|r " or "|cffffd100+|r ") .. rowData.label
+            if not isCurrentSectionOpen then
+                -- A closed header keeps no column captions.
+                rowData.sessionText, rowData.totalText, rowData.allText = nil, nil, nil
+            end
+            table.insert(visibleRows, rowData)
+        elseif isCurrentSectionOpen then
+            local function IsZero(valueText)
+                return valueText == nil or valueText == "" or valueText == "0" or valueText == "--"
+            end
+            -- Overview rows always show, even at 0 ("Deaths 0" is worth seeing).
+            local isEmptyStatRow = rowData.kind == "stat" and not rowData.keepWhenZero and IsZero(rowData.sessionText)
+                and IsZero(rowData.totalText) and IsZero(rowData.allText)
+                and not rowData.label:find("Nothing yet") and not rowData.label:find("No level")
+            if not isEmptyStatRow then
+                table.insert(visibleRows, rowData)
+            end
+        end
+    end
+    rowsToShow = visibleRows
+
     -- Lay everything out from the top down.
     local verticalOffset = 0
     for rowIndex, rowData in ipairs(rowsToShow) do
@@ -1658,6 +1740,29 @@ local function RefreshWindow()
         row.labelText:SetTextColor(1, 1, 1)
         if rowData.kind == "header" then
             row.labelText:SetTextColor(1, 0.82, 0)
+        end
+        if not row.headerButton then
+            row.headerButton = CreateFrame("Button", nil, scrollChildFrame)
+            row.headerButton:SetScript("OnClick", function(clickedButton)
+                local sectionKey = clickedButton.sectionKey
+                if sectionKey then
+                    local sections = characterDB.settings.openSections
+                    sections[sectionKey] = not sections[sectionKey] or nil
+                    RefreshWindow()
+                end
+            end)
+            local hoverHighlight = row.headerButton:CreateTexture(nil, "HIGHLIGHT")
+            hoverHighlight:SetAllPoints()
+            hoverHighlight:SetColorTexture(1, 0.82, 0, 0.08)
+        end
+        if rowData.kind == "header" then
+            row.headerButton.sectionKey = rowData.sectionKey
+            row.headerButton:ClearAllPoints()
+            row.headerButton:SetPoint("TOPLEFT", 0, verticalOffset)
+            row.headerButton:SetSize(scrollChildFrame:GetWidth(), HEADER_ROW_HEIGHT)
+            row.headerButton:Show()
+        else
+            row.headerButton:Hide()
         end
         if rowData.kind == "header" then
             verticalOffset = verticalOffset - HEADER_ROW_HEIGHT
@@ -1671,6 +1776,9 @@ local function RefreshWindow()
         unusedRow.sessionText:Hide()
         unusedRow.totalText:Hide()
         unusedRow.allText:Hide()
+        if unusedRow.headerButton then
+            unusedRow.headerButton:Hide()
+        end
     end
     scrollChildFrame:SetHeight(-verticalOffset + 4)
 end
