@@ -5,7 +5,7 @@
 ## Talents
 - Your next talent point is marked with a gold **NEXT** frame in the talent window.
 - A strip above the talent window shows where your **next 5 points** go, with talent icons, ranks and the level for each point.
-- 23 of 27 specs follow the exact level-by-level order of the Mobalytics WoW Forever leveling guides.
+- Every spec follows a published level-by-level leveling order (mostly the Mobalytics WoW Forever guides). Druids can pick Feral DPS or Feral Tank.
 - Switch spec in the Mentor window whenever you like.
 
 ## Gear
@@ -38,7 +38,7 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 - **One-key fishing** (`/mentor fishing on`) - press one key to cast Fishing and the same key to reel in. Auto loot is on and the sound is turned up while you fish, and your settings come back when you stop.
 
 ## How to play
-- Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for all 27 specs.
+- Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for every spec, including Feral Tank.
 - The advice changes as you learn new abilities.
 - New abilities by level, your racials and ready-made macros (place them with one click).
 

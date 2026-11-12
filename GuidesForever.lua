@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- Mentor - GuidesForever.lua
--- "How to play" content for all 27 specs, rewritten from the Mobalytics WoW
+-- "How to play" content for every spec (27 plus Feral (Tank)), rewritten from the Mobalytics WoW
 -- Forever guides (Nov 2026): the class leveling guides plus the spec guides
 -- for specs without one. Loaded after Guides.lua and replaces its content.
 --
@@ -849,7 +849,7 @@ SetSpecGuide("WARLOCK", 3, {
 })
 
 --------------------------------------------------------------------------------
--- DRUID: 1 Balance, 2 Feral Combat, 3 Restoration
+-- DRUID: 1 Balance, 2 Feral (Damage), 3 Restoration, 4 Feral (Tank)
 --------------------------------------------------------------------------------
 SetClassGuide("DRUID", {
     trouble = {
@@ -926,6 +926,50 @@ SetSpecGuide("DRUID", 2, {
         lines = {
             { "Bear Form and Swipe for 3+.", needs = "Swipe" },
             { "Demoralizing Roar so they hit softer.", needs = "Demoralizing Roar" },
+        },
+    },
+})
+
+-- Feral (Tank): from the Mobalytics WoW Forever Feral Druid (Bear Tank) guide.
+-- While leveling it plays like Feral (Damage) with more bear; in groups you tank.
+SetSpecGuide("DRUID", 4, {
+    rotation = {
+        spells = { "Bear Form", "Enrage", "Faerie Fire", "Maul", "Swipe", "Lacerate", "Demoralizing Roar", "Wrath", "Moonfire" },
+        lines = {
+            "Keep Mark of the Wild and Thorns up - Thorns does a lot of your damage early.",
+            { "Wrath from range, Moonfire, then finish in melee.", without = "Bear Form" },
+            { "Bear Form, Enrage just before the pull for rage.", needs = "Bear Form" },
+            { "Faerie Fire to pull - it also lowers the mob's armor.", needs = "Bear Form" },
+            { "Maul whenever you have rage to spare.", needs = "Maul" },
+            { "Lacerate stacks bleed damage and threat on one target.", needs = "Lacerate" },
+            { "Swipe as your main attack once you have it - it hits everything in front of you.", needs = "Swipe" },
+            { "Single easy mob while questing? Cat Form kills it faster.", needs = "Cat Form" },
+            "Your weapon's DPS counts in forms in Forever - upgrade it.",
+        },
+    },
+    single = {
+        spells = { "Bear Form", "Demoralizing Roar", "Maul", "Lacerate", "Rejuvenation" },
+        lines = {
+            "Stronger rare or elite mob: Bear Form, not Cat.",
+            { "Demoralizing Roar so it hits softer, then Maul and Lacerate.", needs = "Demoralizing Roar" },
+            "Out of form for a Rejuvenation between pulls, not mid-fight.",
+        },
+    },
+    two = {
+        spells = { "Bear Form", "Demoralizing Roar", "Swipe", "Maul" },
+        lines = {
+            { "Bear Form, Demoralizing Roar, then Swipe and Maul.", needs = "Bear Form" },
+            "Bears pull two or three at a time with ease.",
+        },
+    },
+    many = {
+        spells = { "Bear Form", "Swipe", "Demoralizing Roar", "Growl", "Challenging Roar" },
+        lines = {
+            { "Tanking a group: Swipe on everything, Maul on the skull target.", needs = "Swipe" },
+            { "Growl a mob that runs to your healer.", needs = "Growl" },
+            { "Challenging Roar if the whole pack goes loose.", needs = "Challenging Roar" },
+            { "Demoralizing Roar keeps the damage on you down.", needs = "Demoralizing Roar" },
+            "Stuck? Nature's Grasp or Entangling Roots buys time.",
         },
     },
 })

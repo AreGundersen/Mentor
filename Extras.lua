@@ -662,5 +662,11 @@ Mentor.MACROS = {
             about = "From Prowl: Ravage. Otherwise Shred. Your opener from behind.",
         },
         MouseoverDamage("Mouseover Moonfire", "Moonfire", { 1, 3 }),
+        {
+            -- Feral (Tank): taunt the mob under your mouse without changing target.
+            name = "Mouseover Growl", spells = { "Growl" }, specs = { 4 },
+            body = "#showtooltip Growl\n/cast [@mouseover,harm,nodead][] Growl",
+            about = "Taunts the mob under your mouse (or your target) - grab adds off your healer.",
+        },
     },
 }

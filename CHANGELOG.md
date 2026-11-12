@@ -6,6 +6,12 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **New: Feral (Tank) for druids.** Druids now pick between "Feral DPS" and "Feral Tank" (a fourth spec button). Feral (Tank) follows the Mobalytics Bear Tank leveling order, rates gear for a bear (more Stamina, Armor and Dodge), and has its own How to play page and a Mouseover Growl macro.
+- Talent orders checked against the latest guides (Nov 2026):
+  - **Now from a guide** (before Mentor's own order): Protection Paladin and Discipline Priest (Mobalytics), Survival Hunter (LudiDeo's 1-60 guide on Mobalytics), Destruction Warlock (Warcraft Tavern - Mobalytics has none).
+  - **Updated** because the guide changed: Affliction Warlock and Elemental Shaman.
+  - The other 21 were still the same.
+
 ## 1.13.0 - 2026-11-12
 
 - **New: Loot roll advice** (on by default, "Loot rolls" under Gear & loot): when a group loot roll appears, a "Mentor: Need" or "Mentor: Greed" tag sits above it with the reason ("upgrade +12%", "big upgrade" over +100%, "new slot", "only for Feral", "not an upgrade", "you can't use it"), and the recommended button gets a small gold frame just inside its edge with a soft pulsing light, like the quest pick (the pulse now works on every client). Need is only for the spec you play.

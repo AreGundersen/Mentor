@@ -258,11 +258,14 @@ local function OnSpecButtonClicked(specButton)
     Mentor.RequestRefresh()
 end
 
-local function CreateSpecButton(specIndex, verticalOffset)
-    local buttonWidth = (CONTENT_WIDTH - SPEC_BUTTON_GAP * 2) / 3
+-- Druids have four spec buttons (Feral (Damage) and Feral (Tank)), the
+-- others three. buttonCount and buttonPosition place the button in its row.
+local function CreateSpecButton(specIndex, verticalOffset, buttonCount, buttonPosition)
+    buttonCount, buttonPosition = buttonCount or 3, buttonPosition or specIndex
+    local buttonWidth = (CONTENT_WIDTH - SPEC_BUTTON_GAP * (buttonCount - 1)) / buttonCount
     local specButton = CreateFrame("Button", nil, mainFrame, BACKDROP_TEMPLATE)
     specButton:SetSize(buttonWidth, SPEC_BUTTON_HEIGHT)
-    specButton:SetPoint("TOPLEFT", PADDING + (specIndex - 1) * (buttonWidth + SPEC_BUTTON_GAP), verticalOffset)
+    specButton:SetPoint("TOPLEFT", PADDING + (buttonPosition - 1) * (buttonWidth + SPEC_BUTTON_GAP), verticalOffset)
     if specButton.SetBackdrop then
         specButton:SetBackdrop(Mentor.BOX_BACKDROP)
     end
@@ -477,8 +480,20 @@ local function BuildMainWindow()
     widgets.specStatus = CreateText(mainFrame, "GameFontHighlightSmall", CONTENT_WIDTH - 80, "RIGHT")
     widgets.specStatus:SetPoint("TOPRIGHT", -PADDING, verticalOffset)
     verticalOffset = verticalOffset - 28
-    for specIndex = 1, 3 do
-        CreateSpecButton(specIndex, verticalOffset)
+    -- One button per spec of your class, in the class' button order.
+    local _, playerClassFileName = UnitClass("player")
+    local playerClassData = Mentor.CLASS_DATA[playerClassFileName]
+    local specButtonOrder = { 1, 2, 3 }
+    if playerClassData then
+        specButtonOrder = playerClassData.specButtonOrder or {}
+        if not playerClassData.specButtonOrder then
+            for specIndex = 1, #playerClassData.specs do
+                table.insert(specButtonOrder, specIndex)
+            end
+        end
+    end
+    for buttonPosition, specIndex in ipairs(specButtonOrder) do
+        CreateSpecButton(specIndex, verticalOffset, #specButtonOrder, buttonPosition)
     end
     verticalOffset = verticalOffset - SPEC_BUTTON_HEIGHT - SECTION_GAP
     AddDivider(verticalOffset)
@@ -1131,7 +1146,8 @@ local function RefreshSpecButtons(advice)
         local isSelected = specIndex == advice.specNumber
         specButton.icon:SetTexture(specData.icon)
         specButton.icon:SetDesaturated(not isSelected)
-        specButton.nameText:SetText((isSelected and "|cffffffff" or MUTED_TEXT) .. specData.name .. "|r")
+        -- buttonName: a shorter name where four buttons share the row (druids).
+        specButton.nameText:SetText((isSelected and "|cffffffff" or MUTED_TEXT) .. (specData.buttonName or specData.name) .. "|r")
         specButton.tagText:SetText(specIndex == advice.classData.defaultSpec and (MUTED_TEXT .. "leveling pick|r") or "")
         if specButton.SetBackdropColor then
             specButton:SetBackdropColor(1, 1, 1, isSelected and 0.10 or 0.03)

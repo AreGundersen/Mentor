@@ -6,10 +6,11 @@
 --   * tips              one or two beginner tips per spec
 --   * build             talent priority list, in the order points should go
 --
--- Talent builds use the talent NAMES of the WoW Forever trees. 23 of the 27
--- specs follow the exact level-by-level order of the Mobalytics WoW Forever
--- guides (Nov 2026); Protection Paladin, Survival, Discipline and Destruction
--- have no leveling order there and use Mentor's own order with the same names.
+-- Talent builds use the talent NAMES of the WoW Forever trees. All specs
+-- follow a published level-by-level order, most of them the Mobalytics WoW Forever
+-- guides (Nov 2026), including Protection Paladin, Discipline and Feral (Tank);
+-- Survival follows LudiDeo's 1-60 guide on Mobalytics and Destruction the
+-- Warcraft Tavern leveling guide (Mobalytics has no Destruction order).
 -- The addon matches every name against the real tree it reads from the game. Names that do not exist are
 -- skipped, and when a build step cannot be taken the addon suggests the best
 -- learnable talent in your main tree instead. Nothing here can make it
@@ -141,6 +142,13 @@ local WEIGHTS = {
         DPS = 6.5, STR = 1.0, AGI = 1.0, AP = 0.50, STA = 0.55, SPI = 0.50, ARMOR = 0.02,
         CRIT = 10.5, HIT = 10.5, DODGE = 4, INT = 0.05,
     },
+    -- Feral (Tank): while leveling the same as Feral (weapon DPS, Strength,
+    -- Agility), with more weight on what keeps a bear alive in dungeons:
+    -- Stamina, Armor (bears multiply it) and Dodge (bears can't block or parry).
+    DRUID_BEAR = {
+        DPS = 5.0, STR = 1.0, AGI = 1.0, AP = 0.45, STA = 0.90, SPI = 0.35, ARMOR = 0.06,
+        DODGE = 9, DEFENSE = 0.8, HIT = 9, CRIT = 7, INT = 0.05,
+    },
     -- Restoration druid: Healing > Intellect = Spirit >> Stamina.
     DRUID_RESTO = {
         HEALING = 1.0, SPELLPOWER = 0.85, INT = 0.60, SPI = 0.60, STA = 0.30, AGI = 0.10, STR = 0.05,
@@ -235,12 +243,13 @@ Mentor.CLASS_DATA = {
                 tips = { "Righteous Fury must be on while tanking.",
                          "Consecration and Holy Shield keep threat on groups." },
                 build = {
-                    {2, "Redoubt", 5}, {2, "Precision", 3}, {2, "Guardian's Favor", 2},
-                    {2, "Templar's Bulwark", 1}, {2, "Toughness", 5}, {2, "Swift Judgement", 1},
-                    {2, "Improved Righteous Fury", 3}, {2, "Anticipation", 5}, {2, "Holy Shield", 1},
-                    {2, "Stoicism", 2}, {2, "Iron Creed", 3}, {2, "Shieldsworn", 1},
-                    {2, "Reckoning", 2}, {1, "Divine Strength", 5}, {1, "Spiritual Focus", 5},
-                    {2, "Divine Intellect", 2},
+                    -- Exact leveling order from the Mobalytics WoW Forever Protection Paladin guide (Nov 2026)
+                    {2, "Redoubt", 5}, {2, "Precision", 3}, {2, "Sacred Duty", 2}, {2, "Shield Specialization", 2},
+                    {2, "Templar's Bulwark", 1}, {2, "Toughness", 2}, {2, "Swift Judgement", 1}, {2, "Improved Righteous Fury", 3},
+                    {2, "Anticipation", 1}, {2, "Holy Shield", 1}, {2, "Reckoning", 5}, {2, "Iron Creed", 3},
+                    {2, "Anticipation", 2}, {2, "Shieldsworn", 1}, {3, "Deflection", 5}, {3, "Improved Judgement", 2},
+                    {3, "Conviction", 3}, {3, "Pursuit of Justice", 2}, {2, "Anticipation", 5}, {2, "Toughness", 5},
+                    {2, "Guardian's Favor", 2},
                 },
             },
             {
@@ -302,12 +311,11 @@ Mentor.CLASS_DATA = {
                 tips = { "Survival turns Agility into extra damage - stack it.",
                          "Freezing Trap is your emergency button against a second enemy." },
                 build = {
-                    {3, "Deflection", 5}, {3, "Survivalist", 5}, {3, "Deterrence", 1},
-                    {3, "Surefooted", 3}, {3, "Clever Traps", 2}, {3, "Counterattack", 1},
-                    {3, "Predator's Edge", 5}, {3, "Strider Kick", 1}, {3, "Expose Prey", 2},
-                    {3, "Survivalist's Discipline", 2}, {3, "Lightning Reflexes", 5}, {3, "Lacerating Strikes", 1},
-                    {2, "Lethal Attacks", 5}, {2, "Efficiency", 5}, {2, "Improved Arcane Shot", 3},
-                    {3, "Savage Strikes", 2},
+                    -- Exact leveling order from LudiDeo's Survival Hunter 1-60 guide on Mobalytics ("Leveling 2H Weave", Nov 2026)
+                    {3, "Improved Tracking", 5}, {3, "Savage Strikes", 2}, {3, "Survivalist", 3}, {3, "Surefooted", 3},
+                    {3, "Clever Traps", 2}, {3, "Predator's Edge", 5}, {3, "Strider Kick", 1}, {3, "Expose Prey", 2},
+                    {3, "Survivalist's Discipline", 2}, {3, "Lightning Reflexes", 5}, {3, "Lacerating Strikes", 1}, {2, "Lethal Attacks", 5},
+                    {1, "Deadly Aspects", 5}, {2, "Careful Aim", 5}, {1, "Focused Fire", 2}, {2, "Improved Stings", 3},
                 },
             },
         },
@@ -378,12 +386,13 @@ Mentor.CLASS_DATA = {
                 tips = { "Power Word: Shield before the damage comes.",
                          "Use a wand when you are low on mana while soloing." },
                 build = {
-                    {1, "Wand Specialization", 2}, {1, "Power in Light", 3}, {1, "Mental Strength", 5},
-                    {1, "Inner Focus", 1}, {1, "Improved Power Word: Shield", 3}, {1, "Meditation", 3},
-                    {1, "Soul Warding", 1}, {1, "Improved Inner Fire", 3}, {1, "Penance", 1},
-                    {1, "Renewed Hope", 5}, {1, "Divine Aegis", 3}, {1, "Power Infusion", 1},
-                    {1, "Mental Agility", 3}, {2, "Improved Renew", 3}, {2, "Holy Specialization", 5},
-                    {2, "Divine Fury", 5},
+                    -- Exact leveling order from the Mobalytics WoW Forever Discipline Priest guide (Nov 2026)
+                    {1, "Wand Specialization", 2}, {3, "Spirit Tap", 5}, {1, "Twin Disciplines", 5}, {1, "Mental Strength", 3},
+                    {1, "Meditation", 3}, {1, "Inner Focus", 1}, {1, "Improved Power Word: Shield", 3}, {1, "Soul Warding", 1},
+                    {1, "Mental Agility", 2}, {1, "Penance", 1}, {1, "Renewed Hope", 4}, {1, "Divine Aegis", 3},
+                    {1, "Renewed Hope", 5}, {1, "Mental Agility", 3}, {1, "Power Infusion", 1}, {2, "Holy Specialization", 5},
+                    {2, "Twilight Focus", 3}, {2, "Improved Renew", 2}, {2, "Holy Nova", 1}, {2, "Inspiration", 3},
+                    {2, "Improved Renew", 3},
                 },
             },
             {
@@ -432,14 +441,13 @@ Mentor.CLASS_DATA = {
                 tips = { "Lightning Bolt is your main spell; Flame Shock and Earth Shock are instant.",
                          "Drop a Searing Totem when you fight." },
                 build = {
-                    -- Exact leveling order from the Mobalytics WoW Forever Elemental Shaman guide
-                    {1, "Convection", 5}, {1, "Elemental Alacrity", 3}, {1, "Concussion", 2},
-                    {1, "Elemental Focus", 1}, {1, "Concussion", 5}, {1, "Call of Flame", 1},
-                    {1, "Eye of the Storm", 3}, {1, "Call of Flame", 3}, {1, "Lightning Overload", 3},
-                    {3, "Tidal Focus", 5}, {3, "Mindfulness", 3}, {3, "Totemic Focus", 2},
-                    {3, "Water Shield", 1}, {1, "Call of Thunder", 1}, {1, "Earthbound", 1},
-                    {1, "Elemental Fury", 5}, {1, "Lightning Mastery", 1}, {2, "Ancestral Knowledge", 5},
-                    {2, "Thundering Strikes", 4},
+                    -- Exact leveling order from the Mobalytics WoW Forever Elemental Shaman guide (updated Nov 2026)
+                    {1, "Convection", 5}, {1, "Elemental Alacrity", 3}, {1, "Call of Flame", 2}, {1, "Elemental Focus", 1},
+                    {1, "Call of Flame", 3}, {1, "Concussion", 3}, {1, "Eye of the Storm", 3}, {1, "Trial by Fire", 2},
+                    {1, "Call of Thunder", 1}, {1, "Lightning Overload", 3}, {1, "Earthbound", 1}, {1, "Concussion", 5},
+                    {1, "Elemental Reach", 2}, {1, "Elemental Fury", 1}, {1, "Lightning Mastery", 1}, {3, "Tidal Focus", 5},
+                    {3, "Mindfulness", 3}, {2, "Thundering Strikes", 5}, {3, "Totemic Focus", 2}, {3, "Water Shield", 1},
+                    {2, "Earth's Grasp", 2}, {2, "Ancestral Knowledge", 2},
                 },
             },
             {
@@ -542,13 +550,12 @@ Mentor.CLASS_DATA = {
                 tips = { "Corruption and Bane of Agony on everything - your dots can crit in Forever.",
                          "Nightfall gives free instant Shadow Bolts - use them right away." },
                 build = {
-                    -- Exact leveling order from the Mobalytics WoW Forever Warlock leveling guide
-                    {1, "Improved Corruption", 5}, {1, "Suppression", 5}, {1, "Grim Reach", 2},
-                    {1, "Improved Drains", 3}, {1, "Nightfall", 2}, {1, "Fel Concentration", 3},
-                    {1, "Soul Siphon", 3}, {1, "Pandemic", 2}, {1, "Shadow Mastery", 5}, {1, "Pandemic", 3},
-                    {2, "Unholy Power", 5}, {2, "Demonic Energies", 2}, {1, "Malevolence", 5},
-                    {2, "Fel Vitality", 3}, {1, "Improved Bane of Agony", 2}, {1, "Soul Harvest", 2},
-                    {1, "Siphon Life", 1},
+                    -- Exact leveling order from the Mobalytics WoW Forever Warlock leveling guide (updated Nov 2026)
+                    {1, "Improved Corruption", 5}, {1, "Suppression", 4}, {1, "Improved Drains", 3}, {1, "Fel Concentration", 3},
+                    {1, "Soul Harvest", 2}, {1, "Nightfall", 2}, {1, "Grim Reach", 1}, {1, "Siphon Life", 1},
+                    {1, "Soul Siphon", 3}, {1, "Grim Reach", 2}, {1, "Shadow Mastery", 5}, {1, "Wrack", 1},
+                    {1, "Improved Bane of Agony", 2}, {1, "Pandemic", 3}, {1, "Amplify Curse", 1}, {1, "Curse of Exhaustion", 1},
+                    {1, "Malevolence", 2}, {3, "Improved Shadow Bolt", 5}, {3, "Bane", 5}, {3, "Shadowburn", 1},
                 },
             },
             {
@@ -573,12 +580,12 @@ Mentor.CLASS_DATA = {
                 tips = { "Shadow Bolt is your main nuke; Shadowburn finishes enemies.",
                          "Destruction hits hard but costs mana - keep Life Tap ready." },
                 build = {
-                    {3, "Improved Shadow Bolt", 5}, {3, "Bane", 5}, {3, "Cataclysm", 3},
-                    {3, "Destructive Reach", 2}, {3, "Ruin", 5}, {3, "Shadowburn", 1},
-                    {3, "Intensity", 3}, {3, "Conflagrate", 1}, {3, "Agonizing Flames", 3},
-                    {3, "Pyroclasm", 2}, {3, "Bane of Havoc", 1}, {3, "Fire and Brimstone", 3},
-                    {3, "Shadow and Flame", 5}, {3, "Incinerate", 1}, {1, "Suppression", 5},
-                    {1, "Improved Corruption", 5}, {1, "Improved Life Tap", 2},
+                    -- Leveling order from the Warcraft Tavern WoW Forever Warlock leveling guide (Destruction build; Mobalytics has none)
+                    {3, "Bane", 5}, {3, "Cataclysm", 3}, {3, "Aftermath", 2}, {3, "Shadowburn", 1},
+                    {3, "Aftermath", 5}, {3, "Ruin", 1}, {3, "Conflagrate", 1}, {3, "Ruin", 3},
+                    {3, "Agonizing Flames", 3}, {3, "Bane of Havoc", 1}, {3, "Fire and Brimstone", 3}, {3, "Shadow and Flame", 5},
+                    {3, "Incinerate", 1}, {1, "Suppression", 5}, {1, "Improved Life Tap", 2}, {1, "Improved Corruption", 5},
+                    {2, "Improved Imp", 3}, {1, "Amplify Curse", 1}, {1, "Pandemic", 3}, {1, "Malevolence", 1},
                 },
             },
         },
@@ -586,6 +593,8 @@ Mentor.CLASS_DATA = {
     ----------------------------------------------------------------------------
     DRUID = {
         defaultSpec = 2,
+        -- Order of the spec buttons: Balance, Feral (Damage), Feral (Tank), Restoration.
+        specButtonOrder = { 1, 2, 4, 3 },
         specs = {
             {
                 name = "Balance", role = "Caster damage", weights = WEIGHTS.DRUID_BALANCE,
@@ -603,9 +612,10 @@ Mentor.CLASS_DATA = {
                 },
             },
             {
-                name = "Feral Combat", role = "Melee damage / tank", weights = WEIGHTS.DRUID_FERAL,
+                -- treeName: the talent tree this spec uses (the name differs from the tree's).
+                name = "Feral (Damage)", buttonName = "Feral DPS", treeName = "Feral Combat", role = "Melee damage", weights = WEIGHTS.DRUID_FERAL,
                 statPriority = "Weapon DPS > Strength > Agility > Stamina > Spirit",
-                tips = { "Cat Form for damage, Bear Form when you need to survive or tank.",
+                tips = { "Cat Form for damage, Bear Form when you need to survive (or pick Feral (Tank) to tank).",
                          "Your weapon's damage does not matter in forms - only its stats do." },
                 build = {
                     -- Exact leveling order from the Mobalytics WoW Forever Druid leveling guide
@@ -634,6 +644,23 @@ Mentor.CLASS_DATA = {
                     {3, "Heart of the Wild", 5},
                 },
             },
+            {
+                -- Feral (Tank): the same Feral Combat tree as Feral (Damage), with a
+                -- bear build. A fourth spec button for druids (tree = 2 below).
+                name = "Feral (Tank)", buttonName = "Feral Tank", tree = 2, role = "Tank", weights = WEIGHTS.DRUID_BEAR,
+                statPriority = "Weapon DPS > Strength > Agility > Stamina > Armor (dungeons: Stamina, Armor, Dodge)",
+                tips = { "Bear Form for groups and elites; Swipe and Maul keep the mobs on you.",
+                         "Cat Form is still faster for single easy mobs while you quest." },
+                build = {
+                    -- Exact leveling order from the Mobalytics WoW Forever Feral Druid (Bear Tank) guide (Nov 2026)
+                    {2, "Ferocity", 5}, {2, "Furor", 1}, {2, "Feral Instinct", 2}, {2, "Feral Swiftness", 2},
+                    {2, "Feral Charge", 1}, {2, "Savage Fury", 2}, {2, "Sharpened Claws", 2}, {2, "Lacerate", 1},
+                    {2, "Furor", 2}, {2, "Predatory Discipline", 1}, {2, "Furor", 4}, {2, "Leader of the Pack", 1},
+                    {2, "Natural Instinct", 2}, {2, "Blood Frenzy", 2}, {2, "Predatory Strikes", 3}, {2, "Feral Instinct", 3},
+                    {2, "Rend and Tear", 1}, {2, "Primal Bite", 1}, {2, "Shifting Power", 1}, {3, "Heart of the Wild", 5},
+                    {3, "Naturalist", 5}, {1, "Genesis", 5}, {1, "Nature's Reach", 2}, {2, "Rend and Tear", 3},
+                },
+            },
         },
     },
 }
@@ -650,7 +677,7 @@ local SPEC_ICONS = {
     SHAMAN  = { "Spell_Nature_Lightning", "Spell_Nature_LightningShield", "Spell_Nature_MagicImmunity" },
     MAGE    = { "Spell_Holy_MagicalSentry", "Spell_Fire_FireBolt02", "Spell_Frost_FrostBolt02" },
     WARLOCK = { "Spell_Shadow_DeathCoil", "Spell_Shadow_Metamorphosis", "Spell_Shadow_RainOfFire" },
-    DRUID   = { "Spell_Nature_StarFall", "Ability_Racial_BearForm", "Spell_Nature_HealingTouch" },
+    DRUID   = { "Spell_Nature_StarFall", "Ability_Druid_CatForm", "Spell_Nature_HealingTouch", "Ability_Racial_BearForm" },
 }
 for className, iconNames in pairs(SPEC_ICONS) do
     for specNumber, iconName in ipairs(iconNames) do

@@ -249,7 +249,8 @@ local function ReadTraitTrees(classData)
     local trees = {}
     if columnForSpec then
         for specNumber = 1, SPEC_TREE_COUNT do
-            trees[specNumber] = NewTree(specNumber, classData.specs[specNumber].name)
+            local treeSpecData = classData.specs[specNumber]
+            trees[specNumber] = NewTree(specNumber, treeSpecData.treeName or treeSpecData.name)
             local columnNodes = columns[columnForSpec[specNumber]] or {}
             -- Rows: rank the distinct vertical positions inside this tree.
             local distinctRows, seenRows = {}, {}
@@ -382,11 +383,19 @@ local function EstimateUnspentPoints(trees)
     return math.max(0, earnedPoints - Mentor.GetTotalPointsSpent(trees))
 end
 
+-- The talent tree a spec uses. Most specs are their own tree; a spec with
+-- "tree = N" (Feral (Tank)) shares tree N with another spec, and "treeName"
+-- is the tree's name when the spec's own name differs (Feral (Damage)).
 function Mentor.FindTreeForSpec(trees, classData, specNumber)
     local specData = classData.specs[specNumber]
+    if specData and specData.tree and specData.tree ~= specNumber then
+        return Mentor.FindTreeForSpec(trees, classData, specData.tree)
+    end
     if specData then
         for _, tree in ipairs(trees) do
-            if tree.name:lower() == specData.name:lower() then
+            local treeNameLower = tree.name:lower()
+            if treeNameLower == specData.name:lower()
+                or (specData.treeName and treeNameLower == specData.treeName:lower()) then
                 return tree
             end
         end
@@ -396,7 +405,9 @@ end
 
 local function FindSpecNumberForTree(tree, classData)
     for specNumber, specData in ipairs(classData.specs) do
-        if specData.name:lower() == tree.name:lower() then
+        local isOwnTree = not specData.tree or specData.tree == specNumber
+        if isOwnTree and (specData.name:lower() == tree.name:lower()
+            or (specData.treeName and specData.treeName:lower() == tree.name:lower())) then
             return specNumber
         end
     end
