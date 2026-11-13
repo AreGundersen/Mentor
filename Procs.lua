@@ -61,6 +61,25 @@ local BUFF_PROCS = {
     { buff = "Lock and Load",     press = "Arcane Shot",     text = "Free shots" },
 }
 
+-- In combat WoW Forever hides your buffs from addons, but a spell's cast
+-- time and cost stay readable. These procs make a spell instant (cast time
+-- 0) or free (cost 0), so Mentor watches that spell instead of the buff.
+local INSTANT_SPELL_PROCS = {
+    { spell = "Shadow Bolt",    buff = "Shadow Trance" },        -- Nightfall (or Backlash)
+    { spell = "Lightning Bolt", buff = "Maelstrom Weapon" },
+    { spell = "Pyroblast",      buff = "Hot Streak" },
+    { spell = "Fireball",       buff = "Brain Freeze" },
+    { spell = "Lava Burst",     buff = "Lava Surge" },
+    { spell = "Smite",          buff = "Surge of Light" },
+    { spell = "Exorcism",       buff = "Art of War" },
+    { spell = "Slam",           buff = "Bloodsurge" },
+    { spell = "Healing Touch",  buff = "Predator's Swiftness" },
+    { spell = "Soul Fire",      buff = "Decimation" },
+}
+-- Clearcasting: one of your usual spells costs nothing.
+local FREE_SPELL_CHECKS = { "Frostbolt", "Fireball", "Arcane Missiles", "Lightning Bolt", "Healing Wave",
+    "Wrath", "Shred", "Claw", "Maul", "Healing Touch", "Mind Blast", "Smite", "Heal" }
+
 -- Attacks that only become usable after something happens (no buff).
 -- Shown while you are in combat and the attack is ready.
 local REACTIVE_PROCS = {
@@ -146,6 +165,87 @@ local function IsSpellReadyNow(spellName)
         end
     end
     return true
+end
+
+-- Cast time in milliseconds, or nil when unknown / hidden.
+local function GetCastTime(spellName)
+    if C_Spell and C_Spell.GetSpellInfo then
+        local success, spellInfo = pcall(C_Spell.GetSpellInfo, spellName)
+        if success and type(spellInfo) == "table" and not IsSecret(spellInfo.castTime) then
+            return spellInfo.castTime
+        end
+    elseif GetSpellInfo then
+        local success, _, _, _, castTime = pcall(GetSpellInfo, spellName)
+        if success and not IsSecret(castTime) then
+            return castTime
+        end
+    end
+    return nil
+end
+
+-- Mana / rage / energy cost, or nil when unknown / hidden.
+local function GetSpellCost(spellName)
+    if C_Spell and C_Spell.GetSpellPowerCost then
+        local success, powerCosts = pcall(C_Spell.GetSpellPowerCost, spellName)
+        if success and type(powerCosts) == "table" and not IsSecret(powerCosts) then
+            local firstCost = powerCosts[1]
+            if type(firstCost) == "table" and not IsSecret(firstCost.cost) then
+                return firstCost.cost
+            end
+            return #powerCosts == 0 and 0 or nil
+        end
+    end
+    return nil
+end
+
+local function IsSpellKnownByName(spellName)
+    local resolvedSpell = Mentor.ResolveSpell and Mentor.ResolveSpell(spellName)
+    if not (resolvedSpell and resolvedSpell.spellId) then
+        return false
+    end
+    if IsPlayerSpell then
+        local success, isKnown = pcall(IsPlayerSpell, resolvedSpell.spellId)
+        return success and isKnown and not IsSecret(isKnown)
+    end
+    return resolvedSpell.isKnown ~= false
+end
+
+-- The normal cast time / cost of a spell, remembered whenever it is above 0
+-- (the proc makes it 0, so the highest value seen is the normal one).
+local normalCastTimes, normalCosts = {}, {}
+
+local function IsSpellMadeInstant(spellName)
+    local castTime = GetCastTime(spellName)
+    if not castTime then
+        return false
+    end
+    if castTime > 0 then
+        normalCastTimes[spellName] = math.max(normalCastTimes[spellName] or 0, castTime)
+        return false
+    end
+    return (normalCastTimes[spellName] or 0) > 0
+end
+
+local function IsSpellMadeFree(spellName)
+    local spellCost = GetSpellCost(spellName)
+    if not spellCost then
+        return false
+    end
+    if spellCost > 0 then
+        normalCosts[spellName] = math.max(normalCosts[spellName] or 0, spellCost)
+        return false
+    end
+    return (normalCosts[spellName] or 0) > 0
+end
+
+-- At login: remember normal cast times / costs while nothing is procced.
+function procs.LearnNormalValues()
+    for _, instantDefinition in ipairs(INSTANT_SPELL_PROCS) do
+        IsSpellMadeInstant(instantDefinition.spell)
+    end
+    for _, spellName in ipairs(FREE_SPELL_CHECKS) do
+        IsSpellMadeFree(spellName)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -358,6 +458,23 @@ function procs.GetActiveProcs()
         AddProc({ key = "lit:" .. spellName, name = spellName, icon = GetSpellIconByName(spellName),
             text = "Proc! Use it now", press = spellName, stacks = 0 })
     end
+    -- Spells the proc made instant or free (works in combat).
+    for _, instantDefinition in ipairs(INSTANT_SPELL_PROCS) do
+        if IsSpellMadeInstant(instantDefinition.spell) and IsSpellKnownByName(instantDefinition.spell) then
+            local procDefinition = procByBuffName[instantDefinition.buff]
+            AddProc({ key = "instant:" .. instantDefinition.spell, name = instantDefinition.buff,
+                icon = GetSpellIconByName(instantDefinition.spell),
+                text = procDefinition and procDefinition.text or ("Instant " .. instantDefinition.spell),
+                press = instantDefinition.spell, stacks = 0 })
+        end
+    end
+    for _, spellName in ipairs(FREE_SPELL_CHECKS) do
+        if IsSpellMadeFree(spellName) and IsSpellKnownByName(spellName) then
+            AddProc({ key = "free", name = "Clearcasting", icon = GetSpellIconByName(spellName),
+                text = "Your next spell is free", press = nil, stacks = 0 })
+            break
+        end
+    end
     local isInCombat = UnitAffectingCombat and UnitAffectingCombat("player")
     if isInCombat then
         for _, reactiveDefinition in ipairs(REACTIVE_PROCS) do
@@ -400,6 +517,13 @@ function procs.PrintDebug()
                 Mentor.Print(string.format("  %s usable: %s", reactiveDefinition.spell,
                     IsSecret(usable) and "hidden" or tostring(usable)))
             end
+        end
+    end
+    for _, instantDefinition in ipairs(INSTANT_SPELL_PROCS) do
+        if IsSpellKnownByName(instantDefinition.spell) then
+            Mentor.Print(string.format("  %s cast time: %s (normal %s), cost %s", instantDefinition.spell,
+                DescribeForDebug(GetCastTime(instantDefinition.spell)),
+                tostring(normalCastTimes[instantDefinition.spell] or "?"), DescribeForDebug(GetSpellCost(instantDefinition.spell))))
         end
     end
     for _, eventLine in ipairs(recentProcEvents) do
@@ -618,6 +742,27 @@ eventFrame:SetScript("OnEvent", function(_, eventName, unitToken, updateInfo)
         isUpdateQueued = false
         pcall(procs.Update)
     end)
+end)
+
+-- Cast times change without an event of their own: check a few times a
+-- second while you are in combat (cheap: a handful of spell lookups).
+local combatTicker
+local tickerEventFrame = CreateFrame("Frame")
+for _, eventName in ipairs({ "PLAYER_LOGIN", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "SPELLS_CHANGED" }) do
+    pcall(tickerEventFrame.RegisterEvent, tickerEventFrame, eventName)
+end
+tickerEventFrame:SetScript("OnEvent", function(_, eventName)
+    if eventName == "PLAYER_LOGIN" or eventName == "SPELLS_CHANGED" then
+        if C_Timer then
+            C_Timer.After(3, function() pcall(procs.LearnNormalValues) end)
+        end
+    elseif eventName == "PLAYER_REGEN_DISABLED" and C_Timer and C_Timer.NewTicker and not combatTicker then
+        combatTicker = C_Timer.NewTicker(SECONDS_BETWEEN_REACTIVE_CHECKS, function() pcall(procs.Update) end)
+    elseif eventName == "PLAYER_REGEN_ENABLED" and combatTicker then
+        combatTicker:Cancel()
+        combatTicker = nil
+        pcall(procs.Update)
+    end
 end)
 
 -- /mentor procs [test|icon on|off|glow on|off]
