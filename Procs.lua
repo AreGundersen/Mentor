@@ -151,57 +151,148 @@ end
 --------------------------------------------------------------------------------
 -- What is procced right now
 --------------------------------------------------------------------------------
--- Calls handleAura(name, icon, stacks, duration, expirationTime) for every buff on you.
+-- In combat the game may hide (make "secret") the names of your buffs and
+-- whether a spell is usable. Mentor then uses, in this order:
+--   1. the buff's spell id, if readable, looked up in the ids Mentor has
+--      learned for each proc buff when its name was readable (saved for all
+--      your characters in MentorAccountDB.procBuffNamesBySpellId);
+--   2. the game's own proc events (SPELL_ACTIVATION_OVERLAY_...), the same
+--      ones that play the small proc sound.
+local procByBuffName = {}
+for _, procDefinition in ipairs(BUFF_PROCS) do
+    procByBuffName[procDefinition.buff] = procDefinition
+end
+
+local function GetLearnedBuffNames()
+    if not MentorAccountDB then
+        return {}
+    end
+    MentorAccountDB.procBuffNamesBySpellId = MentorAccountDB.procBuffNamesBySpellId or {}
+    return MentorAccountDB.procBuffNamesBySpellId
+end
+
+local function Readable(value)
+    if value == nil or IsSecret(value) then
+        return nil
+    end
+    return value
+end
+
+-- Calls handleAura(name, icon, stacks, duration, expirationTime) for every buff
+-- on you whose name Mentor can tell (read directly or through its spell id).
 local function ForEachPlayerBuff(handleAura)
+    local learnedBuffNames = GetLearnedBuffNames()
+    local function HandleOne(auraName, auraSpellId, auraIcon, auraStacks, auraDuration, auraExpiration)
+        local readableName = Readable(auraName)
+        local readableSpellId = Readable(auraSpellId)
+        if readableName and readableSpellId and procByBuffName[readableName] then
+            learnedBuffNames[readableSpellId] = readableName      -- remember for combat
+        end
+        readableName = readableName or (readableSpellId and learnedBuffNames[readableSpellId])
+            or (readableSpellId and GetSpellNameById(readableSpellId))
+        if readableName then
+            handleAura(readableName, auraIcon, Readable(auraStacks), Readable(auraDuration), Readable(auraExpiration))
+        end
+    end
     if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
         for auraIndex = 1, 40 do
             local success, auraData = pcall(C_UnitAuras.GetAuraDataByIndex, "player", auraIndex, "HELPFUL")
             if not success or not auraData then
                 break
             end
-            if not IsSecret(auraData.name) then
-                handleAura(auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime)
-            end
+            HandleOne(auraData.name, auraData.spellId, auraData.icon, auraData.applications,
+                auraData.duration, auraData.expirationTime)
         end
     elseif UnitBuff then
         for auraIndex = 1, 40 do
-            local auraName, auraIcon, auraStacks, _, auraDuration, auraExpiration = UnitBuff("player", auraIndex)
+            local auraName, auraIcon, auraStacks, _, auraDuration, auraExpiration, _, _, _, auraSpellId = UnitBuff("player", auraIndex)
             if not auraName then
                 break
             end
-            if not IsSecret(auraName) then
-                handleAura(auraName, auraIcon, auraStacks, auraDuration, auraExpiration)
-            end
+            HandleOne(auraName, auraSpellId, auraIcon, auraStacks, auraDuration, auraExpiration)
         end
     end
 end
 
+-- The game's own proc events. GLOW_SHOW names the spell to press (it lights
+-- that button in Blizzard's UI); SHOW names the proc buff.
+local spellsLitByGame = {}                  -- spell name -> true
+local buffsShownByGame = {}                 -- buff name -> icon
+local procEventCount = 0                    -- for /mentor procs debug
+
+local overlayEventFrame = CreateFrame("Frame")
+for _, eventName in ipairs({ "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", "SPELL_ACTIVATION_OVERLAY_GLOW_HIDE",
+    "SPELL_ACTIVATION_OVERLAY_SHOW", "SPELL_ACTIVATION_OVERLAY_HIDE" }) do
+    pcall(overlayEventFrame.RegisterEvent, overlayEventFrame, eventName)
+end
+overlayEventFrame:SetScript("OnEvent", function(_, eventName, spellId)
+    procEventCount = procEventCount + 1
+    local spellName = GetSpellNameById(Readable(spellId))
+    if eventName == "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW" and spellName then
+        spellsLitByGame[spellName] = true
+    elseif eventName == "SPELL_ACTIVATION_OVERLAY_GLOW_HIDE" then
+        if spellName then
+            spellsLitByGame[spellName] = nil
+        else
+            wipe(spellsLitByGame)
+        end
+    elseif eventName == "SPELL_ACTIVATION_OVERLAY_SHOW" and spellName then
+        buffsShownByGame[spellName] = GetSpellIconByName(spellName) or true
+    elseif eventName == "SPELL_ACTIVATION_OVERLAY_HIDE" then
+        if spellName then
+            buffsShownByGame[spellName] = nil
+        else
+            wipe(buffsShownByGame)
+        end
+    end
+    if procs.Update then
+        pcall(procs.Update)
+    end
+end)
+
 -- Returns a list of active procs: { key, name, icon, text, press, stacks, duration, expirationTime }.
 function procs.GetActiveProcs()
     local activeProcs = {}
-    local procByBuffName = {}
-    for _, procDefinition in ipairs(BUFF_PROCS) do
-        procByBuffName[procDefinition.buff] = procDefinition
+    local isAlreadyListed = {}              -- buff names and spells to press already in the list
+    local function AddProc(procData)
+        if isAlreadyListed[procData.name] or (procData.press and isAlreadyListed["press:" .. procData.press]) then
+            return
+        end
+        isAlreadyListed[procData.name] = true
+        if procData.press then
+            isAlreadyListed["press:" .. procData.press] = true
+        end
+        table.insert(activeProcs, procData)
     end
     ForEachPlayerBuff(function(auraName, auraIcon, auraStacks, auraDuration, auraExpiration)
         local procDefinition = procByBuffName[auraName]
         if procDefinition then
-            local stackCount = (not IsSecret(auraStacks) and auraStacks) or 0
-            if stackCount >= (procDefinition.minStacks or 0) then
-                table.insert(activeProcs, {
+            local stackCount = auraStacks or 0
+            -- Stacks hidden in combat: show it rather than miss it.
+            if stackCount >= (procDefinition.minStacks or 0) or auraStacks == nil then
+                AddProc({
                     key = "buff:" .. auraName, name = auraName, icon = auraIcon, text = procDefinition.text,
                     press = procDefinition.press, stacks = stackCount,
-                    duration = not IsSecret(auraDuration) and auraDuration or nil,
-                    expirationTime = not IsSecret(auraExpiration) and auraExpiration or nil,
+                    duration = auraDuration, expirationTime = auraExpiration,
                 })
             end
         end
     end)
+    -- The game's own proc events.
+    for buffName, buffIcon in pairs(buffsShownByGame) do
+        local procDefinition = procByBuffName[buffName]
+        AddProc({ key = "game:" .. buffName, name = buffName, icon = buffIcon ~= true and buffIcon or nil,
+            text = procDefinition and procDefinition.text or "Proc!", press = procDefinition and procDefinition.press, stacks = 0 })
+    end
+    for spellName in pairs(spellsLitByGame) do
+        AddProc({ key = "lit:" .. spellName, name = spellName, icon = GetSpellIconByName(spellName),
+            text = "Proc! Use it now", press = spellName, stacks = 0 })
+    end
     local isInCombat = UnitAffectingCombat and UnitAffectingCombat("player")
     if isInCombat then
         for _, reactiveDefinition in ipairs(REACTIVE_PROCS) do
             if IsSpellReadyNow(reactiveDefinition.spell) then
-                table.insert(activeProcs, {
+                AddProc({
                     key = "spell:" .. reactiveDefinition.spell, name = reactiveDefinition.spell,
                     icon = GetSpellIconByName(reactiveDefinition.spell), text = reactiveDefinition.text,
                     press = reactiveDefinition.spell, stacks = 0,
@@ -210,6 +301,39 @@ function procs.GetActiveProcs()
         end
     end
     return activeProcs
+end
+
+-- /mentor procs debug: what Mentor can read right now (use it in combat).
+function procs.PrintDebug()
+    local isInCombat = UnitAffectingCombat and UnitAffectingCombat("player")
+    Mentor.Print(string.format("Procs debug (%s): proc events seen this session: %d.",
+        isInCombat and "in combat" or "out of combat", procEventCount))
+    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+        for auraIndex = 1, 40 do
+            local success, auraData = pcall(C_UnitAuras.GetAuraDataByIndex, "player", auraIndex, "HELPFUL")
+            if not success or not auraData then
+                break
+            end
+            Mentor.Print(string.format("  buff %d: name %s, spell id %s, stacks %s", auraIndex,
+                IsSecret(auraData.name) and "hidden" or tostring(auraData.name),
+                IsSecret(auraData.spellId) and "hidden" or tostring(auraData.spellId),
+                IsSecret(auraData.applications) and "hidden" or tostring(auraData.applications)))
+        end
+    end
+    for _, reactiveDefinition in ipairs(REACTIVE_PROCS) do
+        if C_Spell and C_Spell.IsSpellUsable then
+            local success, usable = pcall(C_Spell.IsSpellUsable, reactiveDefinition.spell)
+            if success and usable ~= nil then
+                Mentor.Print(string.format("  %s usable: %s", reactiveDefinition.spell,
+                    IsSecret(usable) and "hidden" or tostring(usable)))
+            end
+        end
+    end
+    local activeNames = {}
+    for _, procData in ipairs(procs.GetActiveProcs()) do
+        table.insert(activeNames, procData.name)
+    end
+    Mentor.Print("  procs Mentor sees: " .. (#activeNames > 0 and table.concat(activeNames, ", ") or "none"))
 end
 
 --------------------------------------------------------------------------------
@@ -420,7 +544,9 @@ function procs.HandleCommand(argument)
     for word in (argument or ""):lower():gmatch("%S+") do
         table.insert(words, word)
     end
-    if words[1] == "test" or words[1] == nil then
+    if words[1] == "debug" then
+        procs.PrintDebug()
+    elseif words[1] == "test" or words[1] == nil then
         procs.ShowTest()
         Mentor.Print("Proc test: an example proc for 6 seconds. Turn the icon or the glow on and off under Settings > Talents & play.")
     elseif (words[1] == "icon" or words[1] == "glow") and (words[2] == "on" or words[2] == "off") then
@@ -432,7 +558,7 @@ function procs.HandleCommand(argument)
         procs.Update()
         Mentor.Print("Proc " .. words[1] .. " " .. words[2] .. ".")
     else
-        Mentor.Print("/mentor procs test | icon on|off | glow on|off")
+        Mentor.Print("/mentor procs test | debug | icon on|off | glow on|off")
     end
 end
 
