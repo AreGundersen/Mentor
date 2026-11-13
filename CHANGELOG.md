@@ -6,6 +6,8 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Fixed: Mob warnings and Kill count were missing in 1.13.0.** A change to the rested XP tip removed the mob tooltip code by mistake. Both are back, and the kill count now also shows on mobs whose tooltip gives no readable unit (for example quest objectives).
+
 - **Life log is easier to read:**
   - A new **Overview** at the top: gold now, time played, kills, deaths, quests and level-ups.
   - **Gold on all your characters** together ("Gold now" in the All chars column), and each character's gold in the Characters list. Other characters are counted from their last login with Mentor 1.13.0 or newer.

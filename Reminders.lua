@@ -530,6 +530,130 @@ if hooksecurefunc then
 end
 
 --------------------------------------------------------------------------------
+-- Mob tooltips: warn about elites and mobs far above your level, and show
+-- how many of the mob you have killed
+--------------------------------------------------------------------------------
+local DANGEROUS_LEVEL_GAP = 4         -- this many levels above you is very dangerous
+local function IsSecret(value)
+    return issecretvalue and issecretvalue(value)
+end
+
+function reminders.GetMobDanger(unitToken)
+    if not (UnitExists(unitToken) and UnitCanAttack and UnitCanAttack("player", unitToken))
+        or UnitIsDeadOrGhost(unitToken) or (UnitIsPlayer and UnitIsPlayer(unitToken)) then
+        return nil
+    end
+    local classification = UnitClassification and UnitClassification(unitToken)
+    local mobLevel = UnitLevel(unitToken)
+    if IsSecret(classification) or IsSecret(mobLevel) then
+        return nil
+    end
+    local playerLevel = UnitLevel("player") or 1
+    if classification == "worldboss" or mobLevel == -1 then
+        return "Far too strong for you - stay away.", 1.0, 0.2, 0.2
+    end
+    local isElite = classification == "elite" or classification == "rareelite"
+    local levelGap = (mobLevel or playerLevel) - playerLevel
+    if isElite and levelGap >= 0 then
+        return "Elite - bring a group.", 1.0, 0.55, 0.1
+    elseif levelGap >= DANGEROUS_LEVEL_GAP then
+        return string.format("%d levels above you - very dangerous.", levelGap), 1.0, 0.2, 0.2
+    elseif isElite then
+        return "Elite - hits hard; fight it with a friend.", 1.0, 0.75, 0.2
+    end
+    return nil
+end
+
+-- How many of a mob this character has killed, from the Life log's
+-- "most killed" list. Life log counts kills that give experience, so mobs
+-- that are grey to you are not counted. Returns nil when nothing is known.
+function reminders.GetKillCountByName(mobName)
+    local lifeLog = Mentor.LifeLog
+    if not (lifeLog and lifeLog.GetCharacterDB and lifeLog.IsTracking and lifeLog.IsTracking()) then
+        return nil
+    end
+    if not mobName or IsSecret(mobName) then
+        return nil
+    end
+    local characterDB = lifeLog.GetCharacterDB()
+    local killsByCreature = characterDB and characterDB.killsByCreature
+    return killsByCreature and killsByCreature[mobName] or 0
+end
+
+function reminders.GetMobKillCount(unitToken)
+    if not (UnitExists(unitToken) and UnitCanAttack and UnitCanAttack("player", unitToken))
+        or (UnitIsPlayer and UnitIsPlayer(unitToken)) then
+        return nil
+    end
+    return reminders.GetKillCountByName(UnitName(unitToken))
+end
+
+-- The mob's name as the tooltip shows it (first line). Used when the tooltip
+-- gives no readable unit, which happens on some tooltips - for example mobs
+-- that are quest objectives, whose tooltip is rebuilt with the quest lines.
+local function GetNameFromTooltipData(tooltipData)
+    local firstLine = type(tooltipData) == "table" and type(tooltipData.lines) == "table" and tooltipData.lines[1]
+    local lineText = firstLine and firstLine.leftText
+    if type(lineText) == "string" and not IsSecret(lineText) and lineText ~= "" then
+        return lineText
+    end
+    return nil
+end
+
+local function AddMobLinesToTooltip(tooltip, tooltipData)
+    local unitToken
+    if tooltip.GetUnit then
+        local _, tooltipUnit = tooltip:GetUnit()
+        if tooltipUnit and not IsSecret(tooltipUnit) and UnitExists(tooltipUnit) then
+            unitToken = tooltipUnit
+        end
+    end
+    -- The world tooltip of the mob under your mouse is "mouseover".
+    if not unitToken and UnitExists("mouseover") and tooltip == GameTooltip then
+        unitToken = "mouseover"
+    end
+    local isTooltipChanged = false
+    if unitToken and IsOn("areMobWarningsEnabled") then
+        local warningText, red, green, blue = reminders.GetMobDanger(unitToken)
+        if warningText then
+            tooltip:AddLine("|cff66ccffMentor:|r " .. warningText, red, green, blue)
+            isTooltipChanged = true
+        end
+    end
+    if IsOn("isMobKillCountEnabled") then
+        local killCount
+        if unitToken then
+            killCount = reminders.GetMobKillCount(unitToken)
+        end
+        if not killCount then
+            -- No readable unit (or its name is hidden): go by the tooltip's name.
+            -- Friendly NPCs never show, because you have not killed any.
+            killCount = reminders.GetKillCountByName(GetNameFromTooltipData(tooltipData))
+        end
+        -- Only once you have killed one: a "0" on every new mob is just noise.
+        if killCount and killCount > 0 then
+            tooltip:AddLine("|cff66ccffMentor:|r Killed: |cffffffff" .. killCount .. "|r", 0.65, 0.65, 0.65)
+            isTooltipChanged = true
+        end
+    end
+    if isTooltipChanged then
+        tooltip:Show()
+    end
+end
+
+if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip, tooltipData)
+        pcall(AddMobLinesToTooltip, tooltip, tooltipData)
+    end)
+elseif GameTooltip and GameTooltip.HookScript then
+    GameTooltip:HookScript("OnTooltipSetUnit", function(tooltip)
+        pcall(AddMobLinesToTooltip, tooltip)
+    end)
+end
+
+--------------------------------------------------------------------------------
+-- Events
+--------------------------------------------------------------------------------
 local wasResting = nil
 
 local eventFrame = CreateFrame("Frame")
