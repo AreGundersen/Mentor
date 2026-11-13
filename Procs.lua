@@ -219,15 +219,40 @@ end
 local spellsLitByGame = {}                  -- spell name -> true
 local buffsShownByGame = {}                 -- buff name -> icon
 local procEventCount = 0                    -- for /mentor procs debug
+local recentProcEvents = {}                 -- last few proc events, for /mentor procs debug
+local recentAddedAuras = {}                 -- last few buffs from UNIT_AURA, for /mentor procs debug
+
+-- Short text for a value in the debug output.
+local function DescribeForDebug(value)
+    if value == nil then
+        return "nil"
+    elseif IsSecret(value) then
+        return "hidden"
+    end
+    return tostring(value)
+end
+
+local function RememberForDebug(list, line)
+    table.insert(list, 1, line)
+    if #list > 6 then
+        table.remove(list)
+    end
+end
 
 local overlayEventFrame = CreateFrame("Frame")
 for _, eventName in ipairs({ "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", "SPELL_ACTIVATION_OVERLAY_GLOW_HIDE",
     "SPELL_ACTIVATION_OVERLAY_SHOW", "SPELL_ACTIVATION_OVERLAY_HIDE" }) do
     pcall(overlayEventFrame.RegisterEvent, overlayEventFrame, eventName)
 end
-overlayEventFrame:SetScript("OnEvent", function(_, eventName, spellId)
+overlayEventFrame:SetScript("OnEvent", function(_, eventName, spellId, ...)
+    if type(eventName) ~= "string" or not eventName:find("^SPELL_ACTIVATION_OVERLAY") then
+        return
+    end
     procEventCount = procEventCount + 1
     local spellName = GetSpellNameById(Readable(spellId))
+    local shortEventName = eventName:gsub("SPELL_ACTIVATION_OVERLAY_", "")
+    RememberForDebug(recentProcEvents, string.format("%s id %s = %s", shortEventName,
+        DescribeForDebug(spellId), DescribeForDebug(spellName)))
     if eventName == "SPELL_ACTIVATION_OVERLAY_GLOW_SHOW" and spellName then
         spellsLitByGame[spellName] = true
     elseif eventName == "SPELL_ACTIVATION_OVERLAY_GLOW_HIDE" then
@@ -249,6 +274,42 @@ overlayEventFrame:SetScript("OnEvent", function(_, eventName, spellId)
         pcall(procs.Update)
     end
 end)
+
+-- Buffs from UNIT_AURA's own payload (added / removed buffs). In combat this
+-- may still be readable when reading your buffs one by one gives nothing.
+local procAurasByInstanceId = {}            -- auraInstanceID -> { name, icon, stacks, duration, expirationTime }
+
+function procs.HandleAuraUpdate(updateInfo)
+    if type(updateInfo) ~= "table" or IsSecret(updateInfo) then
+        return
+    end
+    if updateInfo.isFullUpdate then
+        wipe(procAurasByInstanceId)
+    end
+    local learnedBuffNames = GetLearnedBuffNames()
+    for _, auraData in ipairs(updateInfo.addedAuras or {}) do
+        if type(auraData) == "table" and auraData.isHelpful ~= false then
+            local auraName = Readable(auraData.name)
+            local auraSpellId = Readable(auraData.spellId)
+            RememberForDebug(recentAddedAuras, string.format("%s (id %s)", DescribeForDebug(auraData.name), DescribeForDebug(auraData.spellId)))
+            auraName = auraName or (auraSpellId and (learnedBuffNames[auraSpellId] or GetSpellNameById(auraSpellId)))
+            local auraInstanceId = Readable(auraData.auraInstanceID)
+            if auraName and auraInstanceId and procByBuffName[auraName] then
+                if auraSpellId then
+                    learnedBuffNames[auraSpellId] = auraName
+                end
+                procAurasByInstanceId[auraInstanceId] = { name = auraName, icon = auraData.icon,
+                    stacks = Readable(auraData.applications), duration = Readable(auraData.duration),
+                    expirationTime = Readable(auraData.expirationTime) }
+            end
+        end
+    end
+    for _, removedInstanceId in ipairs(updateInfo.removedAuraInstanceIDs or {}) do
+        if not IsSecret(removedInstanceId) then
+            procAurasByInstanceId[removedInstanceId] = nil
+        end
+    end
+end
 
 -- Returns a list of active procs: { key, name, icon, text, press, stacks, duration, expirationTime }.
 function procs.GetActiveProcs()
@@ -278,6 +339,15 @@ function procs.GetActiveProcs()
             end
         end
     end)
+    -- Buffs from UNIT_AURA's payload (stacks may be unknown there).
+    for _, trackedAura in pairs(procAurasByInstanceId) do
+        local procDefinition = procByBuffName[trackedAura.name]
+        if procDefinition and (trackedAura.stacks == nil or trackedAura.stacks >= (procDefinition.minStacks or 0)) then
+            AddProc({ key = "aura:" .. trackedAura.name, name = trackedAura.name, icon = trackedAura.icon,
+                text = procDefinition.text, press = procDefinition.press, stacks = trackedAura.stacks or 0,
+                duration = trackedAura.duration, expirationTime = trackedAura.expirationTime })
+        end
+    end
     -- The game's own proc events.
     for buffName, buffIcon in pairs(buffsShownByGame) do
         local procDefinition = procByBuffName[buffName]
@@ -309,9 +379,12 @@ function procs.PrintDebug()
     Mentor.Print(string.format("Procs debug (%s): proc events seen this session: %d.",
         isInCombat and "in combat" or "out of combat", procEventCount))
     if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+        local firstSuccess, firstAura = pcall(C_UnitAuras.GetAuraDataByIndex, "player", 1, "HELPFUL")
+        Mentor.Print("  reading buffs one by one: " .. (not firstSuccess and "error"
+            or firstAura == nil and "gives nothing" or IsSecret(firstAura) and "hidden" or "works"))
         for auraIndex = 1, 40 do
             local success, auraData = pcall(C_UnitAuras.GetAuraDataByIndex, "player", auraIndex, "HELPFUL")
-            if not success or not auraData then
+            if not success or not auraData or IsSecret(auraData) then
                 break
             end
             Mentor.Print(string.format("  buff %d: name %s, spell id %s, stacks %s", auraIndex,
@@ -328,6 +401,12 @@ function procs.PrintDebug()
                     IsSecret(usable) and "hidden" or tostring(usable)))
             end
         end
+    end
+    for _, eventLine in ipairs(recentProcEvents) do
+        Mentor.Print("  proc event: " .. eventLine)
+    end
+    for _, auraLine in ipairs(recentAddedAuras) do
+        Mentor.Print("  new buff: " .. auraLine)
     end
     local activeNames = {}
     for _, procData in ipairs(procs.GetActiveProcs()) do
@@ -524,9 +603,12 @@ for _, eventName in ipairs({ "PLAYER_ENTERING_WORLD", "UNIT_AURA", "SPELL_UPDATE
 end
 -- Many events come in bursts: update at most every SECONDS_BETWEEN_REACTIVE_CHECKS.
 local isUpdateQueued = false
-eventFrame:SetScript("OnEvent", function(_, eventName, unitToken)
-    if eventName == "UNIT_AURA" and unitToken ~= "player" then
-        return
+eventFrame:SetScript("OnEvent", function(_, eventName, unitToken, updateInfo)
+    if eventName == "UNIT_AURA" then
+        if unitToken ~= "player" then
+            return
+        end
+        pcall(procs.HandleAuraUpdate, updateInfo)
     end
     if isUpdateQueued or not C_Timer then
         return
