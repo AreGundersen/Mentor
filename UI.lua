@@ -29,6 +29,7 @@
 --   /mentor fish [key <KEY> | reset]   start / stop fishing mode
 --   /mentor mana on|off|low|critical|...   Mana warning (ManaWarning.lua)
 --   /mentor journey           zones, dungeons and professions for your level
+--   /mentor procs [test | icon on|off | glow on|off]   proc alerts (Procs.lua)
 --   /mentor tour              show the first-time tour again
 --   /mentor lifelog on|off    Life log (LifeLog.lua); /mentor log [reset | wipe confirm | forget <name>]
 --   /mentor guide             open the "How to play" guide
@@ -101,6 +102,8 @@ local DEFAULT_SETTINGS = {
     areMobWarningsEnabled = true,      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
     isMobKillCountEnabled = true,      -- "You have killed 23" in mob tooltips (Reminders.lua, needs Life log)
     areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)
+    areProcIconsEnabled = true,        -- big icon above your character when something procs (Procs.lua)
+    areProcGlowsEnabled = true,        -- gold glow on the action bar button to press (Procs.lua)
     isTourDone = false,                -- first-time tour (Tour.lua)
     guideTab = "rotation",
     minimapAngle = 200,          -- degrees around the minimap
@@ -784,6 +787,9 @@ function Mentor.OnSettingChanged(settingName)
     if Mentor.ManaWarning then
         Mentor.ManaWarning.UpdateVisibility()
     end
+    if Mentor.Procs then
+        pcall(Mentor.Procs.Update)
+    end
     if Mentor.Fishing and not InCombatLockdown() then
         Mentor.Fishing.UpdateVisibility()
     end
@@ -798,6 +804,8 @@ local SETTINGS_SECTIONS = {
     { column = 1, title = "Talents & play", rows = {
         { "isTalentHighlightEnabled", "Talent window", "Mark the next talent and plan the next points" },
         { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
+        { "areProcIconsEnabled",      "Proc icon",     "Big icon above you when something procs (/mentor procs test)" },
+        { "areProcGlowsEnabled",      "Proc glow",     "Gold glow on the action bar button to press" },
     } },
     { column = 1, title = "Gear & loot", rows = {
         { "areBagArrowsEnabled",      "Bag arrows",    "Green / red arrows on items that are better / worse" },
@@ -1457,6 +1465,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.Tour.Start()
     elseif command == "log" then
         Mentor.LifeLog.HandleCommand(argument)
+    elseif command == "procs" or command == "proc" then
+        Mentor.Procs.HandleCommand(argument)
     elseif command == "fish" then
         Mentor.Fishing.HandleCommand(argument)
     elseif command == "keep" or command == "unkeep" or command == "keeplist" then
@@ -1518,6 +1528,6 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.ManaWarning.ResetPosition()
         Mentor.Reminders.ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | words | tour | support | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | words | procs test | tour | support | keep <item> | debug | lock | unlock | center")
     end
 end

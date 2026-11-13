@@ -6,6 +6,11 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **New: Proc alerts.** When something procs - Shadow Trance (Nightfall), Clearcasting, Maelstrom Weapon at 5 stacks, Fingers of Frost, Missile Barrage, Hot Streak, Surge of Light, Infusion of Light and more, or Overpower / Revenge / Riposte / Counterattack / Mongoose Bite becoming usable in combat - Mentor shows it two ways, each with its own switch under Talents & play (both on by default):
+  - **Proc icon**: a big pulsing icon above your character with what the proc does, what to press, stacks and time left.
+  - **Proc glow**: a gold, pulsing frame on the action bar button to press (Blizzard's bars).
+  - `/mentor procs test` shows an example.
+
 - **Fixed: Mob warnings and Kill count were missing in 1.13.0.** A change to the rested XP tip removed the mob tooltip code by mistake. Both are back, and the kill count now also shows on mobs whose tooltip gives no readable unit (for example quest objectives).
 
 - **Life log is easier to read:**

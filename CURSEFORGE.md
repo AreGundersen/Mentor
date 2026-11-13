@@ -40,6 +40,7 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 ## How to play
 - Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for every spec, including Feral Tank.
 - The advice changes as you learn new abilities.
+- **Proc alerts:** when something procs (Shadow Trance, Clearcasting, Maelstrom Weapon, Overpower ...), a big icon above your character and/or a glow on the button to press. Try it with `/mentor procs test`.
 - New abilities by level, your racials and ready-made macros (place them with one click).
 
 ## Settings
@@ -58,6 +59,7 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor journey` - zones, dungeons and professions for your level
 - `/mentor weapons` - weapon skills and weapon masters
 - `/mentor words` - what the words in group chat mean
+- `/mentor procs test` - show an example proc alert
 - `/mentor tour` - the short tour again
 - `/mentor bug` - report a bug
 
