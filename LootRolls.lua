@@ -117,6 +117,20 @@ local function GetRollButton(rollFrame, choice)
     return FindButtonById(rollFrame, ROLL_TYPE_IDS[choice], 1)
 end
 
+-- The texture that shows the button's picture (its normal texture), when it
+-- has a size and position of its own; nil to use the button itself.
+local function GetVisibleArt(rollButton)
+    local normalTexture = rollButton.GetNormalTexture and rollButton:GetNormalTexture()
+    if not normalTexture or not normalTexture.GetNumPoints or normalTexture:GetNumPoints() == 0 then
+        return nil
+    end
+    local artWidth, artHeight = normalTexture:GetSize()
+    if not artWidth or artWidth < 8 or not artHeight or artHeight < 8 then
+        return nil
+    end
+    return normalTexture
+end
+
 local function GetMarker(rollFrame)
     local marker = markersByFrame[rollFrame]
     if marker then
@@ -187,9 +201,17 @@ function lootRolls.MarkRollFrames()
                 local rollButton = GetRollButton(rollFrame, choice)
                 if rollButton and rollButton:IsShown() then
                     marker.buttonFrame:ClearAllPoints()
-                    -- Just inside the button's own edge, so it never reaches its neighbours.
-                    marker.buttonFrame:SetPoint("TOPLEFT", rollButton, "TOPLEFT", BUTTON_FRAME_INSET, -BUTTON_FRAME_INSET)
-                    marker.buttonFrame:SetPoint("BOTTOMRIGHT", rollButton, "BOTTOMRIGHT", -BUTTON_FRAME_INSET, BUTTON_FRAME_INSET)
+                    -- Around the picture you see (the dice / coin), not the
+                    -- button's click area, which can be larger or shifted (#5).
+                    local visibleArt = GetVisibleArt(rollButton)
+                    if visibleArt then
+                        marker.buttonFrame:SetPoint("TOPLEFT", visibleArt, "TOPLEFT", -1, 1)
+                        marker.buttonFrame:SetPoint("BOTTOMRIGHT", visibleArt, "BOTTOMRIGHT", 1, -1)
+                    else
+                        -- Just inside the button's own edge, so it never reaches its neighbours.
+                        marker.buttonFrame:SetPoint("TOPLEFT", rollButton, "TOPLEFT", BUTTON_FRAME_INSET, -BUTTON_FRAME_INSET)
+                        marker.buttonFrame:SetPoint("BOTTOMRIGHT", rollButton, "BOTTOMRIGHT", -BUTTON_FRAME_INSET, BUTTON_FRAME_INSET)
+                    end
                     marker.buttonFrame:Show()
                 else
                     marker.buttonFrame:Hide()

@@ -25,6 +25,7 @@ local ICON_GAP = 14
 local MAX_ICONS = 3
 local ICON_AREA_OFFSET_Y = 150              -- above the middle of the screen (your character)
 local SECONDS_BETWEEN_REACTIVE_CHECKS = 0.2
+local LONGEST_PROC_SECONDS = 30             -- a proc seen only through an event is forgotten after this
 
 -- Buffs that are procs. press = the spell to press now (glows on your bar),
 -- text = what the proc does, minStacks = only show from this many stacks.
@@ -192,7 +193,7 @@ local function GetSpellCost(spellName)
             if type(firstCost) == "table" and not IsSecret(firstCost.cost) then
                 return firstCost.cost
             end
-            return #powerCosts == 0 and 0 or nil
+            return nil                      -- no cost listed (for example in a form): unknown, not free
         end
     end
     return nil
@@ -280,6 +281,7 @@ end
 
 -- Calls handleAura(name, icon, stacks, duration, expirationTime) for every buff
 -- on you whose name Mentor can tell (read directly or through its spell id).
+-- Returns true when your buffs could be read (false when the game hides them).
 local function ForEachPlayerBuff(handleAura)
     local learnedBuffNames = GetLearnedBuffNames()
     local function HandleOne(auraName, auraSpellId, auraIcon, auraStacks, auraDuration, auraExpiration)
@@ -297,21 +299,27 @@ local function ForEachPlayerBuff(handleAura)
     if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
         for auraIndex = 1, 40 do
             local success, auraData = pcall(C_UnitAuras.GetAuraDataByIndex, "player", auraIndex, "HELPFUL")
-            if not success or not auraData then
-                break
+            if not success or IsSecret(auraData) then
+                return false                  -- hidden (in combat): nothing can be read
+            end
+            if not auraData then
+                return true                   -- read all your buffs
             end
             HandleOne(auraData.name, auraData.spellId, auraData.icon, auraData.applications,
                 auraData.duration, auraData.expirationTime)
         end
+        return true
     elseif UnitBuff then
         for auraIndex = 1, 40 do
             local auraName, auraIcon, auraStacks, _, auraDuration, auraExpiration, _, _, _, auraSpellId = UnitBuff("player", auraIndex)
             if not auraName then
-                break
+                return true
             end
             HandleOne(auraName, auraSpellId, auraIcon, auraStacks, auraDuration, auraExpiration)
         end
+        return true
     end
+    return false
 end
 
 -- The game's own proc events. GLOW_SHOW names the spell to press (it lights
@@ -362,7 +370,7 @@ overlayEventFrame:SetScript("OnEvent", function(_, eventName, spellId, ...)
             wipe(spellsLitByGame)
         end
     elseif eventName == "SPELL_ACTIVATION_OVERLAY_SHOW" and spellName then
-        buffsShownByGame[spellName] = GetSpellIconByName(spellName) or true
+        buffsShownByGame[spellName] = { icon = GetSpellIconByName(spellName), shownAt = GetTime() }
     elseif eventName == "SPELL_ACTIVATION_OVERLAY_HIDE" then
         if spellName then
             buffsShownByGame[spellName] = nil
@@ -398,7 +406,7 @@ function procs.HandleAuraUpdate(updateInfo)
                 if auraSpellId then
                     learnedBuffNames[auraSpellId] = auraName
                 end
-                procAurasByInstanceId[auraInstanceId] = { name = auraName, icon = auraData.icon,
+                procAurasByInstanceId[auraInstanceId] = { name = auraName, icon = auraData.icon, addedAt = GetTime(),
                     stacks = Readable(auraData.applications), duration = Readable(auraData.duration),
                     expirationTime = Readable(auraData.expirationTime) }
             end
@@ -416,6 +424,9 @@ function procs.GetActiveProcs()
     local activeProcs = {}
     local isAlreadyListed = {}              -- buff names and spells to press already in the list
     local function AddProc(procData)
+        if procData.expirationTime and procData.expirationTime > 0 and procData.expirationTime < GetTime() then
+            return
+        end
         if isAlreadyListed[procData.name] or (procData.press and isAlreadyListed["press:" .. procData.press]) then
             return
         end
@@ -425,7 +436,8 @@ function procs.GetActiveProcs()
         end
         table.insert(activeProcs, procData)
     end
-    ForEachPlayerBuff(function(auraName, auraIcon, auraStacks, auraDuration, auraExpiration)
+    local timeNow = GetTime()
+    local canReadBuffs = ForEachPlayerBuff(function(auraName, auraIcon, auraStacks, auraDuration, auraExpiration)
         local procDefinition = procByBuffName[auraName]
         if procDefinition then
             local stackCount = auraStacks or 0
@@ -439,20 +451,33 @@ function procs.GetActiveProcs()
             end
         end
     end)
-    -- Buffs from UNIT_AURA's payload (stacks may be unknown there).
-    for _, trackedAura in pairs(procAurasByInstanceId) do
+    -- Buffs from UNIT_AURA's payload (stacks may be unknown there). When your
+    -- buffs can be read directly that is the truth, so the tracked list is
+    -- cleared (its "removed" message may have been hidden). Expired ones go too.
+    if canReadBuffs then
+        wipe(procAurasByInstanceId)
+    end
+    for auraInstanceId, trackedAura in pairs(procAurasByInstanceId) do
         local procDefinition = procByBuffName[trackedAura.name]
-        if procDefinition and (trackedAura.stacks == nil or trackedAura.stacks >= (procDefinition.minStacks or 0)) then
+        local hasExpired = (trackedAura.expirationTime and trackedAura.expirationTime > 0 and trackedAura.expirationTime < timeNow)
+            or (timeNow - (trackedAura.addedAt or timeNow) > LONGEST_PROC_SECONDS)
+        if hasExpired then
+            procAurasByInstanceId[auraInstanceId] = nil
+        elseif procDefinition and (trackedAura.stacks == nil or trackedAura.stacks >= (procDefinition.minStacks or 0)) then
             AddProc({ key = "aura:" .. trackedAura.name, name = trackedAura.name, icon = trackedAura.icon,
                 text = procDefinition.text, press = procDefinition.press, stacks = trackedAura.stacks or 0,
                 duration = trackedAura.duration, expirationTime = trackedAura.expirationTime })
         end
     end
     -- The game's own proc events.
-    for buffName, buffIcon in pairs(buffsShownByGame) do
+    for buffName, shownInfo in pairs(buffsShownByGame) do
         local procDefinition = procByBuffName[buffName]
-        AddProc({ key = "game:" .. buffName, name = buffName, icon = buffIcon ~= true and buffIcon or nil,
-            text = procDefinition and procDefinition.text or "Proc!", press = procDefinition and procDefinition.press, stacks = 0 })
+        if timeNow - shownInfo.shownAt > LONGEST_PROC_SECONDS then
+            buffsShownByGame[buffName] = nil         -- its HIDE was missed
+        else
+            AddProc({ key = "game:" .. buffName, name = buffName, icon = shownInfo.icon,
+                text = procDefinition and procDefinition.text or "Proc!", press = procDefinition and procDefinition.press, stacks = 0 })
+        end
     end
     for spellName in pairs(spellsLitByGame) do
         AddProc({ key = "lit:" .. spellName, name = spellName, icon = GetSpellIconByName(spellName),
@@ -599,14 +624,22 @@ local function ShowIcons(activeProcs)
             local pressText = procData.press and procData.press ~= procData.name and ("Press " .. procData.press) or nil
             procIcon.detailText:SetText(pressText and (procData.text .. "\n|cff40ff40" .. pressText .. "|r") or procData.text)
             if procData.duration and procData.expirationTime and procData.duration > 0 then
-                procIcon.cooldown:SetCooldown(procData.expirationTime - procData.duration, procData.duration)
+                -- Set the sweep only when the time changed: setting it again
+                -- every update restarts its animation (it flickered).
+                local cooldownStart = procData.expirationTime - procData.duration
+                if procIcon.cooldownStart ~= cooldownStart or procIcon.cooldownDuration ~= procData.duration then
+                    procIcon.cooldown:SetCooldown(cooldownStart, procData.duration)
+                    procIcon.cooldownStart, procIcon.cooldownDuration = cooldownStart, procData.duration
+                end
                 procIcon.cooldown:Show()
             else
                 procIcon.cooldown:Hide()
+                procIcon.cooldownStart, procIcon.cooldownDuration = nil, nil
             end
             procIcon:Show()
         elseif procIcon then
             procIcon:Hide()
+            procIcon.cooldownStart, procIcon.cooldownDuration = nil, nil
         end
     end
 end
@@ -700,10 +733,21 @@ end
 --------------------------------------------------------------------------------
 local testProcs = nil                       -- set by /mentor procs test
 
+-- While something is shown, check again every half second, so a proc goes
+-- away when its time is up even if no event comes (out of combat).
+local isRecheckQueued = false
+
 function procs.Update()
     local activeProcs = testProcs or procs.GetActiveProcs()
     ShowIcons(activeProcs)
     ShowGlows(activeProcs)
+    if #activeProcs > 0 and not isRecheckQueued and C_Timer then
+        isRecheckQueued = true
+        C_Timer.After(0.5, function()
+            isRecheckQueued = false
+            pcall(procs.Update)
+        end)
+    end
 end
 
 -- /mentor procs test: an example proc for 6 seconds.

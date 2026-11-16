@@ -6,6 +6,9 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Fixed (#6): a proc icon could get stuck** on screen after its time ran out, with a flickering timer. The timer no longer restarts every update, procs whose time is up always go away, and a spell with no listed cost (for example in a form) no longer counts as Clearcasting.
+- **Fixed (#5): the gold frame on loot rolls** now sits around the dice / coin picture itself, not the button's (sometimes larger) click area.
+
 - **New: Proc alerts.** When something procs - Shadow Trance (Nightfall), Clearcasting, Maelstrom Weapon at 5 stacks, Fingers of Frost, Missile Barrage, Hot Streak, Surge of Light, Infusion of Light and more, or Overpower / Revenge / Riposte / Counterattack / Mongoose Bite becoming usable in combat - Mentor shows it two ways, each with its own switch under Talents & play (both on by default):
   - **Proc icon**: a big pulsing icon above your character with what the proc does, what to press, stacks and time left.
   - **Proc glow**: a gold, pulsing frame on the action bar button to press (Blizzard's bars).
