@@ -19,7 +19,7 @@ local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
 local WINDOW_WIDTH = 340
 local PADDING = 12
 local ROW_HEIGHT = 20
-local DUNGEON_HEADER_HEIGHT = 20
+local DUNGEON_HEADER_HEIGHT = 32  -- dungeon name, with level and place on a line under it
 local MAX_DUNGEONS_SHOWN = 4
 local MAX_ITEMS_PER_DUNGEON = 3
 local LEVELS_ABOVE_SHOWN = 3            -- items you can wear within this many levels count
@@ -200,11 +200,12 @@ local function GetDungeonHeader(headerIndex)
         header = CreateFrame("Frame", nil, window)
         header:SetSize(WINDOW_WIDTH - 2 * PADDING, DUNGEON_HEADER_HEIGHT)
         header.nameText = header:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        header.nameText:SetPoint("LEFT", 0, 0)
+        header.nameText:SetPoint("TOPLEFT", 0, -1)
+        -- Level and place in grey on their own line under the dungeon name.
         header.levelText = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        header.levelText:SetPoint("LEFT", header.nameText, "RIGHT", 6, 0)
-        -- Long places ("Off the coast of Stranglethorn Vale") would run past the
-        -- window edge: stop at the edge and end with "...". The tooltip shows it all.
+        header.levelText:SetPoint("TOPLEFT", header.nameText, "BOTTOMLEFT", 0, -2)
+        -- A very long place would still run past the window edge: stop at the
+        -- edge and end with "...". The tooltip shows it all.
         header.levelText:SetPoint("RIGHT", header, "RIGHT", 0, 0)
         header.levelText:SetJustifyH("LEFT")
         header.levelText:SetWordWrap(false)
