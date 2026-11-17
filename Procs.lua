@@ -20,10 +20,10 @@ local procs = {}
 Mentor.Procs = procs
 
 local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
-local ICON_SIZE = 52
+local ICON_SIZE = 44
 local ICON_GAP = 14
 local MAX_ICONS = 3
-local ICON_AREA_OFFSET_Y = 150              -- above the middle of the screen (your character)
+local ICON_AREA_OFFSET_Y = 260              -- well above your character (move it with /mentor procs move)
 local SECONDS_BETWEEN_REACTIVE_CHECKS = 0.2
 local LONGEST_PROC_SECONDS = 30             -- a proc seen only through an event is forgotten after this
 
@@ -571,7 +571,44 @@ local iconArea = CreateFrame("Frame", "MentorProcIconArea", UIParent)
 iconArea:SetSize(MAX_ICONS * (ICON_SIZE + ICON_GAP), ICON_SIZE + 40)
 iconArea:SetPoint("CENTER", UIParent, "CENTER", 0, ICON_AREA_OFFSET_Y)
 iconArea:SetFrameStrata("HIGH")
-iconArea:EnableMouse(false)                 -- never blocks clicks in the middle of the screen
+iconArea:EnableMouse(false)                 -- never blocks clicks (except while you move it)
+iconArea:SetMovable(true)
+iconArea:SetClampedToScreen(true)
+
+-- The saved place (MentorDB.procIconPosition), or the default above your character.
+local function PlaceIconArea()
+    iconArea:ClearAllPoints()
+    local savedPosition = MentorDB and MentorDB.procIconPosition
+    if type(savedPosition) == "table" and savedPosition.x and savedPosition.y then
+        iconArea:SetPoint("CENTER", UIParent, "CENTER", savedPosition.x, savedPosition.y)
+    else
+        iconArea:SetPoint("CENTER", UIParent, "CENTER", 0, ICON_AREA_OFFSET_Y)
+    end
+end
+
+-- /mentor procs move: a gold box you can drag; the same command again locks it.
+local moveHelpBox = CreateFrame("Frame", nil, iconArea, BackdropTemplateMixin and "BackdropTemplate" or nil)
+moveHelpBox:SetAllPoints()
+if moveHelpBox.SetBackdrop then
+    moveHelpBox:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 } })
+    moveHelpBox:SetBackdropColor(0, 0, 0, 0.4)
+    moveHelpBox:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1)
+end
+local moveHelpText = moveHelpBox:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+moveHelpText:SetPoint("BOTTOM", moveHelpBox, "TOP", 0, 4)
+moveHelpText:SetText("Drag to move proc alerts - /mentor procs move again to lock")
+moveHelpBox:Hide()
+iconArea:SetScript("OnDragStart", function(self) self:StartMoving() end)
+iconArea:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local areaX, areaY = self:GetCenter()
+    local screenX, screenY = UIParent:GetCenter()
+    if areaX and screenX then
+        MentorDB.procIconPosition = { x = math.floor(areaX - screenX + 0.5), y = math.floor(areaY - screenY + 0.5) }
+    end
+    PlaceIconArea()
+end)
 local procIcons = {}
 
 local function CreateProcIcon()
@@ -590,18 +627,27 @@ local function CreateProcIcon()
     if procIcon.cooldown.SetHideCountdownNumbers then
         procIcon.cooldown:SetHideCountdownNumbers(true)
     end
-    -- Gold edge with a slow pulse (the same pulse as the quest and loot picks).
-    local edgeFrame = Mentor.AddRoundedBorder(procIcon, MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 1, 14)
-    local shine = edgeFrame:CreateTexture(nil, "OVERLAY")
-    shine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.35)
-    shine:SetBlendMode("ADD")
-    shine:SetPoint("TOPLEFT", procIcon, "TOPLEFT", 0, 0)
-    shine:SetPoint("BOTTOMRIGHT", procIcon, "BOTTOMRIGHT", 0, 0)
-    Mentor.StartPulse(edgeFrame, shine)
+    -- A thin dark edge like an action button, and the game's own gold button
+    -- glow around it, pulsing slowly. The icon itself stays clear.
+    local edgeFrame = CreateFrame("Frame", nil, procIcon)
+    edgeFrame:SetAllPoints()
+    edgeFrame:SetFrameLevel((procIcon:GetFrameLevel() or 1) + 3)   -- above the clock sweep
+    local darkEdge = procIcon:CreateTexture(nil, "BACKGROUND")
+    darkEdge:SetColorTexture(0, 0, 0, 0.8)
+    darkEdge:SetPoint("TOPLEFT", procIcon, "TOPLEFT", -2, 2)
+    darkEdge:SetPoint("BOTTOMRIGHT", procIcon, "BOTTOMRIGHT", 2, -2)
+    darkEdge:SetDrawLayer("BACKGROUND", -1)
+    local outerGlow = edgeFrame:CreateTexture(nil, "OVERLAY")
+    outerGlow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+    outerGlow:SetBlendMode("ADD")
+    outerGlow:SetVertexColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3])
+    outerGlow:SetSize(ICON_SIZE * 1.85, ICON_SIZE * 1.85)
+    outerGlow:SetPoint("CENTER", procIcon, "CENTER", 0, 0)
+    Mentor.StartPulse(edgeFrame, outerGlow)
     procIcon.stacksText = edgeFrame:CreateFontString(nil, "OVERLAY", "NumberFontNormalLarge")
     procIcon.stacksText:SetPoint("BOTTOMRIGHT", procIcon, "BOTTOMRIGHT", -2, 2)
-    procIcon.nameText = procIcon:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    procIcon.nameText:SetPoint("TOP", procIcon, "BOTTOM", 0, -6)
+    procIcon.nameText = procIcon:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    procIcon.nameText:SetPoint("TOP", procIcon, "BOTTOM", 0, -8)
     procIcon.detailText = procIcon:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     procIcon.detailText:SetPoint("TOP", procIcon.nameText, "BOTTOM", 0, -2)
     return procIcon
@@ -772,6 +818,9 @@ end
 -- Many events come in bursts: update at most every SECONDS_BETWEEN_REACTIVE_CHECKS.
 local isUpdateQueued = false
 eventFrame:SetScript("OnEvent", function(_, eventName, unitToken, updateInfo)
+    if eventName == "PLAYER_ENTERING_WORLD" then
+        PlaceIconArea()
+    end
     if eventName == "UNIT_AURA" then
         if unitToken ~= "player" then
             return
@@ -817,6 +866,22 @@ function procs.HandleCommand(argument)
     end
     if words[1] == "debug" then
         procs.PrintDebug()
+    elseif words[1] == "move" then
+        local isMoving = not moveHelpBox:IsShown()
+        iconArea:EnableMouse(isMoving)
+        if isMoving then
+            iconArea:RegisterForDrag("LeftButton")
+            moveHelpBox:Show()
+            procs.ShowTest()
+            Mentor.Print("Drag the proc alerts where you want them. /mentor procs move again to lock. /mentor procs reset puts them back.")
+        else
+            moveHelpBox:Hide()
+            Mentor.Print("Proc alerts locked.")
+        end
+    elseif words[1] == "reset" then
+        MentorDB.procIconPosition = nil
+        PlaceIconArea()
+        Mentor.Print("Proc alerts are back above your character.")
     elseif words[1] == "test" or words[1] == nil then
         procs.ShowTest()
         Mentor.Print("Proc test: an example proc for 6 seconds. Turn the icon or the glow on and off under Settings > Talents & play.")
@@ -829,7 +894,7 @@ function procs.HandleCommand(argument)
         procs.Update()
         Mentor.Print("Proc " .. words[1] .. " " .. words[2] .. ".")
     else
-        Mentor.Print("/mentor procs test | debug | icon on|off | glow on|off")
+        Mentor.Print("/mentor procs test | move | reset | debug | icon on|off | glow on|off")
     end
 end
 

@@ -29,7 +29,7 @@
 --   /mentor fish [key <KEY> | reset]   start / stop fishing mode
 --   /mentor mana on|off|low|critical|...   Mana warning (ManaWarning.lua)
 --   /mentor journey           zones, dungeons and professions for your level
---   /mentor procs [test | icon on|off | glow on|off]   proc alerts (Procs.lua)
+--   /mentor procs [test | move | reset | icon on|off | glow on|off]   proc alerts (Procs.lua)
 --   /mentor tour              show the first-time tour again
 --   /mentor lifelog on|off    Life log (LifeLog.lua); /mentor log [reset | wipe confirm | forget <name>]
 --   /mentor guide             open the "How to play" guide
@@ -823,7 +823,7 @@ local SETTINGS_SECTIONS = {
     { column = 1, title = "Talents & play", rows = {
         { "isTalentHighlightEnabled", "Talent window", "Mark the next talent and plan the next points" },
         { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
-        { "areProcIconsEnabled",      "Proc icon",     "Big icon above you when something procs (/mentor procs test)" },
+        { "areProcIconsEnabled",      "Proc icon",     "Big icon above you when something procs (/mentor procs move to place it)" },
         { "areProcGlowsEnabled",      "Proc glow",     "Gold glow on the action bar button to press" },
     } },
     { column = 1, title = "Gear & loot", rows = {
