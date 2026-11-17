@@ -182,7 +182,10 @@ function journey.GetProfessionTrainerHint(profession, playerLevel)
     for _, rank in ipairs(PROFESSION_RANKS) do
         if profession.maximum == rank.cap and profession.skill >= rank.cap - 5 then
             if playerLevel >= rank.requiredLevel then
-                return string.format("Visit a %s trainer to learn %s - your skill is stuck at %d.", profession.name, rank.nextRank, rank.cap)
+                local hintText = string.format("Visit a %s trainer to learn %s - your skill is stuck at %d.", profession.name, rank.nextRank, rank.cap)
+                -- Where the nearest fitting trainer is (Professions.lua / ProfessionTrainers.lua).
+                local trainerText = Mentor.Professions and Mentor.Professions.GetTrainerHint(profession.name, profession.maximum)
+                return trainerText and (hintText .. "\n" .. trainerText) or hintText
             end
             return string.format("%s needs level %d for %s (skill stuck at %d).", rank.nextRank, rank.requiredLevel, profession.name, rank.cap)
         end

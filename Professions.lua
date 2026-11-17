@@ -235,6 +235,95 @@ function professions.GetJourneyText(professionName, skillLevel)
 end
 
 --------------------------------------------------------------------------------
+-- Trainers (data in ProfessionTrainers.lua)
+--------------------------------------------------------------------------------
+local RANK_ORDER = { Apprentice = 1, Journeyman = 2, Expert = 3, Artisan = 4, Master = 5 }
+local CAPITAL_CITIES = { "Stormwind", "Ironforge", "Darnassus", "Orgrimmar", "Undercity", "Thunder Bluff" }
+local MAX_TRAINERS_SHOWN = 3
+
+-- The rank you need next, from your skill cap (75 -> Journeyman ...), or nil at the top.
+function professions.GetNextRank(maximumSkill)
+    if not maximumSkill or maximumSkill < 75 then
+        return "Apprentice"
+    elseif maximumSkill < 150 then
+        return "Journeyman"
+    elseif maximumSkill < 225 then
+        return "Expert"
+    elseif maximumSkill < 300 then
+        return "Artisan"
+    end
+    return nil
+end
+
+local function IsInCapitalCity(placeText)
+    for _, cityName in ipairs(CAPITAL_CITIES) do
+        if placeText:find(cityName, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Up to three trainers of your faction (or neutral) that teach the rank you
+-- need: { name, place, waypoint }. Trainers in the capital cities come first.
+-- Returns nil when Mentor has no trainer list for the profession.
+function professions.GetTrainers(professionName, neededRank)
+    local routeName = FindRouteName(professionName)
+    local trainerList = routeName and Mentor.PROFESSION_TRAINERS and Mentor.PROFESSION_TRAINERS[routeName]
+    if not trainerList then
+        return nil
+    end
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    local neededRankOrder = RANK_ORDER[neededRank or "Apprentice"] or 1
+    local matchingTrainers = {}
+    for _, trainer in ipairs(trainerList) do
+        local trainerFaction, highestRank, trainerName, placeText, waypoint = trainer[1], trainer[2], trainer[3], trainer[4], trainer[5]
+        local isForYourFaction = trainerFaction == playerFaction or trainerFaction == "Neutral"
+        -- A trainer without a known rank teaches everything except where it
+        -- is a starting-area trainer (those are listed as Apprentice).
+        local teachesNeededRank = not highestRank or (RANK_ORDER[highestRank] or 1) >= neededRankOrder
+        local isOnZephrasIsle = placeText:find("Zephras Isle", 1, true) ~= nil   -- the new-player island
+        if isForYourFaction and teachesNeededRank and not isOnZephrasIsle then
+            table.insert(matchingTrainers, { name = trainerName, place = placeText, waypoint = waypoint,
+                sortKey = (IsInCapitalCity(placeText) and 0 or 1) + (trainerFaction == "Neutral" and 2 or 0) })
+        end
+    end
+    table.sort(matchingTrainers, function(first, second)
+        if first.sortKey ~= second.sortKey then
+            return first.sortKey < second.sortKey
+        end
+        return first.name < second.name
+    end)
+    local shownTrainers = {}
+    for trainerIndex = 1, math.min(MAX_TRAINERS_SHOWN, #matchingTrainers) do
+        shownTrainers[trainerIndex] = matchingTrainers[trainerIndex]
+    end
+    return shownTrainers
+end
+
+-- "Name - Place (x, y)" for one trainer.
+function professions.FormatTrainer(trainer)
+    local waypointText = trainer.waypoint and (" |cffa6a6a6(" .. trainer.waypoint:gsub(" ", ", ") .. ")|r") or ""
+    return "|cffffffff" .. trainer.name .. "|r - " .. trainer.place .. waypointText
+end
+
+-- One line for the Journey tab's trainer hint: "Lucan Cordell - Mage Quarter, Stormwind (43, 64)".
+function professions.GetTrainerHint(professionName, maximumSkill)
+    local neededRank = professions.GetNextRank(maximumSkill)
+    if not neededRank then
+        return nil
+    end
+    local trainers = professions.GetTrainers(professionName, neededRank)
+    if trainers == nil then
+        return "Ask a city guard - they mark the trainer on your map."
+    end
+    if #trainers == 0 then
+        return nil
+    end
+    return "Trainer: " .. professions.FormatTrainer(trainers[1])
+end
+
+--------------------------------------------------------------------------------
 -- The open profession window (retail C_TradeSkillUI, or the classic API)
 --------------------------------------------------------------------------------
 local DIFFICULTY_COLORS = {          -- skill-up chance, the game's own colours
@@ -439,6 +528,11 @@ local function CreatePanel()
     panel.upgradeHeader:SetText("Upgrades you can make")
     panel.noUpgradesText = CreateTextLine(panel, "GameFontDisableSmall")
     panel.noUpgradesText:SetText("None of your recipes is an upgrade right now.")
+    panel.trainerHeader = CreateTextLine(panel, "GameFontNormalSmall")
+    panel.trainerLines = {}
+    for trainerIndex = 1, MAX_TRAINERS_SHOWN do
+        panel.trainerLines[trainerIndex] = CreateTextLine(panel)
+    end
     panel:Hide()
 end
 
@@ -583,6 +677,28 @@ function professions.RefreshPanel()
         panel.noUpgradesText:Hide()
         for _, row in ipairs(upgradeRows) do
             row:Hide()
+        end
+    end
+    -- Trainers for the next rank (with Profession leveling on).
+    local nextRank = professions.GetNextRank(maximumSkill)
+    local trainers = isLevelingShown and nextRank and professions.GetTrainers(professionName, nextRank)
+    for _, trainerLine in ipairs(panel.trainerLines) do
+        trainerLine:Hide()
+    end
+    panel.trainerHeader:Hide()
+    if isLevelingShown and nextRank then
+        verticalOffset = verticalOffset - 6
+        panel.trainerHeader:SetText(string.format("Trainers for %s (skill cap %d)", nextRank, (RANK_ORDER[nextRank] or 1) * 75))
+        Place(panel.trainerHeader, 16)
+        if trainers == nil then
+            panel.trainerLines[1]:SetText("Ask a city guard - they mark the trainer on your map.")
+            Place(panel.trainerLines[1], (panel.trainerLines[1]:GetStringHeight() or 12) + 3)
+        else
+            for trainerIndex, trainer in ipairs(trainers) do
+                local trainerLine = panel.trainerLines[trainerIndex]
+                trainerLine:SetText(professions.FormatTrainer(trainer))
+                Place(trainerLine, (trainerLine:GetStringHeight() or 12) + 3)
+            end
         end
     end
     panel:SetHeight(-verticalOffset + PANEL_PADDING)

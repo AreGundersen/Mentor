@@ -6,6 +6,8 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **New: where the profession trainers are.** When a profession is stuck at its skill cap, the Journey tab's "visit a trainer" row names a trainer for the next rank in your faction, with the place and map coordinates. With Profession leveling on, the panel next to the profession window lists up to three trainers for your next rank (capital cities first). From the trainer tables in Wowhead's WoW Forever profession guides; Blacksmithing and Leatherworking have none there yet, so Mentor says to ask a city guard.
+
 ## 1.14.0 - 2026-11-17
 
 - **New: Profession help**, a Mentor panel next to the profession window, with two settings under Extra tools:
