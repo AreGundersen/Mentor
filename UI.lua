@@ -102,7 +102,8 @@ local DEFAULT_SETTINGS = {
     areMobWarningsEnabled = true,      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
     isMobKillCountEnabled = true,      -- "You have killed 23" in mob tooltips (Reminders.lua, needs Life log)
     areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)
-    isProfessionHelpEnabled = true,    -- what to craft to level, and craftable upgrades (Professions.lua)
+    isProfessionLevelingEnabled = false, -- what to craft to level a profession (Professions.lua; off: a lot for new players)
+    areCraftableUpgradesEnabled = true,  -- known recipes that make you an upgrade (Professions.lua)
     areProcIconsEnabled = true,        -- big icon above your character when something procs (Procs.lua)
     areProcGlowsEnabled = true,        -- gold glow on the action bar button to press (Procs.lua)
     isTourDone = false,                -- first-time tour (Tour.lua)
@@ -850,7 +851,8 @@ local SETTINGS_SECTIONS = {
         { "isLevelPaceEnabled",       "Level pace",    "XP / hour, time and kills to level" },
         { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in" },
         { "isLifeLogEnabled",         "Life log",      "Your character's story (/mentor log)" },
-        { "isProfessionHelpEnabled",  "Profession help", "What to craft to level up, and recipes that make you an upgrade" },
+        { "isProfessionLevelingEnabled", "Profession leveling", "What to craft to level up a profession (Wowhead's guides)" },
+        { "areCraftableUpgradesEnabled", "Craftable upgrades", "Your recipes that make you an upgrade, next to the profession window" },
     } },
     { column = 2, title = "Mana warning", rows = {
         { "isManaWarningEnabled",     "Mana warning",  "Big LOW MANA warning (/mentor mana low 30)" },

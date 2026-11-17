@@ -38,8 +38,8 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 - **One-key fishing** (`/mentor fishing on`) - press one key to cast Fishing and the same key to reel in. Auto loot is on and the sound is turned up while you fish, and your settings come back when you stop.
 
 ## Professions
-- Next to the profession window: **what to craft to level up** (Wowhead's WoW Forever leveling guides) and **which of your recipes make you an upgrade**.
-- The Journey tab shows what to craft or gather for each of your professions.
+- Next to the profession window: **which of your recipes make you an upgrade**.
+- Optional (turn on "Profession leveling" in Settings): **what to craft to level up** each profession, from Wowhead's WoW Forever leveling guides, also in the Journey tab.
 
 ## How to play
 - Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for every spec, including Feral Tank.

@@ -7,7 +7,10 @@
 --   * Which of your known recipes make an upgrade for the spec you play.
 -- Shown in a Mentor panel next to the profession window, and as a row per
 -- profession in the Journey tab (Journey.lua).
--- Setting: "Profession help" under Extra tools (on by default).
+-- Two settings under Extra tools:
+--   "Profession leveling"  what to craft to level up      (off by default -
+--                          a lot of information for a new player)
+--   "Craftable upgrades"   recipes that make you an upgrade (on by default)
 --------------------------------------------------------------------------------
 
 local _, Mentor = ...
@@ -150,8 +153,12 @@ local GATHERING_ROUTES = {
     },
 }
 
-local function IsOn()
-    return MentorDB and MentorDB.isProfessionHelpEnabled ~= false
+local function IsLevelingHelpOn()
+    return MentorDB and MentorDB.isProfessionLevelingEnabled == true
+end
+
+local function AreCraftableUpgradesOn()
+    return MentorDB and MentorDB.areCraftableUpgradesEnabled ~= false
 end
 
 -- The route key for a profession name ("Tailoring", or names with a prefix
@@ -210,7 +217,7 @@ end
 
 -- One line for the Journey tab: "Craft Woolen Cape (about 13 more, to 100)".
 function professions.GetJourneyText(professionName, skillLevel)
-    if not IsOn() then
+    if not IsLevelingHelpOn() then
         return nil
     end
     local step = professions.GetLevelingStep(professionName, skillLevel)
@@ -412,7 +419,8 @@ end
 -- Lays out the panel from the top down and sets its height.
 function professions.RefreshPanel()
     local professionWindow = GetProfessionWindow()
-    if not IsOn() or not professionWindow then
+    local isLevelingShown, areUpgradesShown = IsLevelingHelpOn(), AreCraftableUpgradesOn()
+    if not (isLevelingShown or areUpgradesShown) or not professionWindow then
         if panel then
             panel:Hide()
         end
@@ -444,70 +452,84 @@ function professions.RefreshPanel()
     end
 
     -- Level up: the guide's recipe for your skill.
-    local step = professions.GetLevelingStep(professionName, skillLevel)
-    Place(panel.levelHeader, 16)
-    if step and step.kind == "craft" then
-        local recipe = recipesByName[step.recipe]
-        panel.levelRow.recipe = recipe
-        panel.levelRow.itemLink = recipe and recipe.itemLink
-        panel.levelRow.icon:SetTexture(recipe and recipe.icon or 134400)
-        local colorCode = recipe and DIFFICULTY_COLORS[recipe.difficulty] or "|cffffffff"
-        panel.levelRow.nameText:SetText(colorCode .. step.recipe .. "|r")
-        panel.levelRow.valueText:SetText(step.craftsLeft and ("x" .. step.craftsLeft) or "")
-        Place(panel.levelRow, ROW_HEIGHT + 2)
-        if not recipe then
-            panel.levelText:SetText("|cffff9933You don't know it yet - learn it from a trainer (or a recipe).|r")
-        elseif recipe.difficulty == "trivial" then
-            panel.levelText:SetText("|cffa6a6a6Grey: it no longer gives skill - move on to the next step.|r")
+    if isLevelingShown then
+        local step = professions.GetLevelingStep(professionName, skillLevel)
+        Place(panel.levelHeader, 16)
+        if step and step.kind == "craft" then
+            local recipe = recipesByName[step.recipe]
+            panel.levelRow.recipe = recipe
+            panel.levelRow.itemLink = recipe and recipe.itemLink
+            panel.levelRow.icon:SetTexture(recipe and recipe.icon or 134400)
+            local colorCode = recipe and DIFFICULTY_COLORS[recipe.difficulty] or "|cffffffff"
+            panel.levelRow.nameText:SetText(colorCode .. step.recipe .. "|r")
+            panel.levelRow.valueText:SetText(step.craftsLeft and ("x" .. step.craftsLeft) or "")
+            Place(panel.levelRow, ROW_HEIGHT + 2)
+            if not recipe then
+                panel.levelText:SetText("|cffff9933You don't know it yet - learn it from a trainer (or a recipe).|r")
+            elseif recipe.difficulty == "trivial" then
+                panel.levelText:SetText("|cffa6a6a6Grey: it no longer gives skill - move on to the next step.|r")
+            else
+                panel.levelText:SetText(string.format("Craft about %d to reach skill %d.", step.craftsLeft or 1, step.toSkill))
+            end
+            Place(panel.levelText, (panel.levelText:GetStringHeight() or 12) + 4)
+            if step.nextRecipe then
+                panel.nextText:SetText(string.format("Then: %s (to %d)", step.nextRecipe, step.nextToSkill))
+                Place(panel.nextText, 16)
+            else
+                panel.nextText:Hide()
+            end
         else
-            panel.levelText:SetText(string.format("Craft about %d to reach skill %d.", step.craftsLeft or 1, step.toSkill))
-        end
-        Place(panel.levelText, (panel.levelText:GetStringHeight() or 12) + 4)
-        if step.nextRecipe then
-            panel.nextText:SetText(string.format("Then: %s (to %d)", step.nextRecipe, step.nextToSkill))
-            Place(panel.nextText, 16)
-        else
+            panel.levelRow:Hide()
             panel.nextText:Hide()
+            panel.levelText:SetText(step and step.kind == "gather"
+                and string.format("%s in %s (to %d).", step.what, step.where, step.toSkill)
+                or "|cffa6a6a6No leveling route for this profession.|r")
+            Place(panel.levelText, (panel.levelText:GetStringHeight() or 12) + 4)
         end
     else
-        panel.levelRow:Hide()
-        panel.nextText:Hide()
-        panel.levelText:SetText(step and step.kind == "gather"
-            and string.format("%s in %s (to %d).", step.what, step.where, step.toSkill)
-            or "|cffa6a6a6No leveling route for this profession.|r")
-        Place(panel.levelText, (panel.levelText:GetStringHeight() or 12) + 4)
+        for _, levelRegion in ipairs({ panel.levelHeader, panel.levelRow, panel.levelText, panel.nextText }) do
+            levelRegion:Hide()
+        end
     end
 
     -- Upgrades you can make.
-    verticalOffset = verticalOffset - 6
-    Place(panel.upgradeHeader, 16)
-    local upgrades = professions.GetCraftableUpgrades(recipes)
-    for rowIndex = 1, MAX_UPGRADE_ROWS do
-        local upgrade = upgrades[rowIndex]
-        local row = upgradeRows[rowIndex]
-        if upgrade then
-            row = row or CreateRecipeRow()
-            upgradeRows[rowIndex] = row
-            row.recipe, row.itemLink = upgrade.recipe, upgrade.recipe.itemLink
-            row.icon:SetTexture(upgrade.recipe.icon or 134400)
-            row.nameText:SetText(upgrade.recipe.itemLink or upgrade.recipe.name)
-            local valueText = upgrade.comparison.kind == "empty" and "new slot"
-                or (Mentor.FormatPercentChange and Mentor.FormatPercentChange(upgrade.comparison.percent) or "")
-            -- Yellow with the level when you can't wear it yet (like the bag arrows).
-            if upgrade.comparison.requiredLevel then
-                row.valueText:SetText("|cffffd100" .. valueText .. " (" .. upgrade.comparison.requiredLevel .. ")|r")
-            else
-                row.valueText:SetText("|cff40ff40" .. valueText .. "|r")
+    if areUpgradesShown then
+        verticalOffset = verticalOffset - 6
+        Place(panel.upgradeHeader, 16)
+        local upgrades = professions.GetCraftableUpgrades(recipes)
+        for rowIndex = 1, MAX_UPGRADE_ROWS do
+            local upgrade = upgrades[rowIndex]
+            local row = upgradeRows[rowIndex]
+            if upgrade then
+                row = row or CreateRecipeRow()
+                upgradeRows[rowIndex] = row
+                row.recipe, row.itemLink = upgrade.recipe, upgrade.recipe.itemLink
+                row.icon:SetTexture(upgrade.recipe.icon or 134400)
+                row.nameText:SetText(upgrade.recipe.itemLink or upgrade.recipe.name)
+                local valueText = upgrade.comparison.kind == "empty" and "new slot"
+                    or (Mentor.FormatPercentChange and Mentor.FormatPercentChange(upgrade.comparison.percent) or "")
+                -- Yellow with the level when you can't wear it yet (like the bag arrows).
+                if upgrade.comparison.requiredLevel then
+                    row.valueText:SetText("|cffffd100" .. valueText .. " (" .. upgrade.comparison.requiredLevel .. ")|r")
+                else
+                    row.valueText:SetText("|cff40ff40" .. valueText .. "|r")
+                end
+                Place(row, ROW_HEIGHT)
+            elseif row then
+                row:Hide()
             end
-            Place(row, ROW_HEIGHT)
-        elseif row then
+        end
+        if #upgrades == 0 then
+            Place(panel.noUpgradesText, 16)
+        else
+            panel.noUpgradesText:Hide()
+        end
+    else
+        panel.upgradeHeader:Hide()
+        panel.noUpgradesText:Hide()
+        for _, row in ipairs(upgradeRows) do
             row:Hide()
         end
-    end
-    if #upgrades == 0 then
-        Place(panel.noUpgradesText, 16)
-    else
-        panel.noUpgradesText:Hide()
     end
     panel:SetHeight(-verticalOffset + PANEL_PADDING)
     panel:Show()
