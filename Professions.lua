@@ -23,7 +23,7 @@ local PANEL_WIDTH = 260
 local PANEL_PADDING = 10
 local ROW_HEIGHT = 20
 local MAX_UPGRADE_ROWS = 6
-local PANEL_OVERLAP_WITH_WINDOW_TOP = 30    -- how far down the window's side the panel reaches (the tabs start lower)
+local MAX_SIDE_TAB_WIDTH = 120              -- ignore anything sticking out further than this
 local LOGO_TEXTURE = "Interface\\AddOns\\Mentor\\Media\\Logo"
 local PANEL_BACKDROP = {
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
@@ -442,6 +442,32 @@ local function CreatePanel()
     panel:Hide()
 end
 
+-- How far the window's own buttons (its side tabs) stick out to the right of
+-- the window, so the panel can sit beside them instead of on top of them.
+local function GetWidthOfSideTabs(professionWindow)
+    local windowRight = professionWindow:GetRight()
+    if not windowRight then
+        return 0
+    end
+    local widestOverhang = 0
+    local function CheckChildren(parentFrame, depth)
+        for _, childFrame in ipairs({ parentFrame:GetChildren() }) do
+            if childFrame:IsShown() and childFrame ~= panel then
+                local childRight = childFrame.GetRight and childFrame:GetRight()
+                local overhang = childRight and (childRight - windowRight) or 0
+                if overhang > widestOverhang and overhang <= MAX_SIDE_TAB_WIDTH then
+                    widestOverhang = overhang
+                end
+                if depth < 2 then
+                    CheckChildren(childFrame, depth + 1)
+                end
+            end
+        end
+    end
+    pcall(CheckChildren, professionWindow, 1)
+    return widestOverhang
+end
+
 -- Lays out the panel from the top down and sets its height.
 function professions.RefreshPanel()
     local professionWindow = GetProfessionWindow()
@@ -459,10 +485,10 @@ function professions.RefreshPanel()
     if not panel then
         CreatePanel()
     end
-    -- The panel's bottom sits near the window's top right, so it grows
-    -- upwards and never covers the tabs on the window's right side.
+    -- Level with the window's top, to the right of the tabs that stick out
+    -- of the window's right side (so they stay free to click).
     panel:ClearAllPoints()
-    panel:SetPoint("BOTTOMLEFT", professionWindow, "TOPRIGHT", 4, -PANEL_OVERLAP_WITH_WINDOW_TOP)
+    panel:SetPoint("TOPLEFT", professionWindow, "TOPRIGHT", GetWidthOfSideTabs(professionWindow) + 4, 0)
     panel.title:SetText(string.format("%s  |cffffffff%d / %d|r", professionName, skillLevel or 0, maximumSkill or 0))
 
     local recipes = GetOpenRecipes()

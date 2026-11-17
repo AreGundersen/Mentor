@@ -8,7 +8,7 @@ number is only given when Are decides the release is finished (see
 
 - **New: Profession help**, a Mentor panel next to the profession window, with two settings under Extra tools:
   - **Profession leveling** (off by default, so new players aren't flooded): **what to craft to level up** (from Wowhead's WoW Forever leveling guides) - the recipe coloured by its skill-up chance, about how many to craft and to which skill, and the next step. Tells you when you don't know the recipe yet or when it has gone grey.
-  - **Craftable upgrades** (on by default): your known recipes that make an upgrade for the spec you play, best first (yellow with the level when you can't wear it yet). Hover for the item; click any recipe in the panel to show it in the profession window. The panel sits above the window's side tabs.
+  - **Craftable upgrades** (on by default): your known recipes that make an upgrade for the spec you play, best first (yellow with the level when you can't wear it yet). Hover for the item; click any recipe in the panel to show it in the profession window. The panel sits beside the window's side tabs, level with its top.
   - With Profession leveling on, the Journey tab shows each of your professions with what to craft - or for Mining, Herbalism and Skinning, what to gather and where.
 - **Mentor's version** is shown in the Mentor window (top right), in Settings, and with `/mentor version`.
 
