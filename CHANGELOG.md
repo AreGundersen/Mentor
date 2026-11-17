@@ -6,12 +6,16 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Profession leveling: when you don't have the recipe**, the panel now says where to get it - your trainer, or the vendor that sells it for your faction with the place (from Wowhead's "Learned from" column), or the special trainer / questline - and suggests a recipe you already know that still gives skill (orange first, then yellow) to craft meanwhile. The same suggestion shows when the guide's recipe has gone grey.
+- **Profession leveling is now on by default.**
+- Trainers: Leatherworking and Blacksmithing trainers added (from their Wowhead WoW Forever NPC pages), including the Artisan ones: Drakk Stonehand (Aerie Peak) and Hahrana Ironhide (Camp Mojache) for Leatherworking, Brikk Keencraft (Booty Bay) for Blacksmithing.
+
 - **New: where the profession trainers are.** When a profession is stuck at its skill cap, the Journey tab's "visit a trainer" row names a trainer for the next rank in your faction, with the place and map coordinates. With Profession leveling on, the panel next to the profession window lists up to three trainers for your next rank (capital cities first). From the trainer tables in Wowhead's WoW Forever profession guides; Blacksmithing and Leatherworking have none there yet, so Mentor says to ask a city guard.
 
 ## 1.14.0 - 2026-11-17
 
 - **New: Profession help**, a Mentor panel next to the profession window, with two settings under Extra tools:
-  - **Profession leveling** (off by default, so new players aren't flooded): **what to craft to level up** (from Wowhead's WoW Forever leveling guides) - the recipe coloured by its skill-up chance, about how many to craft and to which skill, and the next step. Tells you when you don't know the recipe yet or when it has gone grey.
+  - **Profession leveling**: **what to craft to level up** (from Wowhead's WoW Forever leveling guides) - the recipe coloured by its skill-up chance, about how many to craft and to which skill, and the next step. Tells you when you don't know the recipe yet or when it has gone grey.
   - **Craftable upgrades** (on by default): your known recipes that make an upgrade for the spec you play, best first (yellow with the level when you can't wear it yet). Hover for the item; click any recipe in the panel to show it in the profession window. The panel sits beside the window's side tabs, level with its top.
   - With Profession leveling on, the Journey tab shows each of your professions with what to craft - or for Mining, Herbalism and Skinning, what to gather and where.
 - **Mentor's version** is shown in the Mentor window (top right), in Settings, and with `/mentor version`.

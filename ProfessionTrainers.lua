@@ -5,8 +5,9 @@
 -- Professions.lua (the panel next to the profession window) and the Journey
 -- tab's "visit a trainer" rows.
 --   { faction, highest rank taught or nil when not given, name, place, "x y" or nil }
--- Blacksmithing and Leatherworking have no trainer table on Wowhead yet:
--- Mentor then tells you to ask a city guard.
+-- Blacksmithing and Leatherworking have no trainer table in Wowhead's guides;
+-- theirs come from the trainers' Wowhead WoW Forever NPC pages (title, zone,
+-- coordinates): "Master" trainers teach Artisan.
 --------------------------------------------------------------------------------
 
 local _, Mentor = ...
@@ -256,5 +257,44 @@ Mentor.PROFESSION_TRAINERS = {
         { "Neutral", nil, "Fenn Fairweather", "Shen'dar Village, Zephras Isle", "45.0 48.4" },
         { "Neutral", nil, "Baelann Swiftcurrent", "Valanaar, Zephras Isle", "63.2 75.6" },
         { "Neutral", nil, "Krix", "Powderfuse Port, Riverglades", "79.2 54.6" },
+    },
+    ["Leatherworking"] = {
+        { "Alliance", "Artisan", "Drakk Stonehand", "Aerie Peak, The Hinterlands", "13.4 43.4" },
+        { "Horde", "Artisan", "Hahrana Ironhide", "Camp Mojache, Feralas", "74.4 43" },
+        { "Alliance", "Expert", "Telonis", "Craftsmen's Terrace, Darnassus", "64.4 21.4" },
+        { "Alliance", "Expert", "Faldron", "Craftsmen's Terrace, Darnassus", "64.4 21.4" },
+        { "Alliance", "Expert", "Simon Tanner", "Old Town, Stormwind", "67.2 49.4" },
+        { "Alliance", "Expert", "Fimble Finespindle", "The Great Forge, Ironforge", "39.4 33.4" },
+        { "Alliance", "Expert", "Aayndia Floralwind", "Ashenvale", "35.8 52" },
+        { "Horde", "Expert", "Una", "Thunder Bluff", "41.4 42.6" },
+        { "Horde", "Expert", "Karolek", "The Drag, Orgrimmar", "62.8 44.4" },
+        { "Horde", "Expert", "Arthur Moore", "Rogues' Quarter, Undercity", "70.4 57.4" },
+        { "Horde", "Expert", "Brawn", "Grom'gol Base Camp, Stranglethorn Vale", "31.6 28.8" },
+        { "Horde", "Expert", "Krulmoo Fullmoon", "Camp Taurajo, The Barrens", "44.8 59.4" },
+        { "Alliance", "Journeyman", "Adele Fielder", "Goldshire, Elwynn Forest", "46.4 62.2" },
+        { "Alliance", "Journeyman", "Nadyia Maneweaver", "Teldrassil", "41.8 49.4" },
+        { "Horde", "Journeyman", "Shelene Rhobart", "Tirisfal Glades, outside Undercity", "65.4 60" },
+        { "Horde", "Journeyman", "Chaw Stronghide", "Bloodhoof Village, Mulgore", "45 61.4" },
+        { "Horde", "Journeyman", "Mak", "Thunder Bluff", "42.2 43.2" },
+    },
+    ["Blacksmithing"] = {
+        { "Neutral", "Artisan", "Brikk Keencraft", "Booty Bay, Stranglethorn Vale", "29 75.4" },
+        { "Alliance", "Expert", "Bengus Deepforge", "The Great Forge, Ironforge", "51.4 42.2" },
+        { "Alliance", "Expert", "Rotgath Stonebeard", "The Great Forge, Ironforge", "51.2 42.4" },
+        { "Alliance", "Expert", "Therum Deepforge", "Dwarven District, Stormwind", "56.4 15.4" },
+        { "Alliance", "Expert", "Clarise Gnarltree", "Darkshire, Duskwood", "73.8 48.6" },
+        { "Horde", "Expert", "Saru Steelfury", "Valley of Honor, Orgrimmar", "82.2 23" },
+        { "Horde", "Expert", "Snarl", "Valley of Honor, Orgrimmar", "79.2 22.4" },
+        { "Horde", "Expert", "James Van Brunt", "War Quarter, Undercity", "61.2 29.2" },
+        { "Horde", "Expert", "Karn Stonehoof", "Thunder Bluff", "38.8 54" },
+        { "Horde", "Expert", "Traugh", "The Crossroads, The Barrens", "51.2 28.8" },
+        { "Neutral", "Expert", "Galvan the Ancient", "Stranglethorn Vale", "50.4 20.4" },
+        { "Alliance", "Journeyman", "Smith Argus", "Goldshire, Elwynn Forest", "41.6 65.4" },
+        { "Alliance", "Journeyman", "Tognus Flintfire", "Kharanos, Dun Morogh", "45.2 52" },
+        { "Alliance", "Journeyman", "Groum Stonebeard", "The Great Forge, Ironforge", "51.2 42.4" },
+        { "Alliance", "Journeyman", "Dane Lindgren", "Dwarven District, Stormwind", "57.2 16.4" },
+        { "Horde", "Journeyman", "Dwukk", "Razor Hill, Durotar", "52 40.6" },
+        { "Horde", "Journeyman", "Thrag Stonehoof", "Thunder Bluff", "39 57.8" },
+        { "Horde", "Journeyman", "Guillaume Sorouy", "The Sepulcher, Silverpine Forest", "43 40.4" },
     },
 }

@@ -39,7 +39,7 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 
 ## Professions
 - Next to the profession window: **which of your recipes make you an upgrade**.
-- Optional (turn on "Profession leveling" in Settings): **what to craft to level up** each profession, from Wowhead's WoW Forever leveling guides, also in the Journey tab.
+- **What to craft to level up** each profession (where to get the recipe if you don't have it, and what to craft meanwhile), from Wowhead's WoW Forever leveling guides, also in the Journey tab.
 - **Where the trainers are**: when your skill is stuck at its cap, Mentor names a trainer for the next rank, with the place and map coordinates.
 
 ## How to play

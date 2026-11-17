@@ -8,8 +8,8 @@
 -- Shown in a Mentor panel next to the profession window, and as a row per
 -- profession in the Journey tab (Journey.lua).
 -- Two settings under Extra tools:
---   "Profession leveling"  what to craft to level up      (off by default -
---                          a lot of information for a new player)
+--   "Profession leveling"  what to craft to level up, where to get the
+--                          recipe and the trainers     (on by default)
 --   "Craftable upgrades"   recipes that make you an upgrade (on by default)
 --------------------------------------------------------------------------------
 
@@ -131,6 +131,92 @@ local CRAFTING_ROUTES = {
     },
 }
 
+-- Where the guide's recipes come from (Wowhead's "Learned From" column).
+-- Not listed: learned from the trainer (or known from the start).
+-- Vendors: { name, place, faction ("Alliance", "Horde" or nil for both) }.
+local RECIPE_SOURCES = {
+    ["Philosopher's Stone"] = { vendors = { { "Alchemist Pestlezugg", "Gadgetzan, Tanaris" } } },
+    ["Superior Mana Potion"] = { vendors = { { "Ulthir", "Craftsmen's Terrace, Darnassus", "Alliance" }, { "Algernon", "The Apothecarium, Undercity", "Horde" } } },
+    ["Major Discolored Healing Potion"] = { note = "Taught after a short questline: the Odd Child in Westfall (Alliance) or Apothecary Renferrel at the Sepulcher, Silverpine Forest (Horde)." },
+    ["Ebon Shiv"] = { vendors = { { "Magnus Frostwake", "Caer Darrow, Western Plaguelands" } } },
+    ["Ornate Thorium Handaxe"] = { vendors = { { "Magnus Frostwake", "Caer Darrow, Western Plaguelands" } } },
+    ["Bold Dirk"] = { vendors = { { "Pexmit", "a plans vendor (see Wowhead)" } } },
+    ["Enchant Cloak - Minor Agility"] = { vendors = { { "Dalria", "Astranaar, Ashenvale", "Alliance" }, { "Kulwia", "Sun Rock Retreat, Stonetalon Mountains", "Horde" } } },
+    ["Enchant Bracer - Lesser Strength"] = { vendors = { { "Dalria", "Astranaar, Ashenvale", "Alliance" }, { "Kulwia", "Sun Rock Retreat, Stonetalon Mountains", "Horde" } } },
+    ["Lesser Mana Oil"] = { vendors = { { "Lokhtos Darkbargainer", "Blackrock Depths (Thorium Brotherhood)" } } },
+    ["Enchant Shield - Greater Stamina"] = { vendors = { { "Mythrin'dir", "Craftsmen's Terrace, Darnassus", "Alliance" }, { "Daniel Bartlett", "Trade Quarter, Undercity", "Horde" } } },
+    ["Runed Arcanite Rod"] = { vendors = { { "Lorelae Wintersong", "Nighthaven, Moonglade" } } },
+    ["Enchant Cloak - Superior Defense"] = { vendors = { { "Lorelae Wintersong", "Nighthaven, Moonglade" } } },
+    ["Thorium Widget"] = { vendors = { { "Gearcutter Cogspinner", "Tinker Town, Ironforge", "Alliance" }, { "Sovik", "Valley of Honor, Orgrimmar", "Horde" } } },
+    ["Thorium Tube"] = { vendors = { { "Xizzer Fizzbolt", "Everlook, Winterspring" } } },
+    ["Gem-studded Leather Belt"] = { vendors = { { "Rikqiz", "Booty Bay, Stranglethorn Vale" } } },
+    ["Wicked Leather Gauntlets"] = { vendors = { { "Leonard Porter", "Chillwind Camp, Western Plaguelands", "Alliance" }, { "Werg Thickblade", "The Bulwark, Tirisfal Glades", "Horde" } } },
+    ["Heavy Scorpid Bracers"] = { vendors = { { "Zannok Hidepiercer", "Cenarion Hold, Silithus" } } },
+    ["Heavy Scorpid Helm"] = { vendors = { { "Zannok Hidepiercer", "Cenarion Hold, Silithus" } } },
+    ["Runecloth Cloak"] = { vendors = { { "Darnall", "Nighthaven, Moonglade" } } },
+    ["Runecloth Boots"] = { vendors = { { "Darnall", "Nighthaven, Moonglade" } } },
+    ["Runecloth Cuffs"] = { vendors = { { "Pexmit", "a pattern vendor (see Wowhead)" } } },
+    ["Wisdom of the Timbermaw"] = { vendors = { { "Meilosh", "Timbermaw Hold, Felwood (needs Timbermaw reputation)" } } },
+    ["Venomspew Gloves"] = { vendors = { { "Mishta", "Cenarion Hold, Silithus" } } },
+    ["Venomspew Cord"] = { vendors = { { "Mishta", "Cenarion Hold, Silithus" } } },
+    ["Venomspew Footpads"] = { vendors = { { "Mishta", "Cenarion Hold, Silithus" } } },
+    ["Longjaw Mud Snapper"] = { vendors = { { "Nyalah Brightfire", "Valanaar, Zephras Isle" } } },
+    ["Bristle Whisker Catfish"] = { vendors = { { "Kilxx", "Ratchet, The Barrens" } } },
+    ["Mithril Headed Trout"] = { vendors = { { "Kelsey Yance", "Booty Bay, Stranglethorn Vale" } } },
+    ["Spotted Yellowtail"] = { vendors = { { "Gikkix", "Tanaris" } } },
+    ["Mightfish Steak"] = { vendors = { { "Vivianna", "Feathermoon Stronghold, Feralas", "Alliance" }, { "Sheendra Tallgrass", "Camp Mojache, Feralas", "Horde" } } },
+    ["Heavy Silk Bandage"] = { vendors = { { "Deneb Walker", "Stromgarde, Arathi Highlands", "Alliance" }, { "Balai Lok'Wein", "Brackenwall Village, Dustwallow Marsh", "Horde" } } },
+    ["Mageweave Bandage"] = { vendors = { { "Deneb Walker", "Stromgarde, Arathi Highlands", "Alliance" }, { "Balai Lok'Wein", "Brackenwall Village, Dustwallow Marsh", "Horde" } } },
+    ["Heavy Mageweave Bandage"] = { note = "Trained by Doctor Gustaf VanHowzen in Theramore (Alliance) or Doctor Gregory Victor in Hammerfall (Horde)." },
+    ["Runecloth Bandage"] = { note = "Trained by Doctor Gustaf VanHowzen in Theramore (Alliance) or Doctor Gregory Victor in Hammerfall (Horde)." },
+    ["Heavy Runecloth Bandage"] = { note = "Trained by Doctor Gustaf VanHowzen in Theramore (Alliance) or Doctor Gregory Victor in Hammerfall (Horde)." },
+}
+
+-- How to get a recipe you don't know: "Sold by Ulthir (Craftsmen's Terrace, Darnassus)."
+function professions.GetRecipeSourceText(recipeName)
+    local recipeSource = RECIPE_SOURCES[recipeName]
+    if not recipeSource then
+        return "Learn it from your trainer."
+    end
+    if recipeSource.note then
+        return recipeSource.note
+    end
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    local vendorTexts = {}
+    for _, vendor in ipairs(recipeSource.vendors or {}) do
+        local vendorName, vendorPlace, vendorFaction = vendor[1], vendor[2], vendor[3]
+        if not vendorFaction or vendorFaction == playerFaction then
+            table.insert(vendorTexts, "|cffffffff" .. vendorName .. "|r (" .. vendorPlace .. ")")
+        end
+    end
+    if #vendorTexts == 0 then
+        return "Bought from a vendor of the other faction - try the auction house."
+    end
+    return "Sold by " .. table.concat(vendorTexts, " or ") .. ", or on the auction house."
+end
+
+-- A recipe you know that still gives skill (orange first, then yellow), to
+-- craft while you don't have the guide's recipe. Guide recipes are preferred.
+local DIFFICULTY_RANK = { optimal = 1, medium = 2 }
+function professions.GetAlternativeRecipe(recipes, professionName, excludedRecipeName)
+    local routeName = professions.FindRouteName(professionName)     -- defined further down
+    local isGuideRecipe = {}
+    for _, step in ipairs(routeName and CRAFTING_ROUTES[routeName] or {}) do
+        isGuideRecipe[step[3]] = true
+    end
+    local bestRecipe, bestScore
+    for _, recipe in ipairs(recipes) do
+        local difficultyRank = DIFFICULTY_RANK[recipe.difficulty]
+        if recipe.isKnown and difficultyRank and recipe.name ~= excludedRecipeName then
+            local recipeScore = difficultyRank * 2 + (isGuideRecipe[recipe.name] and 0 or 1)
+            if not bestScore or recipeScore < bestScore then
+                bestRecipe, bestScore = recipe, recipeScore
+            end
+        end
+    end
+    return bestRecipe
+end
+
 -- Gathering: { from skill, to skill, what, where } (Wowhead's overview guides).
 local GATHERING_ROUTES = {
     Mining = {
@@ -155,7 +241,7 @@ local GATHERING_ROUTES = {
 }
 
 local function IsLevelingHelpOn()
-    return MentorDB and MentorDB.isProfessionLevelingEnabled == true
+    return MentorDB and MentorDB.isProfessionLevelingShown ~= false
 end
 
 local function AreCraftableUpgradesOn()
@@ -524,6 +610,8 @@ local function CreatePanel()
     panel.levelRow = CreateRecipeRow()
     panel.levelText = CreateTextLine(panel)
     panel.nextText = CreateTextLine(panel, "GameFontDisableSmall")
+    panel.alternativeHeader = CreateTextLine(panel, "GameFontDisableSmall")
+    panel.alternativeRow = CreateRecipeRow()
     panel.upgradeHeader = CreateTextLine(panel, "GameFontNormalSmall")
     panel.upgradeHeader:SetText("Upgrades you can make")
     panel.noUpgradesText = CreateTextLine(panel, "GameFontDisableSmall")
@@ -612,14 +700,34 @@ function professions.RefreshPanel()
             panel.levelRow.nameText:SetText(colorCode .. step.recipe .. "|r")
             panel.levelRow.valueText:SetText(step.craftsLeft and ("x" .. step.craftsLeft) or "")
             Place(panel.levelRow, ROW_HEIGHT + 2)
-            if not recipe then
-                panel.levelText:SetText("|cffff9933You don't know it yet - learn it from a trainer (or a recipe).|r")
+            local isKnown = recipe and recipe.isKnown
+            local alternative
+            if not isKnown then
+                -- Where to get it, and what you can craft meanwhile.
+                local trainerTeachesIt = recipe and not recipe.isKnown       -- in the window, not learned yet
+                local sourceText = trainerTeachesIt and "Your trainer teaches it." or professions.GetRecipeSourceText(step.recipe)
+                panel.levelText:SetText("|cffff9933You don't know it yet.|r " .. sourceText)
+                alternative = professions.GetAlternativeRecipe(recipes, professionName, step.recipe)
             elseif recipe.difficulty == "trivial" then
                 panel.levelText:SetText("|cffa6a6a6Grey: it no longer gives skill - move on to the next step.|r")
+                alternative = professions.GetAlternativeRecipe(recipes, professionName, step.recipe)
             else
                 panel.levelText:SetText(string.format("Craft about %d to reach skill %d.", step.craftsLeft or 1, step.toSkill))
             end
             Place(panel.levelText, (panel.levelText:GetStringHeight() or 12) + 4)
+            if alternative then
+                panel.alternativeHeader:SetText("Meanwhile you can craft:")
+                Place(panel.alternativeHeader, 14)
+                panel.alternativeRow.recipe = alternative
+                panel.alternativeRow.itemLink = alternative.itemLink
+                panel.alternativeRow.icon:SetTexture(alternative.icon or 134400)
+                panel.alternativeRow.nameText:SetText((DIFFICULTY_COLORS[alternative.difficulty] or "|cffffffff") .. alternative.name .. "|r")
+                panel.alternativeRow.valueText:SetText("")
+                Place(panel.alternativeRow, ROW_HEIGHT + 2)
+            else
+                panel.alternativeHeader:Hide()
+                panel.alternativeRow:Hide()
+            end
             if step.nextRecipe then
                 panel.nextText:SetText(string.format("Then: %s (to %d)", step.nextRecipe, step.nextToSkill))
                 Place(panel.nextText, 16)
@@ -629,13 +737,16 @@ function professions.RefreshPanel()
         else
             panel.levelRow:Hide()
             panel.nextText:Hide()
+            panel.alternativeHeader:Hide()
+            panel.alternativeRow:Hide()
             panel.levelText:SetText(step and step.kind == "gather"
                 and string.format("%s in %s (to %d).", step.what, step.where, step.toSkill)
                 or "|cffa6a6a6No leveling route for this profession.|r")
             Place(panel.levelText, (panel.levelText:GetStringHeight() or 12) + 4)
         end
     else
-        for _, levelRegion in ipairs({ panel.levelHeader, panel.levelRow, panel.levelText, panel.nextText }) do
+        for _, levelRegion in ipairs({ panel.levelHeader, panel.levelRow, panel.levelText, panel.nextText,
+            panel.alternativeHeader, panel.alternativeRow }) do
             levelRegion:Hide()
         end
     end
