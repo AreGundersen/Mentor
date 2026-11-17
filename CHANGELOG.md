@@ -6,6 +6,8 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **Rings and trinkets** are compared with both of the ones you wear: the tooltip shows a line per worn ring / trinket ("vs Ring A: +12% (swap this one)", "vs Ring B: -3%"). Mentor's verdict is against the weaker one, the one to swap. Trinkets whose only effect is on-use say "no stats Mentor can rate".
+
 ## 1.15.0 - 2026-11-17
 
 - **New: where the profession trainers are.** When a profession is stuck at its skill cap, the Journey tab's "visit a trainer" row names a trainer for the next rank in your faction, with the place and map coordinates, and the panel next to the profession window lists up to three trainers for your next rank (capital cities first). Includes the special Artisan trainers, for example Drakk Stonehand (Aerie Peak) and Hahrana Ironhide (Camp Mojache) for Leatherworking and Brikk Keencraft (Booty Bay) for Blacksmithing. From Wowhead's WoW Forever profession guides and NPC pages.

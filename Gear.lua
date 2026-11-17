@@ -611,6 +611,37 @@ function Mentor.DescribeComparison(result, specName, isShort)
     return nil
 end
 
+-- Rings and trinkets: you wear two, so the item is compared with each one.
+-- Returns nil for other items, else a list (one per slot):
+--   { slotId, equippedLink (nil when empty), percent (nil when the slot is
+--     empty or the worn item has nothing Mentor can rate), isWeaker }
+local TWO_SLOT_LOCATIONS = { INVTYPE_FINGER = true, INVTYPE_TRINKET = true }
+function Mentor.CompareWithEachSlot(itemLink, weights)
+    local analysis = Mentor.AnalyzeItem(itemLink)
+    if not (analysis and TWO_SLOT_LOCATIONS[analysis.equipLocation or ""] and analysis.canUse) then
+        return nil
+    end
+    local slotIds = SLOTS_BY_EQUIP_LOCATION[analysis.equipLocation]
+    local newScore = Mentor.ScoreItem(itemLink, weights) or 0
+    local slotComparisons, weakestScore = {}, nil
+    for _, slotId in ipairs(slotIds) do
+        local equippedLink = GetEquippedLink(slotId)
+        if equippedLink == itemLink then
+            return nil                                  -- you are wearing it
+        end
+        local slotScore = ScoreEquippedSlot(slotId, weights)
+        local percent = (equippedLink and slotScore > 0) and ((newScore - slotScore) / slotScore * 100) or nil
+        table.insert(slotComparisons, { slotId = slotId, equippedLink = equippedLink, percent = percent, score = slotScore })
+        if not weakestScore or slotScore < weakestScore then
+            weakestScore = slotScore
+        end
+    end
+    for _, slotComparison in ipairs(slotComparisons) do
+        slotComparison.isWeaker = slotComparison.score == weakestScore
+    end
+    return slotComparisons
+end
+
 -- Readable names for the stat difference line.
 local STAT_DISPLAY_NAMES = {
     STR = "Strength", AGI = "Agility", STA = "Stamina", INT = "Intellect", SPI = "Spirit",

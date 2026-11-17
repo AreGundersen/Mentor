@@ -175,6 +175,25 @@ local function AddComparisonToTooltip(tooltip)
     for _, specLine in ipairs(specLines) do
         tooltip:AddLine("  " .. specLine[1], specLine[2], specLine[3], specLine[4])
     end
+    -- Rings and trinkets: how it compares with each of the two you wear.
+    -- Mentor's verdict above is against the weaker one (that is the one to swap).
+    local slotComparisons = Mentor.CompareWithEachSlot(itemLink, weights)
+    if slotComparisons then
+        for _, slotComparison in ipairs(slotComparisons) do
+            local wornName = slotComparison.equippedLink and slotComparison.equippedLink:match("%[(.-)%]") or "empty slot"
+            local valueText
+            if not slotComparison.equippedLink then
+                valueText = "|cff40ff40fills it|r"
+            elseif slotComparison.percent then
+                local percentColor = slotComparison.percent >= 0 and "|cff40ff40" or "|cffff5959"
+                valueText = percentColor .. Mentor.FormatPercentChange(slotComparison.percent) .. "|r"
+            else
+                valueText = "|cffa6a6a6no stats Mentor can rate|r"
+            end
+            local swapText = (slotComparison.isWeaker and #slotComparisons > 1) and " |cffa6a6a6(swap this one)|r" or ""
+            tooltip:AddLine("  vs " .. wornName .. ": " .. valueText .. swapText, 0.8, 0.8, 0.8)
+        end
+    end
     if AreDetailsShown() then
         tooltip:AddLine("  total = all your gear, item = vs. what you wear in that slot", 0.5, 0.5, 0.5)
     end
