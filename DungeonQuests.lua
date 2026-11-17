@@ -99,6 +99,12 @@ Mentor.DUNGEON_QUESTS = {
         { 80324, "The Mad King", 1, {}, { 213346, 213345, 213344, 213343 } },
         { 80325, "The Mad King", 2, {}, { 213346, 213345, 213344, 213343 } },
     },
+    ["Hall of Thanes"] = {
+        { 96393, "Old Ironforge Incursion", 1, {}, { 279894, 279895, 279896 } },
+        { 96394, "The Restless Dead", 1, {}, { 279897, 280095 } },
+        { 96395, "An Ancient Grudge", 3, {}, { 279899, 279900 } },
+        { 96403, "Important Heirlooms", 1, {}, { 279898, 280096 } },
+    },
     ["Krol'Dok Stronghold"] = {
         { 94968, "Eye of Mugg", 2, {}, { 279852, 279480, 279853 } },
         { 94969, "Krol'dok No More!", 1, {}, { 279851, 279929 } },
@@ -151,6 +157,16 @@ Mentor.DUNGEON_QUESTS = {
         { 1144, "Willix the Importer", 3, {}, { 6748, 6750, 6749, 274078 } },
         { 1221, "Blueleaf Tubers", 3, { 6755 }, {} },
     },
+    ["Ruins of Lordaeron"] = {
+        { 92401, "A Frightened Request", 2, {}, { 251485, 251486 } },
+        { 92421, "Light's Justice", 2, {}, { 279874, 279875 } },
+        { 92422, "The Wrath of Rath'mael", 2, {}, { 251533, 251534 } },
+        { 95189, "Crest of Lordaeron", 1, {}, { 280567 } },
+        { 95195, "Bloodied Insignia", 1, {}, { 279868, 279869 } },
+        { 95204, "Crest of Lordaeron", 2, {}, { 280567 } },
+        { 95216, "The New Plague", 2, {}, { 279876, 279877 } },
+        { 95250, "Abominable Creatures", 1, {}, { 279864, 279865, 279867 } },
+    },
     ["Scarlet Monastery Cathedral"] = {
         { 1048, "Into The Scarlet Monastery", 2, {}, { 6802, 6803, 10711 } },
         { 1053, "In the Name of the Light", 1, {}, { 6829, 6830, 6831, 11262 } },
@@ -169,6 +185,11 @@ Mentor.DUNGEON_QUESTS = {
         { 5384, "Kirtonos the Herald", 3, { 13544 }, { 15805, 15806 } },
         { 5466, "The Lich, Ras Frostwhisper", 3, { 14002 }, { 13982, 13986, 13984 } },
     },
+    ["Shadowfang Keep"] = {
+        { 1013, "The Book of Ur", 2, {}, { 6335, 4534, 270030 } },
+        { 1014, "Arugal Must Die", 2, { 6414 }, {} },
+        { 1098, "Deathstalkers in Shadowfang", 2, {}, { 3324, 270023, 270024 } },
+    },
     ["Stratholme"] = {
         { 5125, "Aurius' Reckoning", 3, {}, { 17044, 17045 } },
         { 5213, "The Active Agent", 3, {}, { 13209, 19812 } },
@@ -178,10 +199,22 @@ Mentor.DUNGEON_QUESTS = {
         { 6163, "Ramstein", 2, { 18022, 17001 }, { 17001, 18022 } },
         { 8945, "Dead Man's Plea", 3, { 22137 }, {} },
     },
+    ["The Deadmines"] = {
+        { 166, "The Defias Brotherhood", 1, {}, { 6087, 2041, 2042 } },
+        { 167, "Oh Brother...", 1, {}, { 1893, 270012, 270013 } },
+        { 168, "Collecting Memories", 1, {}, { 2037, 2036, 270007 } },
+        { 214, "Red Silk Bandanas", 1, {}, { 2074, 2089, 6094, 270005 } },
+        { 2040, "Underground Assault", 1, {}, { 7606, 7607, 270015, 270016 } },
+    },
     ["The Drowned City"] = {
         { 95776, "The Only Good Brinescale...", 2, {}, { 279888, 279889 } },
         { 95789, "Shady Saltseers", 3, {}, { 279882, 279930 } },
         { 95791, "The Saltseer Captain", 3, {}, { 279883, 279884 } },
+    },
+    ["The Stockade"] = {
+        { 377, "Crime and Punishment", 1, {}, { 2033, 2906, 270029 } },
+        { 378, "The Fury Runs Deep", 1, {}, { 3562, 1264, 270036 } },
+        { 386, "What Comes Around...", 1, {}, { 3400, 1317, 270027 } },
     },
     ["The Temple of Atal'Hakkar"] = {
         { 1445, "The Temple of Atal'Hakkar", 2, { 1490 }, {} },
@@ -210,6 +243,12 @@ Mentor.DUNGEON_QUESTS = {
         { 5102, "General Drakkisath's Demise", 1, {}, { 13966, 13968, 13965 } },
         { 6502, "Drakefire Amulet", 1, { 16309 }, {} },
         { 6602, "Blood of the Black Dragon Champion", 2, { 16309 }, {} },
+    },
+    ["Wailing Caverns"] = {
+        { 914, "Leaders of the Fang", 2, {}, { 6505, 6504, 270018 } },
+        { 962, "Serpentbloom", 2, { 10919 }, { 10919, 270008, 270009 } },
+        { 1486, "Deviate Hides", 3, { 918, 6480 }, { 918, 6480 } },
+        { 1487, "Deviate Eradication", 3, {}, { 6476, 8071, 6481 } },
     },
     ["Zul'Farrak"] = {
         { 2768, "Divino-matic Rod", 3, {}, { 9533, 9534, 270099 } },
