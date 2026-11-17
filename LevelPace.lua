@@ -2,7 +2,8 @@
 -- Mentor - LevelPace.lua
 -- "Level pace" window (OFF by default; turn it on under Settings or with
 -- /mentor pace on): how far you are from the next level, how fast you gain
--- XP and roughly how long / how many kills are left.
+-- XP and roughly how long / how many kills are left, and how much XP the
+-- finished quests in your quest log will give when you hand them in.
 -- Built from Are's standalone LevelPace addon, in the Mentor look.
 --
 --   /mentor pace on|off   show or hide the window
@@ -24,6 +25,7 @@ local ROW_DEFINITIONS = {
     { key = "currentXP",    label = "XP" },
     { key = "remainingXP",  label = "To level" },
     { key = "restedXP",     label = "Rested" },
+    { key = "questXP",      label = "Quests done" },
     { key = "xpPerHour",    label = "XP / hour" },
     { key = "timeToLevel",  label = "Time to level" },
     { key = "killsToLevel", label = "Kills to level" },
@@ -147,6 +149,63 @@ local panel = Mentor.CreateInfoPanel("MentorLevelPaceFrame", "Level pace", ROW_D
     "levelPacePosition", { point = "CENTER", relativePoint = "CENTER", offsetX = 0, offsetY = 200 })
 levelPace.panel = panel
 
+--------------------------------------------------------------------------------
+-- XP waiting in finished quests (complete, not handed in yet)
+--------------------------------------------------------------------------------
+local finishedQuestXP, finishedQuestCount = 0, 0
+
+local function SafeCall(apiFunction, ...)
+    if type(apiFunction) ~= "function" then
+        return nil
+    end
+    local isSuccess, result = pcall(apiFunction, ...)
+    return isSuccess and result or nil
+end
+
+local function IsQuestFinished(questId)
+    if not C_QuestLog then
+        return false
+    end
+    return SafeCall(C_QuestLog.ReadyForTurnIn, questId) == true or SafeCall(C_QuestLog.IsComplete, questId) == true
+end
+
+-- Adds up the XP of every finished quest in the quest log. Runs when the
+-- quest log changes, not every second.
+local function CountFinishedQuestXP()
+    finishedQuestXP, finishedQuestCount = 0, 0
+    if not (C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetInfo) then
+        return
+    end
+    local entryCount = SafeCall(C_QuestLog.GetNumQuestLogEntries) or 0
+    for entryIndex = 1, entryCount do
+        local questInfo = SafeCall(C_QuestLog.GetInfo, entryIndex)
+        local questId = questInfo and not questInfo.isHeader and questInfo.questID
+        if questId and questId > 0 and IsQuestFinished(questId) then
+            local rewardXP = SafeCall(GetQuestLogRewardXP, questId) or 0
+            if type(rewardXP) == "number" and rewardXP > 0 then
+                finishedQuestXP = finishedQuestXP + rewardXP
+            end
+            finishedQuestCount = finishedQuestCount + 1
+        end
+    end
+end
+
+-- "1,250 (3 quests)", in green with "= level!" when handing them in is
+-- enough to reach the next level. Short: the value column is narrow.
+local function FormatFinishedQuestXP(remainingXP)
+    if finishedQuestCount == 0 then
+        return "None"
+    end
+    if finishedQuestXP <= 0 then
+        return string.format("%d done", finishedQuestCount)
+    end
+    if finishedQuestXP >= remainingXP then
+        return string.format("|cff33ff33%s (%d) = level!|r", FormatNumber(finishedQuestXP), finishedQuestCount)
+    end
+    local questWord = finishedQuestCount == 1 and "quest" or "quests"
+    return string.format("|cffffd100%s|r |cffa6a6a6(%d %s)|r", FormatNumber(finishedQuestXP), finishedQuestCount, questWord)
+end
+
 local function UpdateDisplay()
     if not panel:IsShown() then
         return
@@ -159,7 +218,7 @@ local function UpdateDisplay()
 
     if playerLevel >= GetMaxLevel() then
         values.currentXP:SetText("Max level")
-        for _, key in ipairs({ "remainingXP", "restedXP", "xpPerHour", "timeToLevel", "killsToLevel" }) do
+        for _, key in ipairs({ "remainingXP", "restedXP", "questXP", "xpPerHour", "timeToLevel", "killsToLevel" }) do
             values[key]:SetText("--")
         end
         return
@@ -173,6 +232,7 @@ local function UpdateDisplay()
     values.currentXP:SetText(string.format("%s / %s |cffa6a6a6(%.1f%%)|r", FormatNumber(currentXP), FormatNumber(maxXP), percentDone))
     values.remainingXP:SetText(string.format("%s |cffa6a6a6(%.1f%%)|r", FormatNumber(remainingXP), 100 - percentDone))
     values.restedXP:SetText(restedXP > 0 and ("|cff66ccff" .. FormatNumber(restedXP) .. "|r") or "None")
+    values.questXP:SetText(FormatFinishedQuestXP(remainingXP))
 
     -- XP per hour over everything gained since the session started.
     local xpPerHour = elapsedSeconds > 0 and (sessionGainedXP / elapsedSeconds * 3600) or 0
@@ -206,7 +266,7 @@ end
 --------------------------------------------------------------------------------
 local eventFrame = CreateFrame("Frame")
 for _, eventName in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "PLAYER_XP_UPDATE", "PLAYER_LEVEL_UP",
-    "UPDATE_EXHAUSTION", "CHAT_MSG_COMBAT_XP_GAIN" }) do
+    "UPDATE_EXHAUSTION", "CHAT_MSG_COMBAT_XP_GAIN", "QUEST_LOG_UPDATE" }) do
     pcall(eventFrame.RegisterEvent, eventFrame, eventName)
 end
 eventFrame:SetScript("OnEvent", function(_, eventName, ...)
@@ -218,11 +278,15 @@ eventFrame:SetScript("OnEvent", function(_, eventName, ...)
         if isInitialLogin or isReloadingUi or sessionStartTime == 0 then
             levelPace.ResetSession()
         end
+        CountFinishedQuestXP()
         UpdateDisplay()
     elseif eventName == "PLAYER_XP_UPDATE" or eventName == "PLAYER_LEVEL_UP" then
         TrackXPGain()
         UpdateDisplay()
     elseif eventName == "UPDATE_EXHAUSTION" then
+        UpdateDisplay()
+    elseif eventName == "QUEST_LOG_UPDATE" then
+        CountFinishedQuestXP()
         UpdateDisplay()
     elseif eventName == "CHAT_MSG_COMBAT_XP_GAIN" then
         local chatMessage = ...

@@ -21,6 +21,25 @@ Mentor.DUNGEON_QUESTS = {
         { 96379, "State Secrets", 3, {}, { 279450 } },
         { 96381, "A Bit of Wet Work", 1, {}, { 279825, 279826, 279829 } },
     },
+    ["Blackfathom Deeps"] = {
+        { 909, "Baron Aquanis", 2, {}, { 16886, 16887 } },
+        { 971, "Knowledge in the Deeps", 1, { 6743 }, {} },
+        { 1199, "Twilight Falls", 1, { 270025 }, { 6998, 7000, 270025 } },
+        { 1200, "Blackfathom Villainy", 1, {}, { 7001, 7002, 270031, 270032 } },
+        { 1275, "Researching the Corruption", 1, {}, { 7003, 7004, 270021 } },
+        { 6561, "Blackfathom Villainy", 2, {}, { 7001, 7002, 270031, 270032 } },
+        { 6565, "Allegiance to the Old Gods", 2, {}, { 17694, 17695 } },
+        { 6922, "Baron Aquanis", 2, {}, { 16886, 16887, 270043 } },
+        { 78916, "The Heart of the Void", 1, {}, { 211451, 211450, 211449 } },
+        { 78917, "The Heart of the Void", 2, {}, { 211451, 211450, 211449 } },
+    },
+    ["Blackmaw Hold"] = {
+        { 92065, "Blackmaw Reclamation", 3, {}, { 260216, 260217, 260218, 260219 } },
+        { 92066, "The Twin Bears", 3, {}, { 279891, 279892 } },
+        { 92067, "Feeding Time!", 3, { 249900 }, {} },
+        { 92069, "Claws That Rend, Tusks that Gore", 3, {}, { 260213, 260214, 260215 } },
+        { 92070, "A Lost Memento", 3, {}, { 279893 } },
+    },
     ["Blackrock Depths"] = {
         { 3802, "Dark Iron Legacy", 3, { 11000 }, {} },
         { 3907, "Disharmony of Fire", 2, {}, { 12113, 12114, 12112, 12115 } },
@@ -144,6 +163,20 @@ Mentor.DUNGEON_QUESTS = {
     ["Scarlet Monastery Library"] = {
         { 1049, "Compendium of the Fallen", 2, {}, { 7747, 17508, 7749 } },
         { 1050, "Mythology of the Titans", 1, { 7746 }, {} },
+    },
+    ["Scholomance"] = {
+        { 4771, "Dawn's Gambit", 3, {}, { 15853, 15854 } },
+        { 5384, "Kirtonos the Herald", 3, { 13544 }, { 15805, 15806 } },
+        { 5466, "The Lich, Ras Frostwhisper", 3, { 14002 }, { 13982, 13986, 13984 } },
+    },
+    ["Stratholme"] = {
+        { 5125, "Aurius' Reckoning", 3, {}, { 17044, 17045 } },
+        { 5213, "The Active Agent", 3, {}, { 13209, 19812 } },
+        { 5214, "The Great Ezra Grimm", 3, { 13171 }, {} },
+        { 5243, "Houses of the Holy", 3, { 3928, 6149 }, { 13216, 13217 } },
+        { 5282, "The Restless Souls", 3, { 13315 }, {} },
+        { 6163, "Ramstein", 2, { 18022, 17001 }, { 17001, 18022 } },
+        { 8945, "Dead Man's Plea", 3, { 22137 }, {} },
     },
     ["The Drowned City"] = {
         { 95776, "The Only Good Brinescale...", 2, {}, { 279888, 279889 } },
