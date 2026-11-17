@@ -464,23 +464,6 @@ local function BuildMainWindow()
         GameTooltip:Show()
     end)
     lifeLogButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    -- Where to get gear upgrades (Upgrades.lua), right under Life log.
-    local upgradesButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
-    upgradesButton:SetSize(70, 18)
-    upgradesButton:SetPoint("TOP", lifeLogButton, "BOTTOM", 0, -3)
-    upgradesButton:SetNormalFontObject("GameFontNormalSmall")
-    upgradesButton:SetHighlightFontObject("GameFontHighlightSmall")
-    upgradesButton:SetText("Upgrades")
-    upgradesButton:SetScript("OnClick", function()
-        Mentor.Upgrades.Toggle()
-    end)
-    upgradesButton:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-        GameTooltip:AddLine("Where to get upgrades")
-        GameTooltip:AddLine("Dungeons for your level that drop better gear for your spec.", 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    upgradesButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- Things the first-time tour (Tour.lua) points at.
     Mentor.tourTargets = Mentor.tourTargets or {}
     Mentor.tourTargets.settingsButton = settingsButton
@@ -621,8 +604,25 @@ local function BuildMainWindow()
 
     -- Upgrades in bags.
     AddSectionLabel("Upgrades in your bags", verticalOffset)
-    widgets.upgradeHint = CreateText(mainFrame, "GameFontHighlightSmall", 120, "RIGHT")
-    widgets.upgradeHint:SetPoint("TOPRIGHT", -PADDING, verticalOffset)
+    -- "Find more": where to get gear upgrades (Upgrades.lua), on the same line.
+    local findUpgradesButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+    findUpgradesButton:SetSize(84, 18)
+    findUpgradesButton:SetPoint("TOPRIGHT", -PADDING + 2, verticalOffset + 3)
+    findUpgradesButton:SetNormalFontObject("GameFontNormalSmall")
+    findUpgradesButton:SetHighlightFontObject("GameFontHighlightSmall")
+    findUpgradesButton:SetText("Find more")
+    findUpgradesButton:SetScript("OnClick", function()
+        Mentor.Upgrades.Toggle()
+    end)
+    findUpgradesButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine("Where to get upgrades")
+        GameTooltip:AddLine("Dungeons for your level that drop better gear for your spec.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    findUpgradesButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    widgets.upgradeHint = CreateText(mainFrame, "GameFontHighlightSmall", 100, "RIGHT")
+    widgets.upgradeHint:SetPoint("RIGHT", findUpgradesButton, "LEFT", -4, 0)
     verticalOffset = verticalOffset - 16
     for rowIndex = 1, MAX_UPGRADE_ROWS do
         CreateUpgradeRow(rowIndex, verticalOffset - (rowIndex - 1) * UPGRADE_ROW_HEIGHT)
@@ -1264,7 +1264,8 @@ local function RefreshUpgrades(advice)
         end
     end
     widgets.noUpgrades:SetText(#upgrades == 0 and (MUTED_TEXT .. "Nothing better in your bags right now.|r") or "")
-    widgets.upgradeHint:SetText(#upgrades > 0 and (MUTED_TEXT .. "click to equip|r") or "")
+    -- "Click to equip" is in each row's tooltip; the line has the Find more button.
+    widgets.upgradeHint:SetText("")
     return #upgrades
 end
 
