@@ -107,6 +107,8 @@ local DUNGEONS = {
     { "Scholomance", 58, 60, nil, "Western Plaguelands", "Needs a key quest. Lots of undead casters." },
     { "Upper Blackrock Spire", 59, 60, nil, "Blackrock Mountain", "Ten players. Needs the Seal of Ascension key." },
 }
+-- Shared with Upgrades.lua (where to get gear upgrades).
+journey.DUNGEONS = DUNGEONS
 
 -- What to do in a dungeon for each role (from your spec in Data.lua).
 local ROLE_TIPS = {

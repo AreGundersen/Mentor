@@ -464,6 +464,23 @@ local function BuildMainWindow()
         GameTooltip:Show()
     end)
     lifeLogButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- Where to get gear upgrades (Upgrades.lua), right under Life log.
+    local upgradesButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+    upgradesButton:SetSize(70, 18)
+    upgradesButton:SetPoint("TOP", lifeLogButton, "BOTTOM", 0, -3)
+    upgradesButton:SetNormalFontObject("GameFontNormalSmall")
+    upgradesButton:SetHighlightFontObject("GameFontHighlightSmall")
+    upgradesButton:SetText("Upgrades")
+    upgradesButton:SetScript("OnClick", function()
+        Mentor.Upgrades.Toggle()
+    end)
+    upgradesButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine("Where to get upgrades")
+        GameTooltip:AddLine("Dungeons for your level that drop better gear for your spec.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    upgradesButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     -- Things the first-time tour (Tour.lua) points at.
     Mentor.tourTargets = Mentor.tourTargets or {}
     Mentor.tourTargets.settingsButton = settingsButton
@@ -1495,6 +1512,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.Tour.Start()
     elseif command == "log" then
         Mentor.LifeLog.HandleCommand(argument)
+    elseif command == "upgrades" or command == "gear" then
+        Mentor.Upgrades.Toggle()
     elseif command == "version" then
         Mentor.Print("Mentor version " .. Mentor.GetVersion() .. ".")
     elseif command == "procs" or command == "proc" then
@@ -1560,6 +1579,6 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.ManaWarning.ResetPosition()
         Mentor.Reminders.ResetPosition()
     else
-        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | words | procs test | tour | support | keep <item> | debug | lock | unlock | center")
+        Mentor.Print("Commands: /mentor | settings | build | guide | spells | racials | macros | bug | alerts / highlight / arrows / tooltip / quest / minimap / sell / details / pace / vendor / fishing / lifelog on|off | pace reset | fish | log | mana | journey | weapons | words | upgrades | procs test | tour | support | keep <item> | debug | lock | unlock | center")
     end
 end

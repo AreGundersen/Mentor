@@ -12,6 +12,8 @@
 - **Arrows on bag items** (Blizzard bags and Bagnon): green = upgrade, yellow = upgrade at a higher level, red = worse. A red cross marks items you can't use.
 - **Tooltips start with what to do:** "Equip", "Equip at level 24" or "Keep - upgrade for <your other spec>", followed by how much better or worse the item is for each of your specs.
 - See exactly which stats change, and what each stat does for you.
+- **Upgrades** button: the dungeons for your level that drop better gear for your spec, with the boss that drops it.
+- Rings and trinkets are compared with both of the ones you wear.
 - Chat alert when you loot an upgrade, the best quest reward marked when you hand in a quest, and Need or Greed marked on group loot rolls.
 
 ## Where next? and reminders
@@ -64,6 +66,7 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor journey` - zones, dungeons and professions for your level
 - `/mentor weapons` - weapon skills and weapon masters
 - `/mentor words` - what the words in group chat mean
+- `/mentor upgrades` - dungeons for your level that drop upgrades for you
 - `/mentor version` - which Mentor version you have
 - `/mentor procs test` - show an example proc alert
 - `/mentor tour` - the short tour again

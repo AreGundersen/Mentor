@@ -32,6 +32,8 @@ ManaWarning.lua
 ProfessionTrainers.lua
 Professions.lua
 Journey.lua
+DungeonLoot.lua
+Upgrades.lua
 Weapons.lua
 Glossary.lua
 Reminders.lua
