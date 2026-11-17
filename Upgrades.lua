@@ -203,6 +203,23 @@ local function GetDungeonHeader(headerIndex)
         header.nameText:SetPoint("LEFT", 0, 0)
         header.levelText = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         header.levelText:SetPoint("LEFT", header.nameText, "RIGHT", 6, 0)
+        -- Long places ("Off the coast of Stranglethorn Vale") would run past the
+        -- window edge: stop at the edge and end with "...". The tooltip shows it all.
+        header.levelText:SetPoint("RIGHT", header, "RIGHT", 0, 0)
+        header.levelText:SetJustifyH("LEFT")
+        header.levelText:SetWordWrap(false)
+        header:EnableMouse(true)
+        header:SetScript("OnEnter", function(self)
+            if not self.dungeonResult then return end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(self.dungeonResult.name)
+            GameTooltip:AddLine(string.format("Level %d-%d", self.dungeonResult.minLevel, self.dungeonResult.maxLevel), 1, 1, 1)
+            if self.dungeonResult.place then
+                GameTooltip:AddLine(self.dungeonResult.place, 1, 1, 1, true)
+            end
+            GameTooltip:Show()
+        end)
+        header:SetScript("OnLeave", function() GameTooltip:Hide() end)
         header.line = header:CreateTexture(nil, "ARTWORK")
         header.line:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.35)
         header.line:SetHeight(1)
@@ -246,6 +263,7 @@ function upgrades.Refresh()
     for dungeonIndex = 1, math.min(MAX_DUNGEONS_SHOWN, #dungeonResults) do
         local dungeonResult = dungeonResults[dungeonIndex]
         local header = GetDungeonHeader(dungeonIndex)
+        header.dungeonResult = dungeonResult
         header.nameText:SetText(dungeonResult.name)
         header.levelText:SetText(string.format("level %d-%d  |  %s", dungeonResult.minLevel, dungeonResult.maxLevel, dungeonResult.place or ""))
         header:ClearAllPoints()
