@@ -7,7 +7,7 @@
 -- sound, which is easy to miss while leveling.
 --
 -- Two ways to show it, each with its own switch under Talents & play:
---   Proc icon   a big pulsing icon above your character with what to press
+--   Proc icon   a big pulsing icon under your character with what to press
 --   Proc glow   a gold, pulsing frame on the action bar button to press
 -- The glow is Mentor's own frame laid over the button (Blizzard's action
 -- buttons are not touched, so nothing gets blocked in combat).
@@ -23,7 +23,7 @@ local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
 local ICON_SIZE = 44
 local ICON_GAP = 14
 local MAX_ICONS = 3
-local ICON_AREA_OFFSET_Y = 260              -- well above your character (move it with /mentor procs move)
+local ICON_AREA_OFFSET_Y = -170             -- under your character, above the action bars (move it with /mentor procs move)
 local SECONDS_BETWEEN_REACTIVE_CHECKS = 0.2
 local LONGEST_PROC_SECONDS = 30             -- a proc seen only through an event is forgotten after this
 
@@ -565,7 +565,7 @@ function procs.PrintDebug()
 end
 
 --------------------------------------------------------------------------------
--- Big icons above your character
+-- Big icons under your character
 --------------------------------------------------------------------------------
 local iconArea = CreateFrame("Frame", "MentorProcIconArea", UIParent)
 iconArea:SetSize(MAX_ICONS * (ICON_SIZE + ICON_GAP), ICON_SIZE + 40)
@@ -575,7 +575,7 @@ iconArea:EnableMouse(false)                 -- never blocks clicks (except while
 iconArea:SetMovable(true)
 iconArea:SetClampedToScreen(true)
 
--- The saved place (MentorDB.procIconPosition), or the default above your character.
+-- The saved place (MentorDB.procIconPosition), or the default under your character.
 local function PlaceIconArea()
     iconArea:ClearAllPoints()
     local savedPosition = MentorDB and MentorDB.procIconPosition
@@ -881,7 +881,7 @@ function procs.HandleCommand(argument)
     elseif words[1] == "reset" then
         MentorDB.procIconPosition = nil
         PlaceIconArea()
-        Mentor.Print("Proc alerts are back above your character.")
+        Mentor.Print("Proc alerts are back under your character.")
     elseif words[1] == "test" or words[1] == nil then
         procs.ShowTest()
         Mentor.Print("Proc test: an example proc for 6 seconds. Turn the icon or the glow on and off under Settings > Talents & play.")

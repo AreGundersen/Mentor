@@ -823,7 +823,7 @@ local SETTINGS_SECTIONS = {
     { column = 1, title = "Talents & play", rows = {
         { "isTalentHighlightEnabled", "Talent window", "Mark the next talent and plan the next points" },
         { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
-        { "areProcIconsEnabled",      "Proc icon",     "Big icon above you when something procs (/mentor procs move to place it)" },
+        { "areProcIconsEnabled",      "Proc icon",     "Big icon under your character when something procs (/mentor procs move to place it)" },
         { "areProcGlowsEnabled",      "Proc glow",     "Gold glow on the action bar button to press" },
     } },
     { column = 1, title = "Gear & loot", rows = {
