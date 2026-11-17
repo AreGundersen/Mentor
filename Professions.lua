@@ -23,6 +23,7 @@ local PANEL_WIDTH = 260
 local PANEL_PADDING = 10
 local ROW_HEIGHT = 20
 local MAX_UPGRADE_ROWS = 6
+local PANEL_OVERLAP_WITH_WINDOW_TOP = 30    -- how far down the window's side the panel reaches (the tabs start lower)
 local LOGO_TEXTURE = "Interface\\AddOns\\Mentor\\Media\\Logo"
 local PANEL_BACKDROP = {
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
@@ -342,12 +343,34 @@ local function GetProfessionWindow()
     return nil
 end
 
--- Selects a recipe in the profession window (when the game allows it).
+-- Shows a recipe in the profession window, the same as clicking it in the
+-- window's own recipe list. The retail window's list is used when it is
+-- there; the game's OpenRecipe and the classic window are the fallbacks.
 local function OpenRecipe(recipe)
-    if recipe.recipeId and C_TradeSkillUI and C_TradeSkillUI.OpenRecipe then
-        pcall(C_TradeSkillUI.OpenRecipe, recipe.recipeId)
+    if recipe.recipeId and C_TradeSkillUI then
+        local craftingPage = ProfessionsFrame and ProfessionsFrame.CraftingPage
+        local recipeList = craftingPage and craftingPage.RecipeList
+        if recipeList and recipeList.SelectRecipe and C_TradeSkillUI.GetRecipeInfo then
+            local infoSuccess, recipeInfo = pcall(C_TradeSkillUI.GetRecipeInfo, recipe.recipeId)
+            if infoSuccess and recipeInfo then
+                -- The crafting tab must be the one shown.
+                if ProfessionsFrame.SetTab and ProfessionsFrame.recipesTabID then
+                    pcall(ProfessionsFrame.SetTab, ProfessionsFrame, ProfessionsFrame.recipesTabID)
+                end
+                local selectSuccess = pcall(recipeList.SelectRecipe, recipeList, recipeInfo, true)
+                if selectSuccess then
+                    return
+                end
+            end
+        end
+        if C_TradeSkillUI.OpenRecipe then
+            pcall(C_TradeSkillUI.OpenRecipe, recipe.recipeId)
+        end
     elseif recipe.recipeIndex and TradeSkillFrame_SetSelection then
         pcall(TradeSkillFrame_SetSelection, recipe.recipeIndex)
+        if TradeSkillFrame_Update then
+            pcall(TradeSkillFrame_Update)
+        end
     end
 end
 
@@ -378,6 +401,9 @@ local function CreateRecipeRow()
         if self.itemLink then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             pcall(GameTooltip.SetHyperlink, GameTooltip, self.itemLink)
+            if self.recipe then
+                GameTooltip:AddLine("|cff66ccffMentor:|r Click to show it in the profession window.", 0.65, 0.65, 0.65)
+            end
             GameTooltip:Show()
         end
     end)
@@ -433,8 +459,10 @@ function professions.RefreshPanel()
     if not panel then
         CreatePanel()
     end
+    -- The panel's bottom sits near the window's top right, so it grows
+    -- upwards and never covers the tabs on the window's right side.
     panel:ClearAllPoints()
-    panel:SetPoint("TOPLEFT", professionWindow, "TOPRIGHT", 4, -2)
+    panel:SetPoint("BOTTOMLEFT", professionWindow, "TOPRIGHT", 4, -PANEL_OVERLAP_WITH_WINDOW_TOP)
     panel.title:SetText(string.format("%s  |cffffffff%d / %d|r", professionName, skillLevel or 0, maximumSkill or 0))
 
     local recipes = GetOpenRecipes()
