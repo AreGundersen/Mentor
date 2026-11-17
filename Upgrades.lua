@@ -203,8 +203,38 @@ end
 
 -- "Aldren Cordon in Loch Modan (65, 66)"
 function upgrades.FormatVendor(vendor)
-    local zoneName = Mentor.VENDOR_ZONE_NAMES[vendor[3]] or "?"
+    local zoneName = type(vendor[3]) == "string" and vendor[3] or (Mentor.VENDOR_ZONE_NAMES[vendor[3]] or "?")
     return string.format("%s in %s (%d, %d)", vendor[1], zoneName, math.floor(vendor[4] + 0.5), math.floor(vendor[5] + 0.5))
+end
+
+--------------------------------------------------------------------------------
+-- Quartermasters: gear for gold once your reputation is high enough
+-- (ReputationGear.lua). Standings: 4 Neutral, 5 Friendly, 6 Honored,
+-- 7 Revered, 8 Exalted.
+--------------------------------------------------------------------------------
+local NEUTRAL_STANDING = 4
+local STANDING_STEPS_AHEAD_SHOWN = 1   -- show gear one standing above yours
+local STANDING_NAMES = { "Hated", "Hostile", "Unfriendly", "Neutral", "Friendly", "Honored", "Revered", "Exalted" }
+
+-- Your standing and the faction's name ("Neutral" when you haven't met them).
+local function GetPlayerStanding(factionId)
+    if C_Reputation and C_Reputation.GetFactionDataByID then
+        local isSuccess, factionData = pcall(C_Reputation.GetFactionDataByID, factionId)
+        if isSuccess and type(factionData) == "table" and factionData.reaction then
+            return factionData.reaction, factionData.name
+        end
+    end
+    if GetFactionInfoByID then
+        local isSuccess, factionName, _, standingId = pcall(GetFactionInfoByID, factionId)
+        if isSuccess and standingId then
+            return standingId, factionName
+        end
+    end
+    return NEUTRAL_STANDING, nil
+end
+
+function upgrades.GetStandingName(standing)
+    return STANDING_NAMES[standing] or "?"
 end
 
 -- Uncommon or better weapons and armor that a friendly vendor sells and that
@@ -246,6 +276,41 @@ function upgrades.FindVendorUpgrades()
             end
         end
     end
+    -- Quartermaster gear: your faction can buy it, and your reputation is
+    -- high enough or one step away.
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    local factionLetter = playerFaction == "Alliance" and "A" or playerFaction == "Horde" and "H" or nil
+    for itemId, gearEntry in pairs(Mentor.REPUTATION_GEAR or {}) do
+        local vendorId, requiredLevel, standingNeeded, priceInCopper = gearEntry[1], gearEntry[2], gearEntry[3], gearEntry[4]
+        local vendor = Mentor.REPUTATION_VENDORS and Mentor.REPUTATION_VENDORS[vendorId]
+        local isForYourFaction = vendor and factionLetter and vendor[4]:find(factionLetter, 1, true)
+        local isLevelClose = requiredLevel <= playerLevel + LEVELS_ABOVE_SHOWN and requiredLevel >= playerLevel - 15
+        if isForYourFaction and isLevelClose then
+            local playerStanding, gameFactionName = GetPlayerStanding(vendor[2])
+            if standingNeeded <= playerStanding + STANDING_STEPS_AHEAD_SHOWN then
+                local itemLink = GetItemLinkById(itemId)
+                if not itemLink then
+                    isStillLoading = true
+                else
+                    local isSuccess, result = pcall(Mentor.CompareItem, itemLink, advice.specData.weights)
+                    if isSuccess and result then
+                        if result.kind == "loading" then
+                            isStillLoading = true
+                        elseif result.kind == "upgrade" or result.kind == "empty" then
+                            local gain = result.kind == "empty" and 100 or (result.overallPercent or result.percent or 0)
+                            -- Same shape as the Questie vendors: { name, sides, zone, x, y }.
+                            local vendorForDisplay = { vendor[1], vendor[4], vendor[5], vendor[6], vendor[7] }
+                            table.insert(vendorUpgrades, { itemLink = itemLink, result = result, gain = gain, boss = "",
+                                vendors = { vendorForDisplay }, priceInCopper = priceInCopper,
+                                reputation = { factionName = gameFactionName or vendor[3] or "their faction",
+                                    standingNeeded = standingNeeded, playerStanding = playerStanding } })
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     table.sort(vendorUpgrades, function(first, second) return first.gain > second.gain end)
     local bestPerSlot, usedSlots = {}, {}
     for _, upgrade in ipairs(vendorUpgrades) do
@@ -290,6 +355,16 @@ local function CreateItemRow()
             local sourceText
             if self.vendors then
                 sourceText = "Sold by " .. upgrades.FormatVendor(self.vendors[1])
+                if self.priceInCopper and Mentor.FormatMoneyWithIcons then
+                    sourceText = sourceText .. " for " .. Mentor.FormatMoneyWithIcons(self.priceInCopper)
+                end
+                if self.reputation then
+                    local hasStanding = self.reputation.playerStanding >= self.reputation.standingNeeded
+                    GameTooltip:AddLine(string.format("|cff66ccffMentor:|r Needs %s with %s - you are %s.",
+                        upgrades.GetStandingName(self.reputation.standingNeeded), self.reputation.factionName,
+                        upgrades.GetStandingName(self.reputation.playerStanding)),
+                        hasStanding and 0.25 or 1, hasStanding and 1 or 0.82, hasStanding and 0.25 or 0, true)
+                end
                 for vendorIndex = 2, math.min(4, #self.vendors) do
                     GameTooltip:AddLine("|cff66ccffMentor:|r Also: " .. upgrades.FormatVendor(self.vendors[vendorIndex]), 0.85, 0.85, 0.85, true)
                 end
@@ -456,12 +531,18 @@ function upgrades.Refresh()
             local row = itemRows[usedRows] or CreateItemRow()
             itemRows[usedRows] = row
             row.itemLink, row.bossName, row.questName, row.vendors = upgrade.itemLink, upgrade.boss, upgrade.questName, upgrade.vendors
+            row.priceInCopper, row.reputation = upgrade.priceInCopper, upgrade.reputation
             local itemIcon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(upgrade.itemLink))
                 or (GetItemIcon and GetItemIcon(upgrade.itemLink)) or 134400
             row.icon:SetTexture(itemIcon)
             row.nameText:SetText(upgrade.itemLink)
             -- Quest rewards get a small gold "Quest" tag before the gain.
             local questTag = upgrade.questName and "|cffffd100Quest|r  " or ""
+            -- Quartermaster gear: a blue "Rep" tag (grey while you still need more reputation).
+            if upgrade.reputation then
+                local hasStanding = upgrade.reputation.playerStanding >= upgrade.reputation.standingNeeded
+                questTag = (hasStanding and "|cff66ccffRep|r  " or "|cffa6a6a6Rep|r  ")
+            end
             row.valueText:SetText(questTag .. FormatGain(upgrade.result))
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", PADDING, verticalOffset)

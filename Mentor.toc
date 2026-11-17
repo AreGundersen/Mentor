@@ -36,6 +36,7 @@ Journey.lua
 DungeonLoot.lua
 DungeonQuests.lua
 VendorGear.lua
+ReputationGear.lua
 Upgrades.lua
 Weapons.lua
 Glossary.lua
