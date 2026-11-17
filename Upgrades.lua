@@ -1,12 +1,13 @@
 --------------------------------------------------------------------------------
 -- Mentor - Upgrades.lua
--- "Where can I get better gear?" The Upgrades button (under Life log in the
--- Mentor window, or /mentor upgrades) opens a small window that lists the
--- dungeons for your level that drop upgrades for the spec you play, best
--- first, with up to three items each and the boss that drops them.
+-- "Where can I get better gear?" The "Find more" button (next to "Upgrades
+-- in your bags" in the Mentor window, or /mentor upgrades) opens a panel
+-- beside the Mentor window that lists the dungeons for your level with
+-- upgrades for the spec you play, best first, with up to three items each:
+-- boss drops, and rewards from that dungeon's quests.
 --
--- Data: DungeonLoot.lua (item ids per dungeon, from Wowhead's WoW Forever
--- zone pages) and the dungeon level ranges from Journey.lua. The items are
+-- Data: DungeonLoot.lua and DungeonQuests.lua (item ids per dungeon, from
+-- Wowhead's WoW Forever zone pages) and the dungeon level ranges from Journey.lua. The items are
 -- compared with what you wear by Mentor.CompareItem, like the bag arrows.
 --------------------------------------------------------------------------------
 
@@ -48,6 +49,44 @@ local function GetItemLinkById(itemId)
     return success and itemLink or nil
 end
 
+-- Quest sides in DungeonQuests.lua: 1 = Alliance, 2 = Horde, 3 = both.
+local QUEST_SIDE_BY_FACTION = { Alliance = 1, Horde = 2 }
+
+local function IsQuestDone(questId)
+    if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+        local success, isDone = pcall(C_QuestLog.IsQuestFlaggedCompleted, questId)
+        return success and isDone == true
+    end
+    return false
+end
+
+-- Everything one dungeon can give you, as { itemId, bossName, questName,
+-- choiceQuestId } (choiceQuestId: you pick only one of that quest's choices):
+-- its boss drops, then the rewards of its quests that your faction can take
+-- and you haven't done yet.
+local function GetDungeonRewardSources(dungeonName)
+    local rewardSources = {}
+    for _, lootEntry in ipairs(Mentor.DUNGEON_LOOT[dungeonName] or {}) do
+        table.insert(rewardSources, { lootEntry[1], lootEntry[2], nil, nil })
+    end
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    local playerQuestSide = QUEST_SIDE_BY_FACTION[playerFaction]
+    for _, questEntry in ipairs((Mentor.DUNGEON_QUESTS or {})[dungeonName] or {}) do
+        local questId, questName, questSide = questEntry[1], questEntry[2], questEntry[3]
+        local rewardItemIds, choiceItemIds = questEntry[4], questEntry[5]
+        local isForPlayerFaction = questSide == 3 or questSide == playerQuestSide
+        if isForPlayerFaction and not IsQuestDone(questId) then
+            for _, itemId in ipairs(rewardItemIds or {}) do
+                table.insert(rewardSources, { itemId, "", questName, nil })
+            end
+            for _, itemId in ipairs(choiceItemIds or {}) do
+                table.insert(rewardSources, { itemId, "", questName, questId })
+            end
+        end
+    end
+    return rewardSources
+end
+
 local function FitsFaction(dungeonFaction)
     local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
     return dungeonFaction == nil or dungeonFaction == playerFaction
@@ -68,12 +107,12 @@ function upgrades.FindDungeonUpgrades()
     local dungeonResults = {}
     for _, dungeon in ipairs(dungeonList) do
         local dungeonName, minLevel, maxLevel, dungeonFaction, place = dungeon[1], dungeon[2], dungeon[3], dungeon[4], dungeon[5]
-        local lootList = Mentor.DUNGEON_LOOT[dungeonName]
-        if lootList and FitsFaction(dungeonFaction)
+        local hasData = Mentor.DUNGEON_LOOT[dungeonName] or (Mentor.DUNGEON_QUESTS and Mentor.DUNGEON_QUESTS[dungeonName])
+        if hasData and FitsFaction(dungeonFaction)
             and playerLevel >= minLevel - LEVELS_BELOW_RANGE and playerLevel <= maxLevel then
             local dungeonUpgrades = {}
-            for _, lootEntry in ipairs(lootList) do
-                local itemId, bossName = lootEntry[1], lootEntry[2]
+            for _, rewardSource in ipairs(GetDungeonRewardSources(dungeonName)) do
+                local itemId, bossName, questName, choiceQuestId = rewardSource[1], rewardSource[2], rewardSource[3], rewardSource[4]
                 local itemLink = GetItemLinkById(itemId)
                 if not itemLink then
                     isStillLoading = true
@@ -85,7 +124,8 @@ function upgrades.FindDungeonUpgrades()
                         elseif (result.kind == "upgrade" or result.kind == "empty")
                             and (not result.requiredLevel or result.requiredLevel <= playerLevel + LEVELS_ABOVE_SHOWN) then
                             local gain = result.kind == "empty" and 100 or (result.overallPercent or result.percent or 0)
-                            table.insert(dungeonUpgrades, { itemLink = itemLink, boss = bossName, result = result, gain = gain })
+                            table.insert(dungeonUpgrades, { itemLink = itemLink, boss = bossName, questName = questName,
+                                choiceQuestId = choiceQuestId, result = result, gain = gain })
                         end
                     end
                 end
@@ -93,11 +133,16 @@ function upgrades.FindDungeonUpgrades()
             if #dungeonUpgrades > 0 then
                 table.sort(dungeonUpgrades, function(first, second) return first.gain > second.gain end)
                 -- One upgrade per slot is enough: you can only wear one of them.
-                local bestPerSlot, usedSlots = {}, {}
+                -- And only the best choice of a quest: you get to pick just one.
+                local bestPerSlot, usedSlots, usedChoiceQuests = {}, {}, {}
                 for _, upgrade in ipairs(dungeonUpgrades) do
                     local slotKey = upgrade.result.replacedSlot or upgrade.itemLink
-                    if not usedSlots[slotKey] then
+                    local isChoiceTaken = upgrade.choiceQuestId and usedChoiceQuests[upgrade.choiceQuestId]
+                    if not usedSlots[slotKey] and not isChoiceTaken then
                         usedSlots[slotKey] = true
+                        if upgrade.choiceQuestId then
+                            usedChoiceQuests[upgrade.choiceQuestId] = true
+                        end
                         table.insert(bestPerSlot, upgrade)
                     end
                 end
@@ -128,12 +173,13 @@ local function CreateItemRow()
     row.icon:SetPoint("LEFT", 8, 0)
     row.nameText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.nameText:SetPoint("LEFT", row.icon, "RIGHT", 5, 0)
-    row.nameText:SetPoint("RIGHT", -96, 0)
-    row.nameText:SetJustifyH("LEFT")
-    row.nameText:SetWordWrap(false)
     row.valueText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.valueText:SetPoint("RIGHT", 0, 0)
     row.valueText:SetJustifyH("RIGHT")
+    -- The name stops where the gain (and "Quest" tag) starts.
+    row.nameText:SetPoint("RIGHT", row.valueText, "LEFT", -6, 0)
+    row.nameText:SetJustifyH("LEFT")
+    row.nameText:SetWordWrap(false)
     local hoverHighlight = row:CreateTexture(nil, "HIGHLIGHT")
     hoverHighlight:SetAllPoints()
     hoverHighlight:SetColorTexture(1, 0.82, 0, 0.08)
@@ -142,8 +188,15 @@ local function CreateItemRow()
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             pcall(GameTooltip.SetHyperlink, GameTooltip, self.itemLink)
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine("|cff66ccffMentor:|r " .. (self.bossName ~= "" and ("Drops from " .. self.bossName)
-                or "Drops from monsters in the dungeon"), 0.85, 0.85, 0.85)
+            local sourceText
+            if self.questName then
+                sourceText = "Reward from the quest \"" .. self.questName .. "\""
+            elseif self.bossName and self.bossName ~= "" then
+                sourceText = "Drops from " .. self.bossName
+            else
+                sourceText = "Drops from monsters in the dungeon"
+            end
+            GameTooltip:AddLine("|cff66ccffMentor:|r " .. sourceText, 0.85, 0.85, 0.85, true)
             GameTooltip:Show()
         end
     end)
@@ -279,12 +332,14 @@ function upgrades.Refresh()
             usedRows = usedRows + 1
             local row = itemRows[usedRows] or CreateItemRow()
             itemRows[usedRows] = row
-            row.itemLink, row.bossName = upgrade.itemLink, upgrade.boss
+            row.itemLink, row.bossName, row.questName = upgrade.itemLink, upgrade.boss, upgrade.questName
             local itemIcon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(upgrade.itemLink))
                 or (GetItemIcon and GetItemIcon(upgrade.itemLink)) or 134400
             row.icon:SetTexture(itemIcon)
             row.nameText:SetText(upgrade.itemLink)
-            row.valueText:SetText(FormatGain(upgrade.result))
+            -- Quest rewards get a small gold "Quest" tag before the gain.
+            local questTag = upgrade.questName and "|cffffd100Quest|r  " or ""
+            row.valueText:SetText(questTag .. FormatGain(upgrade.result))
             row:ClearAllPoints()
             row:SetPoint("TOPLEFT", PADDING, verticalOffset)
             row:Show()

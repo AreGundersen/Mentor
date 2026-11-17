@@ -33,6 +33,7 @@ ProfessionTrainers.lua
 Professions.lua
 Journey.lua
 DungeonLoot.lua
+DungeonQuests.lua
 Upgrades.lua
 Weapons.lua
 Glossary.lua
