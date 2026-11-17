@@ -1,4 +1,5 @@
-"""Builds Mentor's ReputationGear.lua from Wowhead WoW Forever quartermaster pages (qm/*.txt lines:
+"""Builds Mentor's ReputationGear.lua from Wowhead WoW Forever quartermaster pages. Left out on purpose:
+PvP officers, raid and rune vendors, Brother Zendraas and Dala Fairmaw (not sold for gold). (qm/*.txt lines:
 npc|name|zone^x^y|factionId|react alliance,horde|item:reqLevel:wowheadStanding:copper;...)."""
 import glob
 
@@ -6,7 +7,7 @@ OUTPUT = "/home/claude/mentor/ReputationGear.lua"
 # Wowhead standing 0-7 (Hated..Exalted) -> the game's reaction 1-8.
 WOWHEAD_TO_GAME_STANDING = 1
 # Faction names we know from the vendor titles (the game names the rest).
-FACTION_NAMES = {369: "Gadgetzan", 2798: "Darkspear Raiders"}
+FACTION_NAMES = {369: "Gadgetzan", 2798: "Darkspear Raiders", 470: "Ratchet", 21: "Booty Bay", 577: "Everlook"}
 
 def faction_sides(react_text):
     alliance, horde = (react_text.split(",") + ["null"])[:2]
@@ -28,6 +29,8 @@ for path in sorted(glob.glob("qm/*.txt")):
         vendors[int(npc_id)] = (name, faction_id, faction_sides(react), zone_name, float(x), float(y))
         for item_entry in item_text.split(";"):
             item_id, required_level, standing, copper = (int(n) for n in item_entry.split(":"))
+            if copper == 0:  # bought with tokens or another currency, not gold
+                continue
             items[item_id] = (int(npc_id), required_level, standing + WOWHEAD_TO_GAME_STANDING, copper)
 
 lines = ["--------------------------------------------------------------------------------",
