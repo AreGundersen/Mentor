@@ -1519,6 +1519,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.LifeLog.HandleCommand(argument)
     elseif command == "upgrades" or command == "gear" then
         Mentor.Upgrades.Toggle()
+    elseif command == "trainer" then
+        Mentor.Training.PrintDebug()
     elseif command == "version" then
         Mentor.Print("Mentor version " .. Mentor.GetVersion() .. ".")
     elseif command == "procs" or command == "proc" then

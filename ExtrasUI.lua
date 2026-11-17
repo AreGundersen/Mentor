@@ -3,7 +3,9 @@
 -- "Spells & macros" panel next to the Mentor window, with three tabs:
 --   * Coming up  new buttons as you level: spells from your spellbook with the
 --                level you get them, plus the big talents from your build
---                (gold border). Spells you can already train are shown first.
+--                (gold border). Spells you can already train are shown first,
+--                and new ranks of spells you know, with rank and price once
+--                you have opened your class trainer (Training.lua).
 --   * Racials    your race's abilities and when to press them.
 --   * Macros     ready-made macros; "Create" makes the macro and puts it on
 --                your cursor so you can drop it on an action bar.
@@ -229,6 +231,40 @@ local function ReadUpcomingTrainerSpells(advice)
     return upcoming
 end
 
+-- Adds rank and price (from the last class trainer you opened) to the
+-- description of a spell row: "Rank 4 - 1g 20s".
+local function AddRankAndPrice(entry, rankInfo)
+    if not rankInfo then
+        return
+    end
+    local priceText = Mentor.FormatMoneyWithIcons and Mentor.FormatMoneyWithIcons(rankInfo.cost) or ""
+    local rankText = rankInfo.rank and ("Rank " .. rankInfo.rank) or ""
+    local separator = (rankText ~= "" and priceText ~= "") and "  " or ""
+    entry.priceLine = GOLD_TEXT .. rankText .. "|r" .. separator .. priceText
+    entry.cost = rankInfo.cost
+end
+
+-- New ranks of spells you know: trainable now, and the ones coming in the
+-- next few levels.
+local RANK_UPS_LOOKAHEAD_LEVELS = 4
+local function ReadRankUps(advice)
+    local rankUpEntries = {}
+    if not (Mentor.Training and Mentor.Training.HasTrainerList()) then
+        return rankUpEntries
+    end
+    for _, service in ipairs(Mentor.Training.GetRankUps(advice.level + RANK_UPS_LOOKAHEAD_LEVELS)) do
+        local resolvedSpell = Mentor.ResolveSpell(service.name)
+        local rankUpEntry = {
+            name = service.name, spellId = resolvedSpell.spellId, icon = resolvedSpell.icon,
+            level = service.level, isRankUp = true,
+            kind = service.level <= advice.level and "train" or "spell",
+        }
+        AddRankAndPrice(rankUpEntry, service)
+        table.insert(rankUpEntries, rankUpEntry)
+    end
+    return rankUpEntries
+end
+
 local function GetComingUpEntries(advice)
     -- Levels and names come from the Forever trainer list; the spellbook adds
     -- anything that list misses (and real icons when it lists future spells).
@@ -252,6 +288,24 @@ local function GetComingUpEntries(advice)
     end
     if #entries == 0 and not usedSpellbook then
         entries = ReadUpcomingGuideSpells(advice)
+    end
+    -- Rank and price for new spells, then the new ranks of known spells.
+    if Mentor.Training and Mentor.Training.HasTrainerList() then
+        local knownRanks = Mentor.Training.ReadKnownRanks()
+        for _, entry in ipairs(entries) do
+            AddRankAndPrice(entry, Mentor.Training.GetNextRankInfo(entry.name, knownRanks))
+        end
+        -- Each spell once: a spell already in the list keeps its row.
+        local listedSpellNames = {}
+        for _, entry in ipairs(entries) do
+            listedSpellNames[entry.name:lower()] = true
+        end
+        for _, rankUpEntry in ipairs(ReadRankUps(advice)) do
+            if not listedSpellNames[rankUpEntry.name:lower()] then
+                listedSpellNames[rankUpEntry.name:lower()] = true
+                table.insert(entries, rankUpEntry)
+            end
+        end
     end
     for _, talentEntry in ipairs(ReadUpcomingTalents(advice)) do
         table.insert(entries, talentEntry)
@@ -506,6 +560,12 @@ local function FillRow(row, entry)
     row.tagText:SetText(entry.kind == "journey" and (entry.tag or "") or tagByKind[entry.kind] or "")
 
     local descriptionText = entry.description or GetSpellDescription(entry.spellId) or ""
+    -- New ranks: the rank and price say it all. New spells: price first.
+    if entry.isRankUp then
+        descriptionText = entry.priceLine or ""
+    elseif entry.priceLine then
+        descriptionText = entry.priceLine .. "  " .. descriptionText
+    end
     if entry.kind == "macro" and not entry.isReady then
         descriptionText = MUTED_TEXT .. "Needs " .. table.concat(entry.missingSpells, " / ") .. " (you learn it later).|r"
     end
@@ -641,6 +701,28 @@ function extrasUI.GetSelectedTab()
     return MentorDB and MentorDB.extrasTab or "spells"
 end
 
+-- The line under the Spells title: what training costs right now, or how to
+-- get the prices.
+local function GetSpellsHint(advice, entries)
+    local legend = MUTED_TEXT .. "Number = level. " .. GOLD_TEXT .. "Gold|r" .. MUTED_TEXT .. " = from your talent build.|r "
+    if not (Mentor.Training and Mentor.Training.HasTrainerList()) then
+        return legend .. MUTED_TEXT .. "Open your class trainer once and Mentor shows the rank and price of everything.|r"
+    end
+    local totalCost = 0
+    for _, entry in ipairs(entries) do
+        if entry.kind == "train" and entry.cost then
+            totalCost = totalCost + entry.cost
+        end
+    end
+    local trainerName = Mentor.Training.GetTrainerName()
+    local priceSource = MUTED_TEXT .. "Prices from " .. (trainerName or "your trainer")
+        .. " with your reputation discount (better reputation = cheaper).|r"
+    if totalCost > 0 then
+        return "Train now for " .. Mentor.FormatMoneyWithIcons(totalCost) .. ". " .. priceSource
+    end
+    return legend .. priceSource
+end
+
 function extrasUI.Refresh(advice)
     if not panel or not panel:IsShown() or not advice then
         return
@@ -686,8 +768,7 @@ function extrasUI.Refresh(advice)
         local usedSpellbook
         entries, usedSpellbook = GetComingUpEntries(advice)
         panel.title:SetText("New buttons as you level")
-        panel.hint:SetText(MUTED_TEXT .. "Number = level. " .. GOLD_TEXT .. "Gold|r" .. MUTED_TEXT
-            .. " = from your talent build. Visit your class trainer for the rest.|r")
+        panel.hint:SetText(GetSpellsHint(advice, entries))
         emptyMessage = "Nothing new coming up - you have it all!"
     end
 

@@ -20,6 +20,7 @@ Guides.lua
 GuidesForever.lua
 GuideUI.lua
 Extras.lua
+Training.lua
 ExtrasUI.lua
 SellAdvice.lua
 InfoPanel.lua
