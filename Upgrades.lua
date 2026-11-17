@@ -160,6 +160,105 @@ function upgrades.FindDungeonUpgrades()
 end
 
 --------------------------------------------------------------------------------
+-- Vendors: weapons and armor you can simply buy (VendorGear.lua)
+--------------------------------------------------------------------------------
+local MAX_VENDOR_ITEMS_SHOWN = 4
+local UNCOMMON_QUALITY = 2
+
+local function GetItemQuality(itemId)
+    if C_Item and C_Item.GetItemQualityByID then
+        local isSuccess, quality = pcall(C_Item.GetItemQualityByID, itemId)
+        if isSuccess and quality then
+            return quality
+        end
+    end
+    local getItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+    local isSuccess, _, _, quality = pcall(getItemInfo, itemId)
+    return isSuccess and quality or nil
+end
+
+-- The vendors of an item that are friendly to you, nearest-looking first
+-- (a vendor in a zone you are in comes first).
+local function GetFriendlyVendors(vendorIds)
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    local factionLetter = playerFaction == "Alliance" and "A" or playerFaction == "Horde" and "H" or nil
+    local friendlyVendors = {}
+    for _, vendorId in ipairs(vendorIds) do
+        local vendor = Mentor.GEAR_VENDORS and Mentor.GEAR_VENDORS[vendorId]
+        if vendor and factionLetter and vendor[2]:find(factionLetter, 1, true) then
+            table.insert(friendlyVendors, vendor)
+        end
+    end
+    local currentZone = GetRealZoneText and GetRealZoneText()
+    table.sort(friendlyVendors, function(first, second)
+        local isFirstHere = Mentor.VENDOR_ZONE_NAMES[first[3]] == currentZone
+        local isSecondHere = Mentor.VENDOR_ZONE_NAMES[second[3]] == currentZone
+        if isFirstHere ~= isSecondHere then
+            return isFirstHere
+        end
+        return first[1] < second[1]
+    end)
+    return friendlyVendors
+end
+
+-- "Aldren Cordon in Loch Modan (65, 66)"
+function upgrades.FormatVendor(vendor)
+    local zoneName = Mentor.VENDOR_ZONE_NAMES[vendor[3]] or "?"
+    return string.format("%s in %s (%d, %d)", vendor[1], zoneName, math.floor(vendor[4] + 0.5), math.floor(vendor[5] + 0.5))
+end
+
+-- Uncommon or better weapons and armor that a friendly vendor sells and that
+-- are better than what you wear: { { itemLink, result, gain, vendors } },
+-- best first, one per slot.
+function upgrades.FindVendorUpgrades()
+    local advice = Mentor.currentAdvice
+    if not (advice and advice.specData and advice.specData.weights and Mentor.CompareItem and Mentor.VENDOR_GEAR) then
+        return {}, false
+    end
+    local playerLevel = UnitLevel("player") or 1
+    local isStillLoading = false
+    local vendorUpgrades = {}
+    for itemId, vendorEntry in pairs(Mentor.VENDOR_GEAR) do
+        local requiredLevel = vendorEntry[1]
+        if requiredLevel <= playerLevel + LEVELS_ABOVE_SHOWN and requiredLevel >= playerLevel - 15 then
+            local vendorIds = { select(2, unpack(vendorEntry)) }
+            local friendlyVendors = GetFriendlyVendors(vendorIds)
+            local quality = #friendlyVendors > 0 and GetItemQuality(itemId)
+            if quality and quality >= UNCOMMON_QUALITY then
+                local itemLink = GetItemLinkById(itemId)
+                if not itemLink then
+                    isStillLoading = true
+                else
+                    local isSuccess, result = pcall(Mentor.CompareItem, itemLink, advice.specData.weights)
+                    if isSuccess and result then
+                        if result.kind == "loading" then
+                            isStillLoading = true
+                        elseif result.kind == "upgrade" or result.kind == "empty" then
+                            local gain = result.kind == "empty" and 100 or (result.overallPercent or result.percent or 0)
+                            table.insert(vendorUpgrades, { itemLink = itemLink, result = result, gain = gain,
+                                vendors = friendlyVendors, boss = "" })
+                        end
+                    end
+                end
+            elseif #friendlyVendors > 0 and quality == nil then
+                isStillLoading = true
+                GetItemLinkById(itemId)  -- asks the game to load it
+            end
+        end
+    end
+    table.sort(vendorUpgrades, function(first, second) return first.gain > second.gain end)
+    local bestPerSlot, usedSlots = {}, {}
+    for _, upgrade in ipairs(vendorUpgrades) do
+        local slotKey = upgrade.result.replacedSlot or upgrade.itemLink
+        if not usedSlots[slotKey] and #bestPerSlot < MAX_VENDOR_ITEMS_SHOWN then
+            usedSlots[slotKey] = true
+            table.insert(bestPerSlot, upgrade)
+        end
+    end
+    return bestPerSlot, isStillLoading
+end
+
+--------------------------------------------------------------------------------
 -- The window
 --------------------------------------------------------------------------------
 local window
@@ -189,7 +288,12 @@ local function CreateItemRow()
             pcall(GameTooltip.SetHyperlink, GameTooltip, self.itemLink)
             GameTooltip:AddLine(" ")
             local sourceText
-            if self.questName then
+            if self.vendors then
+                sourceText = "Sold by " .. upgrades.FormatVendor(self.vendors[1])
+                for vendorIndex = 2, math.min(4, #self.vendors) do
+                    GameTooltip:AddLine("|cff66ccffMentor:|r Also: " .. upgrades.FormatVendor(self.vendors[vendorIndex]), 0.85, 0.85, 0.85, true)
+                end
+            elseif self.questName then
                 sourceText = "Reward from the quest \"" .. self.questName .. "\""
             elseif self.bossName and self.bossName ~= "" then
                 sourceText = "Drops from " .. self.bossName
@@ -270,6 +374,11 @@ local function GetDungeonHeader(headerIndex)
             if not self.dungeonResult then return end
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:AddLine(self.dungeonResult.name)
+            if self.dungeonResult.isVendorSection then
+                GameTooltip:AddLine("Gear you can buy with gold. Hover an item to see who sells it and where.", 1, 1, 1, true)
+                GameTooltip:Show()
+                return
+            end
             GameTooltip:AddLine(string.format("Level %d-%d", self.dungeonResult.minLevel, self.dungeonResult.maxLevel), 1, 1, 1)
             if self.dungeonResult.place then
                 GameTooltip:AddLine(self.dungeonResult.place, 1, 1, 1, true)
@@ -305,9 +414,19 @@ function upgrades.Refresh()
     end
     local advice = Mentor.currentAdvice
     local specName = advice and advice.specData and advice.specData.name or "your spec"
-    window.subtitle:SetText(string.format("Dungeons for level %d with gear better than yours for |cffffffff%s|r, best first.",
+    window.subtitle:SetText(string.format("Dungeons and vendors for level %d with gear better than yours for |cffffffff%s|r, best first.",
         UnitLevel("player") or 1, specName))
     local dungeonResults, isStillLoading = upgrades.FindDungeonUpgrades()
+    local shownResults = {}
+    for dungeonIndex = 1, math.min(MAX_DUNGEONS_SHOWN, #dungeonResults) do
+        table.insert(shownResults, dungeonResults[dungeonIndex])
+    end
+    -- Gear from vendors comes last, as its own section.
+    local vendorUpgrades, isVendorStillLoading = upgrades.FindVendorUpgrades()
+    isStillLoading = isStillLoading or isVendorStillLoading
+    if #vendorUpgrades > 0 then
+        table.insert(shownResults, { name = "From vendors", isVendorSection = true, upgrades = vendorUpgrades })
+    end
 
     for _, header in ipairs(dungeonHeaders) do
         header:Hide()
@@ -317,22 +436,26 @@ function upgrades.Refresh()
     end
     local verticalOffset = -PADDING - 24 - (window.subtitle:GetStringHeight() or 24) - 8
     local usedRows = 0
-    for dungeonIndex = 1, math.min(MAX_DUNGEONS_SHOWN, #dungeonResults) do
-        local dungeonResult = dungeonResults[dungeonIndex]
+    for dungeonIndex, dungeonResult in ipairs(shownResults) do
         local header = GetDungeonHeader(dungeonIndex)
         header.dungeonResult = dungeonResult
         header.nameText:SetText(dungeonResult.name)
-        header.levelText:SetText(string.format("level %d-%d  |  %s", dungeonResult.minLevel, dungeonResult.maxLevel, dungeonResult.place or ""))
+        if dungeonResult.isVendorSection then
+            header.levelText:SetText("buy with gold  |  hover an item to see where")
+        else
+            header.levelText:SetText(string.format("level %d-%d  |  %s", dungeonResult.minLevel, dungeonResult.maxLevel, dungeonResult.place or ""))
+        end
         header:ClearAllPoints()
         header:SetPoint("TOPLEFT", PADDING, verticalOffset)
         header:Show()
         verticalOffset = verticalOffset - DUNGEON_HEADER_HEIGHT - 2
-        for itemIndex = 1, math.min(MAX_ITEMS_PER_DUNGEON, #dungeonResult.upgrades) do
+        local itemLimit = dungeonResult.isVendorSection and MAX_VENDOR_ITEMS_SHOWN or MAX_ITEMS_PER_DUNGEON
+        for itemIndex = 1, math.min(itemLimit, #dungeonResult.upgrades) do
             local upgrade = dungeonResult.upgrades[itemIndex]
             usedRows = usedRows + 1
             local row = itemRows[usedRows] or CreateItemRow()
             itemRows[usedRows] = row
-            row.itemLink, row.bossName, row.questName = upgrade.itemLink, upgrade.boss, upgrade.questName
+            row.itemLink, row.bossName, row.questName, row.vendors = upgrade.itemLink, upgrade.boss, upgrade.questName, upgrade.vendors
             local itemIcon = (C_Item and C_Item.GetItemIconByID and C_Item.GetItemIconByID(upgrade.itemLink))
                 or (GetItemIcon and GetItemIcon(upgrade.itemLink)) or 134400
             row.icon:SetTexture(itemIcon)
@@ -347,9 +470,9 @@ function upgrades.Refresh()
         end
         verticalOffset = verticalOffset - 6
     end
-    if #dungeonResults == 0 then
+    if #shownResults == 0 then
         window.emptyText:SetText(isStillLoading and "|cffa6a6a6Loading items...|r"
-            or "|cffa6a6a6No dungeon for your level drops an upgrade for you right now - your gear is good for your level!|r")
+            or "|cffa6a6a6No dungeon or vendor has an upgrade for you right now - your gear is good for your level!|r")
         window.emptyText:ClearAllPoints()
         window.emptyText:SetPoint("TOPLEFT", PADDING, verticalOffset)
         window.emptyText:Show()

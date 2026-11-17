@@ -35,6 +35,7 @@ Professions.lua
 Journey.lua
 DungeonLoot.lua
 DungeonQuests.lua
+VendorGear.lua
 Upgrades.lua
 Weapons.lua
 Glossary.lua
