@@ -208,12 +208,20 @@ function journey.GetEntries(advice)
     local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
     local entries = {}
 
-    -- Professions that need a trainer come first.
+    -- Your professions: a trainer first when the skill is stuck at its cap,
+    -- otherwise what to craft or gather to level up (Professions.lua).
     for _, profession in ipairs(journey.GetPlayerProfessions()) do
         local trainerHint = journey.GetProfessionTrainerHint(profession, playerLevel)
+        local professionTitle = profession.name .. " " .. profession.skill .. "/" .. profession.maximum
         if trainerHint then
-            table.insert(entries, { kind = "journey", name = profession.name .. " " .. profession.skill .. "/" .. profession.maximum,
+            table.insert(entries, { kind = "journey", name = professionTitle,
                 icon = PROFESSION_ICONS[profession.name], levelText = "", tag = "|cffff9933Trainer|r", description = trainerHint })
+        else
+            local levelingText = Mentor.Professions and Mentor.Professions.GetJourneyText(profession.name, profession.skill)
+            if levelingText then
+                table.insert(entries, { kind = "journey", name = professionTitle,
+                    icon = PROFESSION_ICONS[profession.name], levelText = "", tag = "|cff40ff40Level up|r", description = levelingText })
+            end
         end
     end
 

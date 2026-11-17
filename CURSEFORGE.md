@@ -37,6 +37,10 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 - **Mana warning** (`/mentor mana on`) - a small box with your mana and a big LOW MANA / OUT OF MANA warning with a sound, and optionally a message to your group. Set the levels with `/mentor mana low 30` and `/mentor mana critical 10`.
 - **One-key fishing** (`/mentor fishing on`) - press one key to cast Fishing and the same key to reel in. Auto loot is on and the sound is turned up while you fish, and your settings come back when you stop.
 
+## Professions
+- Next to the profession window: **what to craft to level up** (Wowhead's WoW Forever leveling guides) and **which of your recipes make you an upgrade**.
+- The Journey tab shows what to craft or gather for each of your professions.
+
 ## How to play
 - Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for every spec, including Feral Tank.
 - The advice changes as you learn new abilities.
@@ -59,6 +63,7 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor journey` - zones, dungeons and professions for your level
 - `/mentor weapons` - weapon skills and weapon masters
 - `/mentor words` - what the words in group chat mean
+- `/mentor version` - which Mentor version you have
 - `/mentor procs test` - show an example proc alert
 - `/mentor tour` - the short tour again
 - `/mentor bug` - report a bug

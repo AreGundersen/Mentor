@@ -29,6 +29,7 @@ Fishing.lua
 LifeLog.lua
 LifeLogGraph.lua
 ManaWarning.lua
+Professions.lua
 Journey.lua
 Weapons.lua
 Glossary.lua

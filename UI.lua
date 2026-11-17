@@ -102,6 +102,7 @@ local DEFAULT_SETTINGS = {
     areMobWarningsEnabled = true,      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
     isMobKillCountEnabled = true,      -- "You have killed 23" in mob tooltips (Reminders.lua, needs Life log)
     areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)
+    isProfessionHelpEnabled = true,    -- what to craft to level, and craftable upgrades (Professions.lua)
     areProcIconsEnabled = true,        -- big icon above your character when something procs (Procs.lua)
     areProcGlowsEnabled = true,        -- gold glow on the action bar button to press (Procs.lua)
     isTourDone = false,                -- first-time tour (Tour.lua)
@@ -166,6 +167,16 @@ end
 --------------------------------------------------------------------------------
 -- Shared helpers
 --------------------------------------------------------------------------------
+-- Mentor's version from Mentor.toc ("1.13.0", or "1.13.0+dev" for a test build).
+function Mentor.GetVersion()
+    local getMetadata = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    if not getMetadata then
+        return "?"
+    end
+    local success, version = pcall(getMetadata, "Mentor", "Version")
+    return (success and version) or "?"
+end
+
 function Mentor.Print(text)
     DEFAULT_CHAT_FRAME:AddMessage(BRAND_TEXT .. "Mentor:|r " .. text)
 end
@@ -420,6 +431,10 @@ local function BuildMainWindow()
     widgets.subtitle:SetPoint("TOPLEFT", widgets.className, "BOTTOMLEFT", 0, -3)
     local closeButton = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", -2, -2)
+    -- Mentor's version, small and grey, left of the close button.
+    widgets.versionText = CreateText(mainFrame, "GameFontDisableSmall")
+    widgets.versionText:SetPoint("RIGHT", closeButton, "LEFT", 0, 0)
+    widgets.versionText:SetText("v" .. Mentor.GetVersion())
     closeButton:SetScript("OnClick", function()
         MentorDB.isShown = false
         mainFrame:Hide()
@@ -790,6 +805,9 @@ function Mentor.OnSettingChanged(settingName)
     if Mentor.Procs then
         pcall(Mentor.Procs.Update)
     end
+    if Mentor.Professions then
+        pcall(Mentor.Professions.RefreshPanel)
+    end
     if Mentor.Fishing and not InCombatLockdown() then
         Mentor.Fishing.UpdateVisibility()
     end
@@ -832,6 +850,7 @@ local SETTINGS_SECTIONS = {
         { "isLevelPaceEnabled",       "Level pace",    "XP / hour, time and kills to level" },
         { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in" },
         { "isLifeLogEnabled",         "Life log",      "Your character's story (/mentor log)" },
+        { "isProfessionHelpEnabled",  "Profession help", "What to craft to level up, and recipes that make you an upgrade" },
     } },
     { column = 2, title = "Mana warning", rows = {
         { "isManaWarningEnabled",     "Mana warning",  "Big LOW MANA warning (/mentor mana low 30)" },
@@ -876,7 +895,7 @@ local function BuildSettingsPanel()
     logo:SetPoint("TOPLEFT", PADDING - 2, -PADDING + 3)
     local title = CreateText(settingsPanel, "GameFontNormalLarge")
     title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
-    title:SetText("Mentor settings")
+    title:SetText("Mentor settings  |cff808080v" .. Mentor.GetVersion() .. "|r")
     local closeButton = CreateFrame("Button", nil, settingsPanel, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", -2, -2)
     closeButton:SetScript("OnClick", function() settingsPanel:Hide() end)
@@ -1465,6 +1484,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.Tour.Start()
     elseif command == "log" then
         Mentor.LifeLog.HandleCommand(argument)
+    elseif command == "version" then
+        Mentor.Print("Mentor version " .. Mentor.GetVersion() .. ".")
     elseif command == "procs" or command == "proc" then
         Mentor.Procs.HandleCommand(argument)
     elseif command == "fish" then

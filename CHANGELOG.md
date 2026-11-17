@@ -6,6 +6,12 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- **New: Profession help** ("Profession help" under Extra tools, on by default):
+  - A Mentor panel next to the profession window: **what to craft to level up** (from Wowhead's WoW Forever leveling guides) - the recipe coloured by its skill-up chance, about how many to craft and to which skill, and the next step. Tells you when you don't know the recipe yet or when it has gone grey.
+  - **Upgrades you can make**: your known recipes that make an upgrade for the spec you play, best first (yellow with the level when you can't wear it yet). Hover for the item, click to open the recipe.
+  - The Journey tab shows each of your professions with what to craft - or for Mining, Herbalism and Skinning, what to gather and where.
+- **Mentor's version** is shown in the Mentor window (top right), in Settings, and with `/mentor version`.
+
 - **Fixed (#6): a proc icon could get stuck** on screen after its time ran out, with a flickering timer. The timer no longer restarts every update, procs whose time is up always go away, and a spell with no listed cost (for example in a form) no longer counts as Clearcasting.
 - **Fixed (#5): the gold frame on loot rolls** now sits around the dice / coin picture itself, not the button's (sometimes larger) click area.
 
