@@ -625,6 +625,10 @@ function extrasUI.Toggle(tabKey)
     if tabKey then
         MentorDB.extrasTab = tabKey
     end
+    -- "Where to get upgrades" opens in the same spot: close it.
+    if MentorUpgradesWindow then
+        MentorUpgradesWindow:Hide()
+    end
     panel:Show()
     extrasUI.Refresh(Mentor.currentAdvice)
     return true

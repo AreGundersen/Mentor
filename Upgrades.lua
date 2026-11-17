@@ -158,16 +158,19 @@ local function CreateItemRow()
 end
 
 local function CreateWindow()
-    window = CreateFrame("Frame", "MentorUpgradesWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    -- Docked to the Mentor window like its other side panels (settings, build,
+    -- extras): it moves with the window, opens on the side with room, and
+    -- closes when the Mentor window closes.
+    local mentorWindow = _G.MentorFrame
+    window = CreateFrame("Frame", "MentorUpgradesWindow", mentorWindow or UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     window:SetWidth(WINDOW_WIDTH)
-    window:SetFrameStrata("DIALOG")
-    window:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
-    window:SetMovable(true)
     window:EnableMouse(true)
-    window:RegisterForDrag("LeftButton")
-    window:SetClampedToScreen(true)
-    window:SetScript("OnDragStart", window.StartMoving)
-    window:SetScript("OnDragStop", window.StopMovingOrSizing)
+    if mentorWindow and Mentor.RegisterSidePanel then
+        window:SetHeight(100)  -- real height is set in Refresh
+        Mentor.RegisterSidePanel(window, false)
+    else
+        window:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
+    end
     if window.SetBackdrop then
         window:SetBackdrop(WINDOW_BACKDROP)
         window:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
@@ -317,9 +320,30 @@ function upgrades.Toggle()
     end
     if window:IsShown() then
         window:Hide()
-    else
-        window:Show()
-        upgrades.Refresh()
+        return
+    end
+    -- Opened by command while the Mentor window is closed: open it too, since
+    -- this panel sits beside it.
+    local mentorWindow = _G.MentorFrame
+    if mentorWindow and not mentorWindow:IsShown() then
+        mentorWindow:Show()
+    end
+    -- The Extras and Settings panels open in the same spot: close them so
+    -- the panels don't stack on top of each other.
+    for _, otherPanelName in ipairs({ "MentorExtrasPanel", "MentorSettingsPanel" }) do
+        local otherPanel = _G[otherPanelName]
+        if otherPanel and otherPanel:IsShown() then
+            otherPanel:Hide()
+        end
+    end
+    -- Above the build panel, which can also be open on this side.
+    if mentorWindow and mentorWindow.GetFrameLevel then
+        window:SetFrameLevel((mentorWindow:GetFrameLevel() or 1) + 20)
+    end
+    window:Show()
+    upgrades.Refresh()
+    if Mentor.PlaceSidePanels then
+        Mentor.PlaceSidePanels()
     end
 end
 

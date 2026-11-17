@@ -1040,6 +1040,10 @@ function Mentor.ToggleSettings()
     end
     UpdateDependentSettings()
     settingsPanel:SetShown(not settingsPanel:IsShown())
+    -- "Where to get upgrades" opens in the same spot: close it.
+    if settingsPanel:IsShown() and MentorUpgradesWindow then
+        MentorUpgradesWindow:Hide()
+    end
 end
 
 function Mentor.ToggleWindow()
