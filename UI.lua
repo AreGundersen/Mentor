@@ -823,7 +823,7 @@ local SETTINGS_SECTIONS = {
     { column = 1, title = "Talents & play", rows = {
         { "isTalentHighlightEnabled", "Talent window", "Mark the next talent and plan the next points" },
         { "isRotationBarShown",       "Rotation bar",  "Your rotation as icons, grows as you learn spells" },
-        { "areProcIconsEnabled",      "Proc icon",     "Big icon under your character when something procs (/mentor procs move to place it)" },
+        { "areProcIconsEnabled",      "Proc icon",     "Big icon under you when something procs (/mentor procs move)" },
         { "areProcGlowsEnabled",      "Proc glow",     "Gold glow on the action bar button to press" },
     } },
     { column = 1, title = "Gear & loot", rows = {
@@ -851,8 +851,8 @@ local SETTINGS_SECTIONS = {
         { "isLevelPaceEnabled",       "Level pace",    "XP / hour, time and kills to level" },
         { "isFishingEnabled",         "One-key fishing", "One key casts Fishing and reels in" },
         { "isLifeLogEnabled",         "Life log",      "Your character's story (/mentor log)" },
-        { "isProfessionLevelingShown", "Profession leveling", "What to craft to level up, where to get the recipe, and the trainers" },
-        { "areCraftableUpgradesEnabled", "Craftable upgrades", "Your recipes that make you an upgrade, next to the profession window" },
+        { "isProfessionLevelingShown", "Profession leveling", "What to craft to level up, recipes and trainers" },
+        { "areCraftableUpgradesEnabled", "Craftable upgrades", "Recipes you know that make you an upgrade" },
     } },
     { column = 2, title = "Mana warning", rows = {
         { "isManaWarningEnabled",     "Mana warning",  "Big LOW MANA warning (/mentor mana low 30)" },
@@ -944,7 +944,14 @@ local function BuildSettingsPanel()
             if rowInfo.dependsOn then
                 table.insert(settingsDependentRows, { checkbox = checkbox, labelText = labelText, dependsOn = rowInfo.dependsOn })
             end
-            verticalOffset = verticalOffset + SETTINGS_ROW_HEIGHT
+            -- A description that wraps onto a third line makes its row taller,
+            -- so it never runs into the row below.
+            -- (The normal row fits a label and two lines of description.)
+            local descriptionHeight = descriptionText:GetStringHeight() or 0
+            local _, descriptionFontSize = descriptionText:GetFont()
+            local lineHeight = (descriptionFontSize or 10) + 1
+            local extraHeight = math.max(0, descriptionHeight - 2 * lineHeight)
+            verticalOffset = verticalOffset + SETTINGS_ROW_HEIGHT + math.ceil(extraHeight)
         end
         columnOffsets[section.column] = verticalOffset + 6
     end

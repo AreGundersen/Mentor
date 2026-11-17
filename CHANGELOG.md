@@ -6,6 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- Settings: a description that wraps onto a third line makes its row taller, so rows no longer overlap (Proc icon, Craftable upgrades); some descriptions are shorter.
 - **Profession leveling: when you don't have the recipe**, the panel now says where to get it - your trainer, or the vendor that sells it for your faction with the place (from Wowhead's "Learned from" column), or the special trainer / questline - and suggests a recipe you already know that still gives skill (orange first, then yellow) to craft meanwhile. The same suggestion shows when the guide's recipe has gone grey.
 - **Profession leveling is now on by default.**
 - Trainers: Leatherworking and Blacksmithing trainers added (from their Wowhead WoW Forever NPC pages), including the Artisan ones: Drakk Stonehand (Aerie Peak) and Hahrana Ironhide (Camp Mojache) for Leatherworking, Brikk Keencraft (Booty Bay) for Blacksmithing.
