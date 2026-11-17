@@ -6,6 +6,7 @@ number is only given when Are decides the release is finished (see
 
 ## Unreleased
 
+- The tabs in the Spells / Racials / Macros / Journey / Weapons / Words panel get widths that fit their names, so "Weapons" is no longer squeezed.
 - **Rings and trinkets** are compared with both of the ones you wear: the tooltip shows a line per worn ring / trinket ("vs Ring A: +12% (swap this one)", "vs Ring B: -3%"). Mentor's verdict is against the weaker one, the one to swap. Trinkets whose only effect is on-use say "no stats Mentor can rate".
 
 ## 1.15.0 - 2026-11-17

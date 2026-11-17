@@ -41,6 +41,8 @@ local PANEL_BACKDROP = {
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
 }
 
+local TAB_TEXT_ROOM = 12          -- space around a tab's label
+
 local TABS = {
     { key = "spells",  label = "Spells" },
     { key = "racials", label = "Racials" },
@@ -551,11 +553,25 @@ function extrasUI.Build(mainFrame)
     panel.title = CreateText(panel, "GameFontNormal", PANEL_WIDTH - PADDING * 2)
     panel.title:SetPoint("TOPLEFT", PADDING, -PADDING - 4)
 
-    local tabWidth = (PANEL_WIDTH - PADDING * 2 - TAB_GAP * (#TABS - 1)) / #TABS
+    -- Tab widths follow their labels ("Weapons" is wider than "Words"): each
+    -- tab gets its label's width plus room, and the row is scaled to fit.
+    local rowWidth = PANEL_WIDTH - PADDING * 2 - TAB_GAP * (#TABS - 1)
+    local measuringText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    local wantedWidths, totalWantedWidth = {}, 0
     for tabIndex, tab in ipairs(TABS) do
+        measuringText:SetText(tab.label)
+        wantedWidths[tabIndex] = (measuringText:GetStringWidth() or 40) + TAB_TEXT_ROOM
+        totalWantedWidth = totalWantedWidth + wantedWidths[tabIndex]
+    end
+    measuringText:Hide()
+    local widthScale = rowWidth / math.max(totalWantedWidth, 1)
+    local tabLeft = PADDING
+    for tabIndex, tab in ipairs(TABS) do
+        local tabWidth = math.floor(wantedWidths[tabIndex] * widthScale)
         local tabButton = CreateFrame("Button", nil, panel, BACKDROP_TEMPLATE)
         tabButton:SetSize(tabWidth, TAB_HEIGHT)
-        tabButton:SetPoint("TOPLEFT", PADDING + (tabIndex - 1) * (tabWidth + TAB_GAP), -PADDING - 26)
+        tabButton:SetPoint("TOPLEFT", tabLeft, -PADDING - 26)
+        tabLeft = tabLeft + tabWidth + TAB_GAP
         if tabButton.SetBackdrop then
             tabButton:SetBackdrop(Mentor.BOX_BACKDROP)
         end
