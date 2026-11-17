@@ -47,6 +47,7 @@ local ADDON_NAME, Mentor = ...
 --------------------------------------------------------------------------------
 local WINDOW_WIDTH            = 320
 local PADDING                 = 12
+local VERSION_LINE_HEIGHT     = 8       -- extra room at the bottom for the version text
 local CONTENT_WIDTH           = WINDOW_WIDTH - PADDING * 2
 local HEADER_HEIGHT           = 54
 local SPEC_BUTTON_HEIGHT      = 54
@@ -432,9 +433,10 @@ local function BuildMainWindow()
     widgets.subtitle:SetPoint("TOPLEFT", widgets.className, "BOTTOMLEFT", 0, -3)
     local closeButton = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", -2, -2)
-    -- Mentor's version, small and grey, left of the close button.
+    -- Mentor's version, small and grey, in the bottom right corner (the
+    -- header has no room: the Life log / Settings buttons sit there).
     widgets.versionText = CreateText(mainFrame, "GameFontDisableSmall")
-    widgets.versionText:SetPoint("RIGHT", closeButton, "LEFT", 0, 0)
+    widgets.versionText:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -8, 5)
     widgets.versionText:SetText("v" .. Mentor.GetVersion())
     closeButton:SetScript("OnClick", function()
         MentorDB.isShown = false
@@ -769,7 +771,7 @@ local function LayoutLowerSection(advice, visibleUpgradeRows)
 
     local lowerHeight = -cursorY
     lowerFrame:SetHeight(lowerHeight)
-    mainFrame:SetSize(WINDOW_WIDTH, -lowerTop + lowerHeight + PADDING - TIP_GAP)
+    mainFrame:SetSize(WINDOW_WIDTH, -lowerTop + lowerHeight + PADDING - TIP_GAP + VERSION_LINE_HEIGHT)
 end
 
 --------------------------------------------------------------------------------
