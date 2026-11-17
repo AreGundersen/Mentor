@@ -211,7 +211,81 @@ local function ReadUpcomingTalents(advice)
     return upcoming
 end
 
-local KIND_ORDER = { train = 1, talentNow = 2, talent = 3, spell = 3 }
+local KIND_ORDER = { train = 1, talentNow = 2, trainOptional = 3, talent = 4, spell = 4 }
+
+--------------------------------------------------------------------------------
+-- Which spells to train: the ones your spec uses. A spell is recommended
+-- when the "How to play" guide for your spec names it (in its spell list or
+-- its tips), when it is one of the class' everyday spells below, or when you
+-- already have it on an action bar. The rest is "Optional": fine to skip
+-- when gold is short.
+--------------------------------------------------------------------------------
+-- Spells every spec of a class should keep up to date, even when the guide
+-- doesn't name them: buffs, armor, conjures, heals, interrupts, resurrection.
+local ESSENTIAL_SPELLS_BY_CLASS = {
+    WARRIOR = { "Battle Shout", "Heroic Strike", "Execute", "Bloodrage", "Charge", "Pummel", "Shield Bash" },
+    PALADIN = { "Blessing of Might", "Blessing of Wisdom", "Seal of Righteousness", "Judgement", "Holy Light",
+        "Flash of Light", "Devotion Aura", "Retribution Aura", "Divine Protection", "Divine Shield",
+        "Lay on Hands", "Hammer of Justice", "Redemption", "Purify", "Cleanse" },
+    HUNTER = { "Aspect of the Hawk", "Aspect of the Monkey", "Aspect of the Cheetah", "Hunter's Mark",
+        "Serpent Sting", "Arcane Shot", "Multi-Shot", "Raptor Strike", "Wing Clip", "Mend Pet",
+        "Revive Pet", "Feign Death", "Concussive Shot" },
+    ROGUE = { "Sinister Strike", "Eviscerate", "Slice and Dice", "Kick", "Sprint", "Evasion", "Vanish",
+        "Gouge", "Stealth", "Sap" },
+    PRIEST = { "Power Word: Fortitude", "Power Word: Shield", "Renew", "Lesser Heal", "Heal", "Flash Heal",
+        "Greater Heal", "Inner Fire", "Resurrection", "Fade", "Dispel Magic", "Psychic Scream",
+        "Shadow Word: Pain" },
+    SHAMAN = { "Lightning Shield", "Healing Wave", "Lesser Healing Wave", "Lightning Bolt", "Earth Shock",
+        "Flame Shock", "Rockbiter Weapon", "Flametongue Weapon", "Windfury Weapon", "Ghost Wolf",
+        "Ancestral Spirit", "Strength of Earth Totem", "Purge" },
+    MAGE = { "Arcane Intellect", "Conjure Water", "Conjure Food", "Frost Armor", "Ice Armor", "Mage Armor",
+        "Counterspell", "Polymorph", "Frost Nova", "Blink", "Evocation", "Fire Blast", "Remove Lesser Curse" },
+    WARLOCK = { "Demon Skin", "Demon Armor", "Life Tap", "Health Funnel", "Create Healthstone",
+        "Create Soulstone", "Fear", "Drain Soul", "Corruption", "Curse of Agony", "Shadow Bolt",
+        "Summon Imp", "Summon Voidwalker" },
+    DRUID = { "Mark of the Wild", "Thorns", "Rejuvenation", "Healing Touch", "Regrowth", "Rebirth",
+        "Moonfire", "Remove Curse", "Abolish Poison" },
+}
+
+local function BuildRecommendationCheck(advice)
+    local guideSpellNames, guideTextParts = {}, {}
+    for _, spellName in ipairs(ESSENTIAL_SPELLS_BY_CLASS[advice.classFileName] or {}) do
+        guideSpellNames[spellName:lower()] = true
+    end
+    for _, situation in ipairs(Mentor.GUIDE_SITUATIONS or {}) do
+        local section = Mentor.GetGuideSection and Mentor.GetGuideSection(advice.classFileName, advice.specNumber, situation.key)
+        -- Guide spells are names, or tables like { "Spell", later = true }.
+        for _, spellEntry in ipairs(section and section.spells or {}) do
+            local spellName = type(spellEntry) == "table" and (spellEntry.name or spellEntry[1]) or spellEntry
+            if type(spellName) == "string" then
+                guideSpellNames[spellName:lower()] = true
+            end
+        end
+        -- Tips are text, or { "text", needs = "Spell" } for tips about one spell.
+        for _, guideLine in ipairs(section and section.lines or {}) do
+            local lineText = type(guideLine) == "table" and guideLine[1] or guideLine
+            if type(lineText) == "string" then
+                table.insert(guideTextParts, lineText:lower())
+            end
+            if type(guideLine) == "table" and type(guideLine.needs) == "string" then
+                guideSpellNames[guideLine.needs:lower()] = true
+            end
+        end
+    end
+    local guideText = table.concat(guideTextParts, " ")
+    return function(entry)
+        local nameKey = entry.name and entry.name:lower()
+        if not nameKey then
+            return false
+        end
+        if guideSpellNames[nameKey] or guideText:find(nameKey, 1, true) then
+            return true
+        end
+        local actionButtons = entry.spellId and C_ActionBar and C_ActionBar.FindSpellActionButtons
+            and SafeCall(C_ActionBar.FindSpellActionButtons, entry.spellId)
+        return type(actionButtons) == "table" and #actionButtons > 0
+    end
+end
 
 -- Trainer spells for your class from Mentor.TRAINER_SPELLS that you do not
 -- know yet. Spells whose level you have reached are "Train now!".
@@ -231,16 +305,13 @@ local function ReadUpcomingTrainerSpells(advice)
     return upcoming
 end
 
--- Adds rank and price (from the last class trainer you opened) to the
--- description of a spell row: "Rank 4 - 1g 20s".
+-- Adds rank and price (from the last class trainer you opened) to a spell
+-- row: the rank goes after the name, the price on the right.
 local function AddRankAndPrice(entry, rankInfo)
     if not rankInfo then
         return
     end
-    local priceText = Mentor.FormatMoneyWithIcons and Mentor.FormatMoneyWithIcons(rankInfo.cost) or ""
-    local rankText = rankInfo.rank and ("Rank " .. rankInfo.rank) or ""
-    local separator = (rankText ~= "" and priceText ~= "") and "  " or ""
-    entry.priceLine = GOLD_TEXT .. rankText .. "|r" .. separator .. priceText
+    entry.rank = rankInfo.rank
     entry.cost = rankInfo.cost
 end
 
@@ -305,6 +376,13 @@ local function GetComingUpEntries(advice)
                 listedSpellNames[rankUpEntry.name:lower()] = true
                 table.insert(entries, rankUpEntry)
             end
+        end
+    end
+    -- Spells you can train now: recommended (your spec uses them) or optional.
+    local isRecommended = BuildRecommendationCheck(advice)
+    for _, entry in ipairs(entries) do
+        if entry.kind == "train" and not isRecommended(entry) then
+            entry.kind = "trainOptional"
         end
     end
     for _, talentEntry in ipairs(ReadUpcomingTalents(advice)) do
@@ -460,6 +538,10 @@ local function ShowRowTooltip(row)
     elseif entry.spellId and GameTooltip.SetSpellByID and pcall(GameTooltip.SetSpellByID, GameTooltip, entry.spellId) then
         if entry.kind == "talent" or entry.kind == "talentNow" then
             GameTooltip:AddLine("From your talent build (" .. (entry.treeName or "talents") .. ").", 1.0, 0.82, 0.0)
+        elseif entry.kind == "train" then
+            GameTooltip:AddLine("Recommended: your spec uses this.", 1.0, 0.6, 0.2, true)
+        elseif entry.kind == "trainOptional" then
+            GameTooltip:AddLine("Optional: your spec rarely uses this - fine to skip when gold is short.", 0.65, 0.65, 0.65, true)
         end
     else
         GameTooltip:AddLine(entry.name)
@@ -495,6 +577,9 @@ local function CreateRow(rowIndex)
     row.nameText:SetWordWrap(false)
     row.tagText = CreateText(row, "GameFontNormalSmall", 90, "RIGHT")
     row.tagText:SetPoint("TOPRIGHT", -6, -6)
+    -- Training price, right under the tag.
+    row.priceText = CreateText(row, "GameFontHighlightSmall", 90, "RIGHT")
+    row.priceText:SetPoint("TOPRIGHT", row.tagText, "BOTTOMRIGHT", 0, -4)
     row.descriptionText = CreateText(row, "GameFontHighlightSmall", textWidth)
     row.descriptionText:SetPoint("TOPLEFT", row.nameText, "BOTTOMLEFT", 0, -2)
     row.descriptionText:SetWordWrap(true)
@@ -546,10 +631,14 @@ local function FillRow(row, entry)
     end
 
     local nameColor = isTalent and GOLD_TEXT or "|cffffffff"
-    row.nameText:SetText(nameColor .. entry.name .. "|r")
+    local rankSuffix = entry.rank and (MUTED_TEXT .. "  Rank " .. entry.rank .. "|r") or ""
+    row.nameText:SetText(nameColor .. entry.name .. "|r" .. rankSuffix)
+    local hasPrice = entry.cost and entry.cost > 0 and Mentor.FormatMoneyWithIcons
+    row.priceText:SetText(hasPrice and Mentor.FormatMoneyWithIcons(entry.cost) or "")
 
     local tagByKind = {
         train     = ORANGE_TEXT .. "Train now!|r",
+        trainOptional = MUTED_TEXT .. "Optional|r",
         talentNow = GOOD_TEXT .. "Take it now|r",
         talent    = GOLD_TEXT .. "Talent|r",
         spell     = "",
@@ -560,11 +649,9 @@ local function FillRow(row, entry)
     row.tagText:SetText(entry.kind == "journey" and (entry.tag or "") or tagByKind[entry.kind] or "")
 
     local descriptionText = entry.description or GetSpellDescription(entry.spellId) or ""
-    -- New ranks: the rank and price say it all. New spells: price first.
+    -- New ranks: a short line instead of the whole spell text.
     if entry.isRankUp then
-        descriptionText = entry.priceLine or ""
-    elseif entry.priceLine then
-        descriptionText = entry.priceLine .. "  " .. descriptionText
+        descriptionText = MUTED_TEXT .. "Stronger version of a spell you know.|r"
     end
     if entry.kind == "macro" and not entry.isReady then
         descriptionText = MUTED_TEXT .. "Needs " .. table.concat(entry.missingSpells, " / ") .. " (you learn it later).|r"
@@ -591,7 +678,9 @@ local function FillRow(row, entry)
     row.nameText:SetWidth(row:GetWidth() - textLeft - rightSideWidth)
     -- The Create button sits on the right of the whole row, so the
     -- description stops before it too (not only the name).
-    row.descriptionText:SetWidth(row:GetWidth() - textLeft - (entry.kind == "macro" and rightSideWidth or 6))
+    -- The description also stops before the price on the right.
+    local priceWidth = (row.priceText:GetText() or "") ~= "" and ((row.priceText:GetStringWidth() or 50) + 12) or 6
+    row.descriptionText:SetWidth(row:GetWidth() - textLeft - (entry.kind == "macro" and rightSideWidth or priceWidth))
     row.iconFrame:ClearAllPoints()
     row.iconFrame:SetPoint("LEFT", hasLevelColumn and LEVEL_COLUMN_WIDTH or 6, 0)
     row.nameText:ClearAllPoints()
@@ -708,17 +797,25 @@ local function GetSpellsHint(advice, entries)
     if not (Mentor.Training and Mentor.Training.HasTrainerList()) then
         return legend .. MUTED_TEXT .. "Open your class trainer once and Mentor shows the rank and price of everything.|r"
     end
-    local totalCost = 0
+    -- Recommended = what your spec uses; everything = also the optional ones.
+    local recommendedCost, everythingCost = 0, 0
     for _, entry in ipairs(entries) do
-        if entry.kind == "train" and entry.cost then
-            totalCost = totalCost + entry.cost
+        if (entry.kind == "train" or entry.kind == "trainOptional") and entry.cost then
+            everythingCost = everythingCost + entry.cost
+            if entry.kind == "train" then
+                recommendedCost = recommendedCost + entry.cost
+            end
         end
     end
     local trainerName = Mentor.Training.GetTrainerName()
     local priceSource = MUTED_TEXT .. "Prices from " .. (trainerName or "your trainer")
         .. " with your reputation discount (better reputation = cheaper).|r"
-    if totalCost > 0 then
-        return "Train now for " .. Mentor.FormatMoneyWithIcons(totalCost) .. ". " .. priceSource
+    if everythingCost > 0 then
+        local costLine = "Train now: " .. Mentor.FormatMoneyWithIcons(recommendedCost)
+        if everythingCost > recommendedCost then
+            costLine = costLine .. MUTED_TEXT .. " (all, with optional: |r" .. Mentor.FormatMoneyWithIcons(everythingCost) .. MUTED_TEXT .. ")|r"
+        end
+        return costLine .. ". " .. priceSource
     end
     return legend .. priceSource
 end
