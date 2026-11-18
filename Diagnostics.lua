@@ -141,7 +141,10 @@ function diagnostics.AddSituation(Add)
     Add(string.format("Gold: %s, free bag slots: %d, XP: %s / %s",
         tostring(math.floor((GetMoney and GetMoney() or 0) / 10000)) .. "g", freeBagSlots,
         tostring(UnitXP and UnitXP("player") or "?"), tostring(UnitXPMax and UnitXPMax("player") or "?")))
-    local screenWidth, screenHeight = GetPhysicalScreenSize and GetPhysicalScreenSize()
+    local screenWidth, screenHeight
+    if GetPhysicalScreenSize then
+        screenWidth, screenHeight = GetPhysicalScreenSize()
+    end
     Add(string.format("Screen: %sx%s, UI scale %s", tostring(screenWidth or "?"), tostring(screenHeight or "?"),
         tostring(UIParent and UIParent.GetEffectiveScale and math.floor(UIParent:GetEffectiveScale() * 100) / 100 or "?")))
     -- Which of Mentor's windows are open.
