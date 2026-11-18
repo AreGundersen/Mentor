@@ -1401,7 +1401,15 @@ end
 --------------------------------------------------------------------------------
 -- Window
 --------------------------------------------------------------------------------
-local mainFrame = CreateFrame("Frame", "MentorLifeLogFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+-- A real WoW window ("Life log" in the title bar, Mentor's portrait) when the
+-- client has Blizzard's template; otherwise Mentor's own dark box.
+local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorLifeLogFrame", UIParent, "Life log")
+local mainFrame = nativeWindow
+    or CreateFrame("Frame", "MentorLifeLogFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+-- Where the column headers start: under the portrait in the WoW window, under
+-- Mentor's own title bar otherwise.
+local CONTENT_TOP = nativeWindow and (Mentor.NativeFrame.CONTENT_TOP - 8) or TITLE_BAR_HEIGHT
+local BOTTOM_BUTTON_OFFSET = nativeWindow and 10 or 6     -- above the stone border
 local isWindowBuilt = false
 local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
 local LOGO_TEXTURE = "Interface\\AddOns\\Mentor\\Media\\Logo"
@@ -1788,14 +1796,15 @@ local function BuildWindow()
         return
     end
     isWindowBuilt = true
-    mainFrame:SetSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+    -- The WoW window is taller: its portrait and title take more room at the top.
+    mainFrame:SetSize(WINDOW_WIDTH, WINDOW_HEIGHT + (nativeWindow and (CONTENT_TOP - TITLE_BAR_HEIGHT) or 0))
     mainFrame:SetFrameStrata("MEDIUM")
     mainFrame:SetClampedToScreen(true)
     mainFrame:SetMovable(true)
     mainFrame:EnableMouse(true)
 
     -- Mentor look: dark background with a gold border.
-    if mainFrame.SetBackdrop then
+    if not nativeWindow and mainFrame.SetBackdrop then
         mainFrame:SetBackdrop({
             bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 14,
@@ -1804,10 +1813,11 @@ local function BuildWindow()
         mainFrame:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
     end
 
-    -- Title bar: drag here to move the window.
+    -- Title bar: drag here to move the window. In the WoW window it is an
+    -- invisible strip over Blizzard's title bar, left of the close button.
     local titleBar = CreateFrame("Frame", nil, mainFrame)
     titleBar:SetPoint("TOPLEFT")
-    titleBar:SetPoint("TOPRIGHT")
+    titleBar:SetPoint("TOPRIGHT", nativeWindow and -28 or 0, 0)
     titleBar:SetHeight(TITLE_BAR_HEIGHT)
     titleBar:EnableMouse(true)
     titleBar:RegisterForDrag("LeftButton")
@@ -1821,38 +1831,50 @@ local function BuildWindow()
         SaveWindowPosition()
     end)
 
-    -- Logo, title and a thin gold line under the title bar.
-    local logo = titleBar:CreateTexture(nil, "ARTWORK")
-    logo:SetTexture(LOGO_TEXTURE)
-    logo:SetSize(16, 16)
-    logo:SetPoint("LEFT", WINDOW_PADDING, -2)
-    local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    titleText:SetPoint("LEFT", logo, "RIGHT", 6, 0)
-    titleText:SetText("Life log |cffa6a6a6- " .. (UnitName("player") or "") .. "|r")
-    local titleLine = titleBar:CreateTexture(nil, "ARTWORK")
-    titleLine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.3)
-    titleLine:SetHeight(1)
-    titleLine:SetPoint("BOTTOMLEFT", WINDOW_PADDING, -2)
-    titleLine:SetPoint("BOTTOMRIGHT", -WINDOW_PADDING, -2)
-
-    local closeButton = CreateFrame("Button", nil, titleBar, "UIPanelCloseButton")
-    closeButton:SetPoint("RIGHT", -2, -2)
-    closeButton:SetSize(24, 24)
-    closeButton:SetScript("OnClick", function()
+    local function CloseWindow()
         characterDB.settings.isShown = false
         mainFrame:Hide()
-    end)
+    end
+    if nativeWindow then
+        -- The character's name beside the portrait, where WoW puts a subtitle.
+        local characterText = mainFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        characterText:SetPoint("TOPLEFT", Mentor.NativeFrame.SUBTITLE_LEFT, -Mentor.NativeFrame.SUBTITLE_TOP - 4)
+        characterText:SetText(UnitName("player") or "")
+        local nativeCloseButton = nativeWindow.closeButton
+        if type(nativeCloseButton) == "table" and nativeCloseButton.SetScript then
+            nativeCloseButton:SetScript("OnClick", CloseWindow)
+        end
+    else
+        -- Logo, title and a thin gold line under the title bar.
+        local logo = titleBar:CreateTexture(nil, "ARTWORK")
+        logo:SetTexture(LOGO_TEXTURE)
+        logo:SetSize(16, 16)
+        logo:SetPoint("LEFT", WINDOW_PADDING, -2)
+        local titleText = titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        titleText:SetPoint("LEFT", logo, "RIGHT", 6, 0)
+        titleText:SetText("Life log |cffa6a6a6- " .. (UnitName("player") or "") .. "|r")
+        local titleLine = titleBar:CreateTexture(nil, "ARTWORK")
+        titleLine:SetColorTexture(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.3)
+        titleLine:SetHeight(1)
+        titleLine:SetPoint("BOTTOMLEFT", WINDOW_PADDING, -2)
+        titleLine:SetPoint("BOTTOMRIGHT", -WINDOW_PADDING, -2)
+
+        local closeButton = CreateFrame("Button", nil, titleBar, "UIPanelCloseButton")
+        closeButton:SetPoint("RIGHT", -2, -2)
+        closeButton:SetSize(24, 24)
+        closeButton:SetScript("OnClick", CloseWindow)
+    end
 
     -- Column headers.
     local sessionHeader = mainFrame:CreateFontString(nil, "OVERLAY", ROW_FONT)
-    sessionHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_SESSION_OFFSET, -TITLE_BAR_HEIGHT - 3)
+    sessionHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_SESSION_OFFSET, -CONTENT_TOP - 3)
     sessionHeader:SetWidth(VALUE_COLUMN_WIDTH)
     sessionHeader:SetJustifyH("RIGHT")
     sessionHeader:SetTextColor(MUTED_TEXT_COLOR[1], MUTED_TEXT_COLOR[2], MUTED_TEXT_COLOR[3])
     sessionHeader:SetText("Session")
 
     local totalHeader = mainFrame:CreateFontString(nil, "OVERLAY", ROW_FONT)
-    totalHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE, -TITLE_BAR_HEIGHT - 3)
+    totalHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE, -CONTENT_TOP - 3)
     totalHeader:SetWidth(VALUE_COLUMN_WIDTH)
     totalHeader:SetJustifyH("RIGHT")
     totalHeader:SetTextColor(MUTED_TEXT_COLOR[1], MUTED_TEXT_COLOR[2], MUTED_TEXT_COLOR[3])
@@ -1860,21 +1882,22 @@ local function BuildWindow()
 
     -- Session and This char move one column left to make room for All chars.
     sessionHeader:ClearAllPoints()
-    sessionHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_SESSION_OFFSET, -TITLE_BAR_HEIGHT - 3)
+    sessionHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_SESSION_OFFSET, -CONTENT_TOP - 3)
     totalHeader:ClearAllPoints()
-    totalHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_TOTAL_OFFSET, -TITLE_BAR_HEIGHT - 3)
+    totalHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_TOTAL_OFFSET, -CONTENT_TOP - 3)
 
     local allHeader = mainFrame:CreateFontString(nil, "OVERLAY", ROW_FONT)
-    allHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_ALL_OFFSET, -TITLE_BAR_HEIGHT - 3)
+    allHeader:SetPoint("TOPRIGHT", -SCROLL_BAR_SPACE + VALUE_COLUMN_ALL_OFFSET, -CONTENT_TOP - 3)
     allHeader:SetWidth(VALUE_COLUMN_WIDTH)
     allHeader:SetJustifyH("RIGHT")
     allHeader:SetTextColor(MUTED_TEXT_COLOR[1], MUTED_TEXT_COLOR[2], MUTED_TEXT_COLOR[3])
     allHeader:SetText("All chars")
 
     -- Scrollable stat list.
-    local scrollFrame = CreateFrame("ScrollFrame", "MentorLifeLogScrollFrame", mainFrame, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", WINDOW_PADDING, -TITLE_BAR_HEIGHT - COLUMN_HEADER_HEIGHT - 4)
-    scrollFrame:SetPoint("BOTTOMRIGHT", -SCROLL_BAR_SPACE, BOTTOM_BAR_HEIGHT)
+    local scrollFrame = nativeWindow and Mentor.NativeFrame.CreateScrollFrame("MentorLifeLogScrollFrame", mainFrame)
+        or CreateFrame("ScrollFrame", "MentorLifeLogScrollFrame", mainFrame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", WINDOW_PADDING, -CONTENT_TOP - COLUMN_HEADER_HEIGHT - 4)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -SCROLL_BAR_SPACE, BOTTOM_BAR_HEIGHT + BOTTOM_BUTTON_OFFSET - 6)
 
     scrollChildFrame = CreateFrame("Frame", nil, scrollFrame)
     scrollChildFrame:SetSize(WINDOW_WIDTH - WINDOW_PADDING - SCROLL_BAR_SPACE, 1)
@@ -1883,7 +1906,7 @@ local function BuildWindow()
     -- Bottom bar: reset session button.
     local resetButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
     resetButton:SetSize(110, 20)
-    resetButton:SetPoint("BOTTOMLEFT", WINDOW_PADDING, 6)
+    resetButton:SetPoint("BOTTOMLEFT", WINDOW_PADDING, BOTTOM_BUTTON_OFFSET)
     resetButton:SetText("Reset session")
     resetButton:SetScript("OnClick", function()
         wipe(sessionStats)
@@ -1900,7 +1923,7 @@ local function BuildWindow()
     end)
 
     local hintText = mainFrame:CreateFontString(nil, "OVERLAY", ROW_FONT)
-    hintText:SetPoint("BOTTOMRIGHT", -WINDOW_PADDING - 2, 11)
+    hintText:SetPoint("BOTTOMRIGHT", -WINDOW_PADDING - 2, BOTTOM_BUTTON_OFFSET + 5)
     hintText:SetTextColor(MUTED_TEXT_COLOR[1], MUTED_TEXT_COLOR[2], MUTED_TEXT_COLOR[3])
     hintText:SetText("/mentor log to toggle")
 
