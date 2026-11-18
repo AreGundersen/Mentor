@@ -3,7 +3,9 @@
 -- What to train, which rank, and what it costs. When you open your class
 -- trainer, Mentor reads its whole list (also the ranks you can't learn yet)
 -- with the price that trainer asks you - so your reputation discount there is
--- already included - and remembers it for this character. The "Spells" tab
+-- already included - and remembers it for this character. A copy is kept for
+-- the whole account per class, so your other characters of that class see
+-- ranks and prices before they first visit a trainer. The "Spells" tab
 -- then shows new ranks of spells you know, with rank and price, and new spells
 -- get their price too.
 --
@@ -109,6 +111,17 @@ local function SaveTrainerList()
         trainerName = type(trainerName) == "string" and trainerName or nil,
         services = services,
     }
+    -- The account copy for your other characters of this class.
+    local _, classFileName = UnitClass("player")
+    if classFileName then
+        MentorAccountDB = MentorAccountDB or {}
+        MentorAccountDB.trainerListsByClass = MentorAccountDB.trainerListsByClass or {}
+        MentorAccountDB.trainerListsByClass[classFileName] = {
+            trainerName = MentorDB.classTrainerList.trainerName,
+            characterName = UnitName("player"),
+            services = services,
+        }
+    end
     if Mentor.ExtrasUI and Mentor.ExtrasUI.Refresh then
         pcall(Mentor.ExtrasUI.Refresh, Mentor.currentAdvice)
     end
@@ -155,13 +168,37 @@ end
 --------------------------------------------------------------------------------
 -- For the Spells tab
 --------------------------------------------------------------------------------
+-- This character's own trainer list, or else the one another character of
+-- the same class saved. The second value is true for another character's
+-- list: its "known" marks belong to that character, so only the spellbook
+-- says what you know.
+local function GetTrainerList()
+    local ownList = MentorDB and MentorDB.classTrainerList
+    if ownList and ownList.services and #ownList.services > 0 then
+        return ownList, false
+    end
+    local _, classFileName = UnitClass("player")
+    local sharedLists = MentorAccountDB and MentorAccountDB.trainerListsByClass
+    local sharedList = sharedLists and classFileName and sharedLists[classFileName]
+    if sharedList and sharedList.services and #sharedList.services > 0 then
+        return sharedList, true
+    end
+    return nil, false
+end
+
 function training.HasTrainerList()
-    local savedList = MentorDB and MentorDB.classTrainerList
-    return savedList ~= nil and savedList.services ~= nil and #savedList.services > 0
+    return GetTrainerList() ~= nil
 end
 
 function training.GetTrainerName()
-    return MentorDB and MentorDB.classTrainerList and MentorDB.classTrainerList.trainerName
+    local trainerList = GetTrainerList()
+    return trainerList and trainerList.trainerName
+end
+
+-- The character whose trainer visit the prices come from, when it is not you.
+function training.GetSharedListCharacterName()
+    local trainerList, isFromOtherCharacter = GetTrainerList()
+    return isFromOtherCharacter and trainerList.characterName or nil
 end
 
 -- The trainer's price and rank for a spell name, for the lowest rank you
@@ -171,10 +208,12 @@ function training.GetNextRankInfo(spellName, knownRanks)
         return nil
     end
     knownRanks = knownRanks or ReadKnownRanks()
+    local trainerList, isFromOtherCharacter = GetTrainerList()
     local knownRank = knownRanks[spellName:lower()]
     local bestService
-    for _, service in ipairs(MentorDB.classTrainerList.services) do
-        if service.name:lower() == spellName:lower() and not service.isKnown
+    for _, service in ipairs(trainerList.services) do
+        local isKnownHere = service.isKnown and not isFromOtherCharacter
+        if service.name:lower() == spellName:lower() and not isKnownHere
             and (not knownRank or (service.rank or 1) > knownRank)
             and (not bestService or (service.rank or 1) < (bestService.rank or 1)) then
             bestService = service
@@ -191,10 +230,12 @@ function training.GetRankUps(maxLevel)
         return rankUps
     end
     local knownRanks = ReadKnownRanks()
-    for _, service in ipairs(MentorDB.classTrainerList.services) do
+    local trainerList, isFromOtherCharacter = GetTrainerList()
+    for _, service in ipairs(trainerList.services) do
         local knownRank = knownRanks[service.name:lower()]
         local isNewRank = knownRank and service.rank and service.rank > knownRank
-        if isNewRank and not service.isKnown and service.level <= maxLevel then
+        local isKnownHere = service.isKnown and not isFromOtherCharacter
+        if isNewRank and not isKnownHere and service.level <= maxLevel then
             table.insert(rankUps, service)
         end
     end
@@ -214,8 +255,9 @@ function training.PrintDebug()
         print("No trainer list saved yet - open your class trainer once.")
         return
     end
-    local savedList = MentorDB.classTrainerList
-    print(string.format("Saved from %s: %d entries.", savedList.trainerName or "your trainer", #savedList.services))
+    local savedList, isFromOtherCharacter = GetTrainerList()
+    print(string.format("Saved from %s: %d entries%s.", savedList.trainerName or "your trainer", #savedList.services,
+        isFromOtherCharacter and (" (seen by " .. tostring(savedList.characterName) .. ")") or ""))
     for serviceIndex = 1, math.min(5, #savedList.services) do
         local service = savedList.services[serviceIndex]
         print(string.format("  %s rank %s, level %d, %s%s", service.name, tostring(service.rank), service.level,

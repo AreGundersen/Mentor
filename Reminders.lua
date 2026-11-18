@@ -351,6 +351,65 @@ function reminders.CheckRepair()
 end
 
 --------------------------------------------------------------------------------
+-- Weapon skill far below its maximum (after switching weapon type): you miss
+-- and get blocked much more until it catches up.
+--------------------------------------------------------------------------------
+local WEAPON_SKILL_GAP_TO_REMIND = 25   -- points below the maximum
+local WEAPON_SKILL_GAP_TO_REARM = 10
+local WEAPON_ITEM_CLASS = 2
+-- Weapon subclass -> the skill's name in the skill list.
+local WEAPON_SKILL_BY_SUBCLASS = {
+    [0] = "Axes", [1] = "Two-Handed Axes", [2] = "Bows", [3] = "Guns", [4] = "Maces",
+    [5] = "Two-Handed Maces", [6] = "Polearms", [7] = "Swords", [8] = "Two-Handed Swords",
+    [10] = "Staves", [13] = "Fist Weapons", [15] = "Daggers", [16] = "Thrown", [18] = "Crossbows",
+}
+local WEAPON_SLOTS = { 16, 17, 18 }   -- main hand, off hand, ranged
+
+-- { ["Swords"] = { rank = 45, maximum = 165 }, ... } from the skill list.
+local function ReadSkillRanks()
+    local skillRanks = {}
+    if not (GetNumSkillLines and GetSkillLineInfo) then
+        return skillRanks
+    end
+    for skillIndex = 1, GetNumSkillLines() or 0 do
+        local skillName, isHeader, _, skillRank, _, _, maximumRank = GetSkillLineInfo(skillIndex)
+        if skillName and not isHeader and skillRank and maximumRank then
+            skillRanks[skillName] = { rank = skillRank, maximum = maximumRank }
+        end
+    end
+    return skillRanks
+end
+
+function reminders.CheckWeaponSkill()
+    if not IsOn("isWeaponSkillReminderEnabled") then
+        return
+    end
+    local getItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+    if not getItemInfoInstant then
+        return
+    end
+    local skillRanks = ReadSkillRanks()
+    for _, slotId in ipairs(WEAPON_SLOTS) do
+        local itemLink = GetInventoryItemLink("player", slotId)
+        if itemLink then
+            local _, _, _, _, _, classId, subclassId = getItemInfoInstant(itemLink)
+            local skillName = classId == WEAPON_ITEM_CLASS and WEAPON_SKILL_BY_SUBCLASS[subclassId]
+            local skill = skillName and skillRanks[skillName]
+            if skill then
+                local reminderKey = "weaponSkill:" .. skillName
+                local skillGap = skill.maximum - skill.rank
+                if skillGap >= WEAPON_SKILL_GAP_TO_REMIND then
+                    Remind(reminderKey, string.format("Your %s skill is %d/%d - you miss a lot until it catches up. "
+                        .. "Fight easy mobs with this weapon for a while to raise it.", skillName, skill.rank, skill.maximum))
+                elseif skillGap < WEAPON_SKILL_GAP_TO_REARM then
+                    ForgetReminder(reminderKey)
+                end
+            end
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Professions stuck at their cap
 --------------------------------------------------------------------------------
 function reminders.CheckProfessions()
@@ -658,7 +717,7 @@ local wasResting = nil
 
 local eventFrame = CreateFrame("Frame")
 for _, eventName in ipairs({ "PLAYER_LOGIN", "PLAYER_LEVEL_UP", "PLAYER_UPDATE_RESTING",
-    "UPDATE_INVENTORY_DURABILITY", "SKILL_LINES_CHANGED", "BAG_UPDATE_DELAYED", "UNIT_HAPPINESS",
+    "UPDATE_INVENTORY_DURABILITY", "SKILL_LINES_CHANGED", "BAG_UPDATE_DELAYED", "UNIT_HAPPINESS", "PLAYER_EQUIPMENT_CHANGED",
     "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_CAMPING", "LOGOUT_CANCEL" }) do
     pcall(eventFrame.RegisterEvent, eventFrame, eventName)
 end
@@ -669,6 +728,7 @@ eventFrame:SetScript("OnEvent", function(_, eventName, ...)
             pcall(reminders.CheckRepair)
             pcall(reminders.CheckProfessions)
             pcall(reminders.CheckBags)
+            pcall(reminders.CheckWeaponSkill)
         end)
     elseif eventName == "PLAYER_LEVEL_UP" then
         local newLevel = ...
@@ -688,6 +748,9 @@ eventFrame:SetScript("OnEvent", function(_, eventName, ...)
         pcall(reminders.CheckRepair)
     elseif eventName == "SKILL_LINES_CHANGED" then
         pcall(reminders.CheckProfessions)
+        pcall(reminders.CheckWeaponSkill)
+    elseif eventName == "PLAYER_EQUIPMENT_CHANGED" then
+        pcall(reminders.CheckWeaponSkill)
     elseif eventName == "BAG_UPDATE_DELAYED" then
         pcall(reminders.CheckBags)
     elseif eventName == "UNIT_HAPPINESS" then

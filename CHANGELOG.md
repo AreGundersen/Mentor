@@ -5,6 +5,12 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- **Dungeon upgrades on the way:** when you enter a dungeon, the tip names the best gear for you in it and who drops it ("Look out for: [Cruel Barb] from Edwin VanCleef (+40%)"), and dungeons in the Journey tab say how many upgrades they have for you.
+- **Upgrades on the auction house:** search the auction house (also through Auctionator) and a small Mentor panel next to it lists the results that are upgrades for you, best first, with the buyout price. Setting "Auction upgrades" under Gold.
+- **New: Reputation tab** (`/mentor rep`): your factions, how far you are to the next standing, what each faction gives you (cities, the goblin towns, Timbermaw, Argent Dawn and more), and quartermaster gear that is an upgrade for you with the standing it needs - also from quartermasters you haven't met yet.
+- **Profession window:** two new parts in Mentor's panel - "Your materials" (what you carry for your recipes, and the recipes that still give skill that you can craft right now) and "Tools" (Mining Pick, Skinning Knife, Blacksmith Hammer, Arclight Spanner, enchanting rods, fishing pole: which you have, which are missing and where to get them). A missing tool for a gathering profession also shows in the Journey tab.
+- **Weapon skill reminder:** when the skill for the weapon you hold is far below its maximum (after switching weapon type), Mentor tells you and to fight easy mobs for a while. Setting "Weapon skill" under Reminders.
+- **Trainer prices for all your characters:** the class trainer list is shared by your characters of the same class, so a new character sees ranks and prices before its first visit (marked as seen by your other character).
 
 ## 1.17.0 - 2026-11-18
 - **Profession tools** (fishing poles, Skinning Knife, Mining Pick, Blacksmith Hammer) no longer get a red arrow or a sell coin in your bags: the tooltip says "Keep - Fishing tool" instead of calling them a downgrade.

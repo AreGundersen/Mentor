@@ -11,6 +11,7 @@
 --                your cursor so you can drop it on an action bar.
 --   * Weapons    weapon types your class can learn, and which weapon
 --                master teaches them (data in Weapons.lua).
+--   * Reputation your factions, what they give, quartermaster gear for you (Reputation.lua).
 --   * Words      what words like aggro, pull and CC mean (Glossary.lua).
 --   * Journey    where to go next: zones and dungeons for your level, and
 --                profession advice (data in Journey.lua).
@@ -18,7 +19,7 @@
 
 local _, Mentor = ...
 
-local PANEL_WIDTH          = 340
+local PANEL_WIDTH          = 360   -- room for seven tabs
 local PADDING              = 12
 local TAB_HEIGHT           = 22
 local TAB_GAP              = 4
@@ -51,6 +52,7 @@ local TABS = {
     { key = "macros",  label = "Macros" },
     { key = "journey", label = "Journey" },
     { key = "weapons", label = "Weapons" },
+    { key = "reputation", label = "Reputation" },
     { key = "words",   label = "Words" },
 }
 
@@ -808,8 +810,10 @@ local function GetSpellsHint(advice, entries)
         end
     end
     local trainerName = Mentor.Training.GetTrainerName()
+    local otherCharacterName = Mentor.Training.GetSharedListCharacterName()
     local priceSource = MUTED_TEXT .. "Prices from " .. (trainerName or "your trainer")
-        .. " with your reputation discount (better reputation = cheaper).|r"
+        .. (otherCharacterName and (" (seen by " .. otherCharacterName .. " - visit your trainer for your own prices)")
+            or " with your reputation discount (better reputation = cheaper)") .. ".|r"
     if everythingCost > 0 then
         local costLine = "Train now: " .. Mentor.FormatMoneyWithIcons(recommendedCost)
         if everythingCost > recommendedCost then
@@ -851,6 +855,11 @@ function extrasUI.Refresh(advice)
         panel.title:SetText("Weapon skills")
         panel.hint:SetText(MUTED_TEXT .. "Weapons your class can learn. A weapon master in the big cities teaches each type for " .. "|r" .. Mentor.FormatMoneyWithIcons(1000) .. MUTED_TEXT .. " - you must learn a type before you can use it.|r")
         emptyMessage = "No weapon list for your class."
+    elseif selectedKey == "reputation" then
+        entries = Mentor.Reputation.GetEntries()
+        panel.title:SetText("Reputation")
+        panel.hint:SetText(MUTED_TEXT .. "Your factions and what they give you. \"Gear\" = a quartermaster sells an upgrade for you.|r")
+        emptyMessage = "No factions with something for you yet - quests in towns raise them."
     elseif selectedKey == "journey" then
         entries = Mentor.Journey.GetEntries(advice)
         panel.title:SetText("Where next?")

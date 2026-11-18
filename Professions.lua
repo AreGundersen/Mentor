@@ -482,6 +482,172 @@ local function GetOpenRecipes()
     return recipes
 end
 
+--------------------------------------------------------------------------------
+-- Materials and tools
+--------------------------------------------------------------------------------
+local MAX_MATERIAL_LINES = 5
+local MAX_CRAFTABLE_LINES = 3
+local DIFFICULTY_ORDER = { optimal = 1, medium = 2, easy = 3, trivial = 4 }
+
+-- Tools a profession needs in your bags: groups of { itemId, "name" }
+-- alternatives (any one of them works - a better enchanting rod also counts
+-- for the older recipes), with fromSkill when the tool is only needed from
+-- that skill on.
+local PROFESSION_TOOLS = {
+    Mining        = { { { 2901, "Mining Pick" } }, where = "Trade Supplies and blacksmithing vendors" },
+    Skinning      = { { { 7005, "Skinning Knife" } }, where = "Trade Supplies and leatherworking vendors" },
+    Blacksmithing = { { { 5956, "Blacksmith Hammer" } }, where = "Trade Supplies and blacksmithing vendors" },
+    Engineering   = { { { 6219, "Arclight Spanner" } }, { { 10498, "Gyromatic Micro-Adjustor" }, fromSkill = 175 },
+        where = "the Spanner from Trade Supplies vendors; you make the Micro-Adjustor yourself (skill 175)" },
+    Enchanting    = { { { 16207, "Runed Arcanite Rod" }, { 11145, "Runed Truesilver Rod" }, { 11130, "Runed Golden Rod" },
+        { 6339, "Runed Silver Rod" }, { 6218, "Runed Copper Rod" } },
+        where = "you make the rods yourself (Copper Rod first) - newer recipes need a better rod" },
+    Fishing       = { { { "FISHING_POLE", "a fishing pole" } }, where = "Fishing Supplies vendors and fishing trainers" },
+}
+local WEAPON_ITEM_CLASS_FOR_TOOLS = 2
+local FISHING_POLE_SUBCLASS_FOR_TOOLS = 20
+
+local function GetItemCountAnywhere(itemId)
+    if C_Item and C_Item.GetItemCount then
+        local isSuccess, itemCount = pcall(C_Item.GetItemCount, itemId)
+        return isSuccess and itemCount or 0
+    end
+    return GetItemCount and GetItemCount(itemId) or 0
+end
+
+local function HasFishingPole()
+    local mainHandLink = GetInventoryItemLink("player", 16)
+    if mainHandLink and Mentor.GetProfessionToolName and Mentor.GetProfessionToolName(mainHandLink) == "Fishing" then
+        return true
+    end
+    if not (C_Container and C_Container.GetContainerItemLink) then
+        return false
+    end
+    for bagIndex = 0, 4 do
+        for slotIndex = 1, C_Container.GetContainerNumSlots(bagIndex) or 0 do
+            local itemLink = C_Container.GetContainerItemLink(bagIndex, slotIndex)
+            if itemLink and Mentor.GetProfessionToolName and Mentor.GetProfessionToolName(itemLink) == "Fishing" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- "Tools: Skinning Knife |cff40ff40yes|r" lines for a profession, or nil
+-- when it needs none. Second value: true when a needed tool is missing.
+function professions.GetToolLines(professionName, skillLevel)
+    local toolGroups = PROFESSION_TOOLS[professionName]
+    if not toolGroups then
+        return nil, false
+    end
+    local toolLines, isAnyMissing = {}, false
+    for _, alternatives in ipairs(toolGroups) do
+        local isNeededAtYourSkill = (alternatives.fromSkill or 0) <= (skillLevel or 0)
+        local ownedName
+        for _, tool in ipairs(isNeededAtYourSkill and alternatives or {}) do
+            local hasTool = tool[1] == "FISHING_POLE" and HasFishingPole() or (tool[1] ~= "FISHING_POLE" and GetItemCountAnywhere(tool[1]) > 0)
+            if hasTool then
+                ownedName = tool[2]
+                break
+            end
+        end
+        if not isNeededAtYourSkill then
+            -- not needed yet at your skill: not listed
+        elseif ownedName then
+            table.insert(toolLines, "|cff40ff40+|r " .. ownedName)
+        else
+            isAnyMissing = true
+            local wantedName = alternatives[#alternatives][2]   -- the first one you can get
+            table.insert(toolLines, "|cffff6666- " .. wantedName .. " missing|r")
+        end
+    end
+    if #toolLines == 0 then
+        return nil, false
+    end
+    if isAnyMissing then
+        table.insert(toolLines, "|cffa6a6a6Get it: " .. toolGroups.where .. ".|r")
+    end
+    return toolLines, isAnyMissing
+end
+
+-- The reagents of a recipe: { { itemId, quantity } }.
+local function GetRecipeReagents(recipe)
+    local reagents = {}
+    if recipe.recipeId and C_TradeSkillUI and C_TradeSkillUI.GetRecipeSchematic then
+        local isSuccess, schematic = pcall(C_TradeSkillUI.GetRecipeSchematic, recipe.recipeId, false)
+        if isSuccess and type(schematic) == "table" then
+            for _, reagentSlot in ipairs(schematic.reagentSlotSchematics or {}) do
+                local firstReagent = reagentSlot.reagents and reagentSlot.reagents[1]
+                if firstReagent and firstReagent.itemID then
+                    table.insert(reagents, { firstReagent.itemID, reagentSlot.quantityRequired or 1 })
+                end
+            end
+        end
+    elseif recipe.recipeIndex and GetTradeSkillNumReagents and GetTradeSkillReagentItemLink then
+        for reagentIndex = 1, GetTradeSkillNumReagents(recipe.recipeIndex) or 0 do
+            local reagentLink = GetTradeSkillReagentItemLink(recipe.recipeIndex, reagentIndex)
+            local _, _, quantity = GetTradeSkillReagentInfo(recipe.recipeIndex, reagentIndex)
+            local itemId = reagentLink and tonumber(reagentLink:match("item:(%d+)"))
+            if itemId then
+                table.insert(reagents, { itemId, quantity or 1 })
+            end
+        end
+    end
+    return reagents
+end
+
+-- What you carry for this profession: { { itemId, count, recipeCount } }
+-- (most first), and the recipes that still give skill that you can make
+-- right now: { { recipe, craftableCount } } (hardest first).
+function professions.GetMaterialsAndCraftable(recipes)
+    local materialsById, craftable = {}, {}
+    for _, recipe in ipairs(recipes) do
+        if recipe.isKnown then
+            local smallestCraftableCount
+            for _, reagent in ipairs(GetRecipeReagents(recipe)) do
+                local itemId, quantity = reagent[1], reagent[2]
+                local carriedCount = GetItemCountAnywhere(itemId)
+                if carriedCount > 0 then
+                    materialsById[itemId] = materialsById[itemId] or { itemId = itemId, count = carriedCount, recipeCount = 0 }
+                    materialsById[itemId].recipeCount = materialsById[itemId].recipeCount + 1
+                end
+                local craftsFromThis = math.floor(carriedCount / math.max(1, quantity))
+                smallestCraftableCount = math.min(smallestCraftableCount or craftsFromThis, craftsFromThis)
+            end
+            if (smallestCraftableCount or 0) > 0 and recipe.difficulty ~= "trivial" then
+                table.insert(craftable, { recipe = recipe, craftableCount = smallestCraftableCount })
+            end
+        end
+    end
+    local materials = {}
+    for _, material in pairs(materialsById) do
+        table.insert(materials, material)
+    end
+    table.sort(materials, function(first, second) return first.count > second.count end)
+    table.sort(craftable, function(first, second)
+        local firstOrder = DIFFICULTY_ORDER[first.recipe.difficulty] or 5
+        local secondOrder = DIFFICULTY_ORDER[second.recipe.difficulty] or 5
+        if firstOrder ~= secondOrder then
+            return firstOrder < secondOrder
+        end
+        return first.craftableCount > second.craftableCount
+    end)
+    return materials, craftable
+end
+
+local function GetItemNameAndIcon(itemId)
+    local getItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+    local isSuccess, itemName, _, _, _, _, _, _, _, _, itemIcon = pcall(getItemInfo, itemId)
+    if isSuccess and itemName then
+        return itemName, itemIcon
+    end
+    if C_Item and C_Item.RequestLoadItemDataByID then
+        pcall(C_Item.RequestLoadItemDataByID, itemId)
+    end
+    return "item " .. itemId, nil
+end
+
 -- Known recipes that make an upgrade for the spec you play, best first.
 function professions.GetCraftableUpgrades(recipes)
     local advice = Mentor.currentAdvice
@@ -616,6 +782,12 @@ local function CreatePanel()
     panel.upgradeHeader:SetText("Upgrades you can make")
     panel.noUpgradesText = CreateTextLine(panel, "GameFontDisableSmall")
     panel.noUpgradesText:SetText("None of your recipes is an upgrade right now.")
+    panel.materialsHeader = CreateTextLine(panel, "GameFontNormalSmall")
+    panel.materialsHeader:SetText("Your materials")
+    panel.materialsText = CreateTextLine(panel)
+    panel.toolsHeader = CreateTextLine(panel, "GameFontNormalSmall")
+    panel.toolsHeader:SetText("Tools")
+    panel.toolsText = CreateTextLine(panel)
     panel.trainerHeader = CreateTextLine(panel, "GameFontNormalSmall")
     panel.trainerLines = {}
     for trainerIndex = 1, MAX_TRAINERS_SHOWN do
@@ -790,6 +962,45 @@ function professions.RefreshPanel()
             row:Hide()
         end
     end
+    -- What you carry for this profession, what you can craft right now, and
+    -- its tools (with Profession leveling on).
+    panel.materialsHeader:Hide()
+    panel.materialsText:Hide()
+    panel.toolsHeader:Hide()
+    panel.toolsText:Hide()
+    if isLevelingShown then
+        local materials, craftable = professions.GetMaterialsAndCraftable(recipes)
+        local materialLines = {}
+        for craftableIndex = 1, math.min(MAX_CRAFTABLE_LINES, #craftable) do
+            local craftableRecipe = craftable[craftableIndex]
+            table.insert(materialLines, string.format("Craft now: %s%s|r x%d",
+                DIFFICULTY_COLORS[craftableRecipe.recipe.difficulty] or "|cffffffff", craftableRecipe.recipe.name,
+                craftableRecipe.craftableCount))
+        end
+        for materialIndex = 1, math.min(MAX_MATERIAL_LINES, #materials) do
+            local material = materials[materialIndex]
+            local materialName, materialIcon = GetItemNameAndIcon(material.itemId)
+            table.insert(materialLines, string.format("%s%s x%d |cffa6a6a6(%d recipe%s)|r",
+                materialIcon and ("|T" .. materialIcon .. ":14|t ") or "", materialName, material.count,
+                material.recipeCount, material.recipeCount == 1 and "" or "s"))
+        end
+        if #materials > MAX_MATERIAL_LINES then
+            table.insert(materialLines, string.format("|cffa6a6a6+%d more|r", #materials - MAX_MATERIAL_LINES))
+        end
+        verticalOffset = verticalOffset - 6
+        Place(panel.materialsHeader, 16)
+        panel.materialsText:SetText(#materialLines > 0 and table.concat(materialLines, "\n")
+            or "|cffa6a6a6Nothing in your bags for your recipes yet.|r")
+        Place(panel.materialsText, (panel.materialsText:GetStringHeight() or 12) + 4)
+        local toolLines = professions.GetToolLines(professionName, skillLevel)
+        if toolLines then
+            verticalOffset = verticalOffset - 6
+            Place(panel.toolsHeader, 16)
+            panel.toolsText:SetText(table.concat(toolLines, "\n"))
+            Place(panel.toolsText, (panel.toolsText:GetStringHeight() or 12) + 4)
+        end
+    end
+
     -- Trainers for the next rank (with Profession leveling on).
     local nextRank = professions.GetNextRank(maximumSkill)
     local trainers = isLevelingShown and nextRank and professions.GetTrainers(professionName, nextRank)

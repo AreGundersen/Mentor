@@ -218,7 +218,21 @@ function journey.GetEntries(advice)
     for _, profession in ipairs(journey.GetPlayerProfessions()) do
         local trainerHint = journey.GetProfessionTrainerHint(profession, playerLevel)
         local professionTitle = profession.name .. " " .. profession.skill .. "/" .. profession.maximum
-        if trainerHint then
+        -- A missing tool (Skinning Knife, Mining Pick ...) comes first: without it you can't work at all.
+        local toolLines, isToolMissing = nil, false
+        if Mentor.Professions and Mentor.Professions.GetToolLines then
+            toolLines, isToolMissing = Mentor.Professions.GetToolLines(profession.name, profession.skill)
+        end
+        if isToolMissing then
+            local missingTexts = {}
+            for _, toolLine in ipairs(toolLines) do
+                if toolLine:find("missing") or toolLine:find("Get it") then
+                    table.insert(missingTexts, (toolLine:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("^%- ", "")))
+                end
+            end
+            table.insert(entries, { kind = "journey", name = professionTitle, icon = PROFESSION_ICONS[profession.name],
+                levelText = "", tag = "|cffff6666Tool|r", description = table.concat(missingTexts, ". ") })
+        elseif trainerHint then
             table.insert(entries, { kind = "journey", name = professionTitle,
                 icon = PROFESSION_ICONS[profession.name], levelText = "", tag = "|cffff9933Trainer|r", description = trainerHint })
         else
@@ -253,8 +267,15 @@ function journey.GetEntries(advice)
             tag = "|cff66ccffZone|r", description = zone[5] }
     end)
     AddBestFitting(DUNGEONS, MAX_DUNGEONS_SHOWN, function(dungeon)
+        -- How many upgrades it has for you, first in the description.
+        local upgradeText = ""
+        local dungeonUpgrades = Mentor.Upgrades and Mentor.Upgrades.GetUpgradesInDungeon(dungeon[1]) or {}
+        if #dungeonUpgrades > 0 then
+            upgradeText = string.format("|cff40ff40%d upgrade%s for you|r (best: %s). ", #dungeonUpgrades,
+                #dungeonUpgrades == 1 and "" or "s", dungeonUpgrades[1].itemLink)
+        end
         return { kind = "journey", name = dungeon[1], icon = DUNGEON_ICON, levelText = FormatLevelRange(dungeon[2], dungeon[3]),
-            tag = "|cffff6666Dungeon|r", description = dungeon[5] .. ". " .. dungeon[6] }
+            tag = "|cffff6666Dungeon|r", description = upgradeText .. dungeon[5] .. ". " .. dungeon[6] }
     end)
 
     -- Profession advice: what you have, otherwise two suggestions for your class.
@@ -281,6 +302,7 @@ end
 -- Tip when you enter a dungeon (setting "Dungeon tips", on by default)
 --------------------------------------------------------------------------------
 local lastDungeonTipName
+local MAX_UPGRADES_IN_DUNGEON_TIP = 2
 function journey.ShowDungeonTip()
     if not (MentorDB and MentorDB.areDungeonTipsEnabled ~= false) or not GetInstanceInfo then
         return
@@ -300,6 +322,19 @@ function journey.ShowDungeonTip()
             local roleTip = advice and advice.specData and ROLE_TIPS[advice.specData.role]
             if roleTip then
                 Mentor.Print("As " .. advice.specData.name .. ": " .. roleTip)
+            end
+            -- The best gear for you in here, and who drops it.
+            local dungeonUpgrades = Mentor.Upgrades and Mentor.Upgrades.GetUpgradesInDungeon(dungeon[1]) or {}
+            local upgradeTexts = {}
+            for upgradeIndex = 1, math.min(MAX_UPGRADES_IN_DUNGEON_TIP, #dungeonUpgrades) do
+                local upgrade = dungeonUpgrades[upgradeIndex]
+                local sourceText = upgrade.questName and ("quest \"" .. upgrade.questName .. "\"")
+                    or (upgrade.boss ~= "" and upgrade.boss or "trash")
+                table.insert(upgradeTexts, string.format("%s from %s (|cff40ff40%s|r)", upgrade.itemLink, sourceText,
+                    upgrade.result.kind == "empty" and "new slot" or string.format("+%.0f%%", upgrade.gain)))
+            end
+            if #upgradeTexts > 0 then
+                Mentor.Print("Look out for: " .. table.concat(upgradeTexts, ", "))
             end
             return
         end

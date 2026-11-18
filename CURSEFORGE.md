@@ -14,14 +14,17 @@
 - See exactly which stats change, and what each stat does for you.
 - **Where to get upgrades** ("Find more" next to "Upgrades in your bags", or `/mentor upgrades`): a panel beside the Mentor window with the dungeons for your level that have better gear for your spec, best first, and which boss drops it. Rewards from the dungeons' quests are included (only your faction's, and not the ones you have done).
 - **From vendors:** gear you can simply buy, with who sells it and where (zone and map coordinates). Includes the new WoW Forever quartermasters (Darkspear Raiders, Ratchet, Booty Bay, Gadgetzan, Everlook and more), with the price and the reputation you need compared with yours.
+- **Auction house:** search the auction house (also through Auctionator) and Mentor lists the results that are upgrades for you, best first, with the price.
+- When you enter a dungeon, Mentor names the best gear for you in it and who drops it.
 - Rings and trinkets are compared with both of the ones you wear.
 - Chat alert when you loot an upgrade, the best quest reward marked when you hand in a quest, and Need or Greed marked on group loot rolls.
 
 ## Where next? and reminders
 - **Journey tab:** zones and dungeons for your level and faction, and professions that suit your class.
 - **Weapons tab:** every weapon type your class can learn, which you already know, and which weapon master teaches the rest.
+- **Reputation tab:** your factions, how far you are, what each faction gives you, and quartermaster gear that is an upgrade for you with the reputation it needs.
 - **Spells tab:** new spells and new ranks as you level. Open your class trainer once and Mentor shows the **rank and price** of each (your reputation discount included), which ones your spec should train ("Train now!") and which are optional, and what training costs right now.
-- **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, and empty bag slots.
+- **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, empty bag slots, and a weapon skill far below its maximum.
 - **Dungeon tips:** a short tip about the dungeon and your role when you enter one.
 - **Mob warnings:** the mob tooltip says when a mob is elite or far above your level, and how many of it you have killed.
 - **Help tips:** what to do when you die, and where to log out for rested XP.
@@ -45,6 +48,7 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 - Next to the profession window: **which of your recipes make you an upgrade**.
 - **What to craft to level up** each profession (where to get the recipe if you don't have it, and what to craft meanwhile), from Wowhead's WoW Forever leveling guides, also in the Journey tab.
 - **Where the trainers are**: when your skill is stuck at its cap, Mentor names a trainer for the next rank, with the place and map coordinates.
+- **Your materials and tools**: what you carry for your recipes, what you can craft right now that still gives skill, and which profession tools you have or are missing (and where to get them).
 
 ## How to play
 - Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for every spec, including Feral Tank.
@@ -67,6 +71,7 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor fishing on|off` - One-key fishing window; `/mentor fish` starts / stops fishing, `/mentor fish key <KEY>` picks the key
 - `/mentor journey` - zones, dungeons and professions for your level
 - `/mentor weapons` - weapon skills and weapon masters
+- `/mentor rep` - your factions and what they give you
 - `/mentor words` - what the words in group chat mean
 - `/mentor upgrades` - where to get upgrades: dungeons, quests and vendors
 - `/mentor trainer` - what Mentor read at your class trainer (ranks and prices)

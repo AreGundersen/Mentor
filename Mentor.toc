@@ -2,7 +2,7 @@
 ## Title: Mentor
 ## Notes: Detects your class and spec, shows which talent to take next (and marks it in the talent window), and tells you how much better or worse every item is for each of your specs.
 ## Author: Are Gundersen
-## Version: 1.17.0
+## Version: 1.17.0+dev
 ## IconTexture: Interface\AddOns\Mentor\Media\Logo
 ## OptionalDeps: Auctionator
 ## X-Website: https://github.com/AreGundersen/Mentor
@@ -22,6 +22,7 @@ GuidesForever.lua
 GuideUI.lua
 Extras.lua
 Training.lua
+Reputation.lua
 ExtrasUI.lua
 SellAdvice.lua
 InfoPanel.lua
@@ -38,6 +39,7 @@ DungeonLoot.lua
 DungeonQuests.lua
 VendorGear.lua
 ReputationGear.lua
+AuctionUpgrades.lua
 Upgrades.lua
 Weapons.lua
 Glossary.lua

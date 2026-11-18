@@ -95,6 +95,64 @@ end
 -- Dungeons for your level with their upgrades, best dungeon first:
 -- { { name, minLevel, maxLevel, place, upgrades = { { itemLink, boss, result } }, bestGain } }
 -- isStillLoading is true while some items were not loaded yet.
+-- The upgrades one dungeon has for you (boss drops and its quests), best
+-- first, one per slot and one choice per quest. Returns the list, the sum of
+-- the gains (for sorting dungeons), and whether items are still loading.
+local function FindUpgradesInDungeon(dungeonName, weights, playerLevel)
+    local isStillLoading = false
+    local dungeonUpgrades = {}
+    for _, rewardSource in ipairs(GetDungeonRewardSources(dungeonName)) do
+        local itemId, bossName, questName, choiceQuestId = rewardSource[1], rewardSource[2], rewardSource[3], rewardSource[4]
+        local itemLink = GetItemLinkById(itemId)
+        if not itemLink then
+            isStillLoading = true
+        else
+            local success, result = pcall(Mentor.CompareItem, itemLink, weights)
+            if success and result then
+                if result.kind == "loading" then
+                    isStillLoading = true
+                elseif (result.kind == "upgrade" or result.kind == "empty")
+                    and (not result.requiredLevel or result.requiredLevel <= playerLevel + LEVELS_ABOVE_SHOWN) then
+                    local gain = result.kind == "empty" and 100 or (result.overallPercent or result.percent or 0)
+                    table.insert(dungeonUpgrades, { itemLink = itemLink, boss = bossName, questName = questName,
+                        choiceQuestId = choiceQuestId, result = result, gain = gain })
+                end
+            end
+        end
+    end
+    table.sort(dungeonUpgrades, function(first, second) return first.gain > second.gain end)
+    -- One upgrade per slot is enough: you can only wear one of them.
+    -- And only the best choice of a quest: you get to pick just one.
+    local bestPerSlot, usedSlots, usedChoiceQuests = {}, {}, {}
+    for _, upgrade in ipairs(dungeonUpgrades) do
+        local slotKey = upgrade.result.replacedSlot or upgrade.itemLink
+        local isChoiceTaken = upgrade.choiceQuestId and usedChoiceQuests[upgrade.choiceQuestId]
+        if not usedSlots[slotKey] and not isChoiceTaken then
+            usedSlots[slotKey] = true
+            if upgrade.choiceQuestId then
+                usedChoiceQuests[upgrade.choiceQuestId] = true
+            end
+            table.insert(bestPerSlot, upgrade)
+        end
+    end
+    local totalGain = 0
+    for _, upgrade in ipairs(bestPerSlot) do
+        totalGain = totalGain + math.min(upgrade.gain, 100)
+    end
+    return bestPerSlot, totalGain, isStillLoading
+end
+
+-- The upgrades in one dungeon by name (the Journey tab and the tip when you
+-- enter a dungeon), whatever your level. Empty when Mentor can't rate gear yet.
+function upgrades.GetUpgradesInDungeon(dungeonName)
+    local advice = Mentor.currentAdvice
+    if not (advice and advice.specData and advice.specData.weights and Mentor.CompareItem) then
+        return {}
+    end
+    local dungeonUpgrades = FindUpgradesInDungeon(dungeonName, advice.specData.weights, UnitLevel("player") or 1)
+    return dungeonUpgrades
+end
+
 function upgrades.FindDungeonUpgrades()
     local advice = Mentor.currentAdvice
     local dungeonList = Mentor.Journey and Mentor.Journey.DUNGEONS
@@ -103,60 +161,23 @@ function upgrades.FindDungeonUpgrades()
         return {}, false
     end
     local playerLevel = UnitLevel("player") or 1
-    local isStillLoading = false
+    local isAnyStillLoading = false
     local dungeonResults = {}
     for _, dungeon in ipairs(dungeonList) do
         local dungeonName, minLevel, maxLevel, dungeonFaction, place = dungeon[1], dungeon[2], dungeon[3], dungeon[4], dungeon[5]
         local hasData = Mentor.DUNGEON_LOOT[dungeonName] or (Mentor.DUNGEON_QUESTS and Mentor.DUNGEON_QUESTS[dungeonName])
         if hasData and FitsFaction(dungeonFaction)
             and playerLevel >= minLevel - LEVELS_BELOW_RANGE and playerLevel <= maxLevel then
-            local dungeonUpgrades = {}
-            for _, rewardSource in ipairs(GetDungeonRewardSources(dungeonName)) do
-                local itemId, bossName, questName, choiceQuestId = rewardSource[1], rewardSource[2], rewardSource[3], rewardSource[4]
-                local itemLink = GetItemLinkById(itemId)
-                if not itemLink then
-                    isStillLoading = true
-                else
-                    local success, result = pcall(Mentor.CompareItem, itemLink, advice.specData.weights)
-                    if success and result then
-                        if result.kind == "loading" then
-                            isStillLoading = true
-                        elseif (result.kind == "upgrade" or result.kind == "empty")
-                            and (not result.requiredLevel or result.requiredLevel <= playerLevel + LEVELS_ABOVE_SHOWN) then
-                            local gain = result.kind == "empty" and 100 or (result.overallPercent or result.percent or 0)
-                            table.insert(dungeonUpgrades, { itemLink = itemLink, boss = bossName, questName = questName,
-                                choiceQuestId = choiceQuestId, result = result, gain = gain })
-                        end
-                    end
-                end
-            end
-            if #dungeonUpgrades > 0 then
-                table.sort(dungeonUpgrades, function(first, second) return first.gain > second.gain end)
-                -- One upgrade per slot is enough: you can only wear one of them.
-                -- And only the best choice of a quest: you get to pick just one.
-                local bestPerSlot, usedSlots, usedChoiceQuests = {}, {}, {}
-                for _, upgrade in ipairs(dungeonUpgrades) do
-                    local slotKey = upgrade.result.replacedSlot or upgrade.itemLink
-                    local isChoiceTaken = upgrade.choiceQuestId and usedChoiceQuests[upgrade.choiceQuestId]
-                    if not usedSlots[slotKey] and not isChoiceTaken then
-                        usedSlots[slotKey] = true
-                        if upgrade.choiceQuestId then
-                            usedChoiceQuests[upgrade.choiceQuestId] = true
-                        end
-                        table.insert(bestPerSlot, upgrade)
-                    end
-                end
-                local totalGain = 0
-                for _, upgrade in ipairs(bestPerSlot) do
-                    totalGain = totalGain + math.min(upgrade.gain, 100)
-                end
+            local bestPerSlot, totalGain, isStillLoading = FindUpgradesInDungeon(dungeonName, advice.specData.weights, playerLevel)
+            isAnyStillLoading = isAnyStillLoading or isStillLoading
+            if #bestPerSlot > 0 then
                 table.insert(dungeonResults, { name = dungeonName, minLevel = minLevel, maxLevel = maxLevel, place = place,
                     upgrades = bestPerSlot, totalGain = totalGain })
             end
         end
     end
     table.sort(dungeonResults, function(first, second) return first.totalGain > second.totalGain end)
-    return dungeonResults, isStillLoading
+    return dungeonResults, isAnyStillLoading
 end
 
 --------------------------------------------------------------------------------
