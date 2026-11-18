@@ -134,16 +134,20 @@ local CRAFTING_ROUTES = {
 -- Where the guide's recipes come from (Wowhead's "Learned From" column).
 -- Not listed: learned from the trainer (or known from the start).
 -- Vendors: { name, place, faction ("Alliance", "Horde" or nil for both) }.
+-- Pexmit is a rare roaming vendor: he moves between several spots in Dae'gun
+-- (Mount Hyjal), is often away for hours, and may need Hyjal quests first.
+local PEXMIT_PLACE = "roams Dae'gun, Mount Hyjal - often away for hours"
+
 local RECIPE_SOURCES = {
     ["Philosopher's Stone"] = { vendors = { { "Alchemist Pestlezugg", "Gadgetzan, Tanaris" } } },
     ["Superior Mana Potion"] = { vendors = { { "Ulthir", "Craftsmen's Terrace, Darnassus", "Alliance" }, { "Algernon", "The Apothecarium, Undercity", "Horde" } } },
     ["Major Discolored Healing Potion"] = { note = "Taught after a short questline: the Odd Child in Westfall (Alliance) or Apothecary Renferrel at the Sepulcher, Silverpine Forest (Horde)." },
     ["Ebon Shiv"] = { vendors = { { "Magnus Frostwake", "Caer Darrow, Western Plaguelands" } } },
     ["Ornate Thorium Handaxe"] = { vendors = { { "Magnus Frostwake", "Caer Darrow, Western Plaguelands" } } },
-    ["Bold Dirk"] = { vendors = { { "Pexmit", "a plans vendor (see Wowhead)" } } },
+    ["Bold Dirk"] = { vendors = { { "Pexmit", PEXMIT_PLACE } } },
     ["Enchant Cloak - Minor Agility"] = { vendors = { { "Dalria", "Astranaar, Ashenvale", "Alliance" }, { "Kulwia", "Sun Rock Retreat, Stonetalon Mountains", "Horde" } } },
     ["Enchant Bracer - Lesser Strength"] = { vendors = { { "Dalria", "Astranaar, Ashenvale", "Alliance" }, { "Kulwia", "Sun Rock Retreat, Stonetalon Mountains", "Horde" } } },
-    ["Lesser Mana Oil"] = { vendors = { { "Lokhtos Darkbargainer", "Blackrock Depths (Thorium Brotherhood)" } } },
+    ["Lesser Mana Oil"] = { vendors = { { "Kania", "Cenarion Hold, Silithus" } } },
     ["Enchant Shield - Greater Stamina"] = { vendors = { { "Mythrin'dir", "Craftsmen's Terrace, Darnassus", "Alliance" }, { "Daniel Bartlett", "Trade Quarter, Undercity", "Horde" } } },
     ["Runed Arcanite Rod"] = { vendors = { { "Lorelae Wintersong", "Nighthaven, Moonglade" } } },
     ["Enchant Cloak - Superior Defense"] = { vendors = { { "Lorelae Wintersong", "Nighthaven, Moonglade" } } },
@@ -155,11 +159,13 @@ local RECIPE_SOURCES = {
     ["Heavy Scorpid Helm"] = { vendors = { { "Zannok Hidepiercer", "Cenarion Hold, Silithus" } } },
     ["Runecloth Cloak"] = { vendors = { { "Darnall", "Nighthaven, Moonglade" } } },
     ["Runecloth Boots"] = { vendors = { { "Darnall", "Nighthaven, Moonglade" } } },
-    ["Runecloth Cuffs"] = { vendors = { { "Pexmit", "a pattern vendor (see Wowhead)" } } },
+    ["Runecloth Cuffs"] = { vendors = { { "Pexmit", PEXMIT_PLACE } } },
     ["Wisdom of the Timbermaw"] = { vendors = { { "Meilosh", "Timbermaw Hold, Felwood (needs Timbermaw reputation)" } } },
     ["Venomspew Gloves"] = { vendors = { { "Mishta", "Cenarion Hold, Silithus" } } },
     ["Venomspew Cord"] = { vendors = { { "Mishta", "Cenarion Hold, Silithus" } } },
     ["Venomspew Footpads"] = { vendors = { { "Mishta", "Cenarion Hold, Silithus" } } },
+    ["Brilliant Smallfish"] = { vendors = { { "Tharynn Bouden", "Goldshire, Elwynn Forest", "Alliance" }, { "Khara Deepwater", "Loch Modan", "Alliance" },
+        { "Sewa Mistrunner", "Thunder Bluff", "Horde" }, { "Martine Tramblay", "Brill, Tirisfal Glades", "Horde" } } },
     ["Longjaw Mud Snapper"] = { vendors = { { "Nyalah Brightfire", "Valanaar, Zephras Isle" } } },
     ["Bristle Whisker Catfish"] = { vendors = { { "Kilxx", "Ratchet, The Barrens" } } },
     ["Mithril Headed Trout"] = { vendors = { { "Kelsey Yance", "Booty Bay, Stranglethorn Vale" } } },
