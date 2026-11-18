@@ -449,13 +449,11 @@ local function TryCreateNativeWindow(parentFrame)
     window.closeButton = type(window.CloseButton) == "table" and window.CloseButton or nil
     -- The grey line under the title, right of the portrait.
     window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    window.subtitle:SetPoint("TOPLEFT", 64, -28)
-    window.subtitle:SetPoint("RIGHT", window, "RIGHT", -86, 0)   -- room for "Show all"
+    window.subtitle:SetPoint("TOPLEFT", 64, -30)
     window.subtitle:SetJustifyH("LEFT")
     window.subtitle:SetJustifyV("TOP")
-    window.subtitle:SetHeight(28)
     window.isNative = true
-    contentTopOffset = 62        -- the inset starts under the portrait
+    contentTopOffset = 70        -- the inset starts under the portrait, plus some air
     contentBottomPadding = 12
     return true
 end
@@ -586,10 +584,16 @@ function upgrades.Refresh()
     local specName = advice and advice.specData and advice.specData.name or "your spec"
     local shownResults, isStillLoading = {}, false
     window.showAllButton:SetShown(focusedDungeonName ~= nil)
+    if window.isNative then
+        -- Beside the portrait there is room for two short lines; leave room
+        -- for "Show all" when it is there.
+        window.subtitle:SetWidth(WINDOW_WIDTH - 64 - (focusedDungeonName and 88 or 14))
+    end
     if focusedDungeonName then
         -- One dungeon, all its upgrades (clicked in the Journey tab).
-        window.subtitle:SetText(string.format("Everything in %s that is better than yours for |cffffffff%s|r, best first.",
-            focusedDungeonName, specName))
+        window.subtitle:SetText(window.isNative
+            and string.format("All upgrades here for |cffffffff%s|r,\nbest first.", specName)
+            or string.format("Everything in %s that is better than yours for |cffffffff%s|r, best first.", focusedDungeonName, specName))
         for _, dungeon in ipairs(Mentor.Journey and Mentor.Journey.DUNGEONS or {}) do
             if dungeon[1] == focusedDungeonName then
                 table.insert(shownResults, { name = dungeon[1], minLevel = dungeon[2], maxLevel = dungeon[3], place = dungeon[5],
@@ -600,8 +604,10 @@ function upgrades.Refresh()
             shownResults = {}
         end
     else
-        window.subtitle:SetText(string.format("Dungeons and vendors for level %d with gear better than yours for |cffffffff%s|r, best first.",
-            UnitLevel("player") or 1, specName))
+        window.subtitle:SetText(window.isNative
+            and string.format("Better gear for |cffffffff%s|r at level %d,\nbest first.", specName, UnitLevel("player") or 1)
+            or string.format("Dungeons and vendors for level %d with gear better than yours for |cffffffff%s|r, best first.",
+                UnitLevel("player") or 1, specName))
         local dungeonResults
         dungeonResults, isStillLoading = upgrades.FindDungeonUpgrades()
         for dungeonIndex = 1, math.min(MAX_DUNGEONS_SHOWN, #dungeonResults) do
