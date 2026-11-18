@@ -117,6 +117,8 @@ local function CreateWindow()
     if window.SetBackdrop and Mentor.BOX_BACKDROP then
         window:SetBackdrop(Mentor.BOX_BACKDROP)
         window:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
+        -- Dark background: the backdrop texture is plain white until colored.
+        window:SetBackdropColor(0.05, 0.05, 0.07, 0.95)
     end
     window.title = window:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     window.title:SetPoint("TOPLEFT", PADDING, -PADDING)

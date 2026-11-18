@@ -151,6 +151,8 @@ local function CreatePanel(auctionWindow)
     if panel.SetBackdrop and Mentor.BOX_BACKDROP then
         panel:SetBackdrop(Mentor.BOX_BACKDROP)
         panel:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
+        -- Dark background: the backdrop texture is plain white until colored.
+        panel:SetBackdropColor(0.05, 0.05, 0.07, 0.95)
     end
     panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     panel.title:SetPoint("TOPLEFT", PANEL_PADDING, -PANEL_PADDING)
