@@ -21,44 +21,18 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
-    -- New in this round
-    { "handbookButton", "Handbook button",
-        "The Mentor window has one \"Handbook\" button (was \"Spells & racials\" + \"Macros\"). It opens the panel on the tab you used last, and says \"Hide handbook\" while open." },
-    { "checklistButton", "Test checklist button",
-        "Next to Handbook there is a \"Test checklist\" button that opens this list (only in +dev builds - players get a full-width Handbook)." },
-    { "tabsTwoRows", "Tabs: two rows, room around the text",
-        "The Handbook tabs sit in two rows (Spells Racials Macros Journey / Weapons Factions Words); every label has room to the button's edges; the open one stays lit." },
-    { "journeySections", "Journey: headings and upgrade counts",
-        "Journey has headings (Your professions, Zones for your level, Dungeons, Professions for you); dungeons show their place and \"N upgrades\" in green on the right; level ranges have room from the border; no \"...\"." },
-    { "journeyClickDungeon", "Journey: click a dungeon",
-        "Click a dungeon with upgrades: \"Where to get upgrades\" opens with only that dungeon and all its upgrades, and a \"Show all\" button brings back every dungeon and vendor." },
-    { "auctionClick", "Auction panel: click an item",
-        "On the auction house, click an item in Mentor's panel: the auction house searches for it. The panel keeps the upgrades from your earlier searches while the auction house is open." },
-    { "factionsBars", "Factions: bars all the same thickness",
-        "/mentor rep: every progress bar is equally thick." },
-    { "factionsStandings", "Factions: what each standing gives",
-        "The row says what the next standing gives (or the gear for you). Hover: one line per standing (Neutral to Exalted) with what you get, reached ones marked +." },
-    -- From earlier this cycle
+    -- Tested OK already this cycle (removed): Handbook and checklist buttons,
+    -- tabs, Journey layout and dungeon click, auction panel and click, Factions
+    -- bars and standings, profession materials and tools, missing gathering
+    -- tool, settings rows, bug report.
     { "dungeonTip", "Dungeon tip names your upgrades",
         "Enter a dungeon for your level: after the tip, a \"Look out for:\" line names the best items for you and who drops them." },
-    { "auctionPanel", "Auction house panel",
-        "Open the auction house and search for gear for your armor type (or with Auctionator). A Mentor panel next to the window lists the upgrades with price. If it never shows: /mentor bug while the AH is open." },
     { "reputationGear", "Factions: quartermaster gear",
         "Rows with gear name a quartermaster upgrade and the standing it needs (also factions you haven't met)." },
-    { "professionMaterials", "Profession window: Your materials",
-        "Open a profession: Mentor's panel shows what you carry for your recipes and \"Craft now\" recipes that still give skill." },
-    { "professionTools", "Profession window: Tools",
-        "Open Engineering, Blacksmithing, Enchanting or Mining (smelting): the tools you have are green, missing ones red with where to get them." },
-    { "journeyMissingTool", "Journey: missing gathering tool",
-        "Put your Skinning Knife (or Mining Pick) in the bank: the Journey tab shows the profession with a red \"Tool\" tag." },
     { "weaponSkill", "Weapon skill reminder",
         "Equip a weapon type you rarely use (skill 25+ below max): a reminder says so. Settings > Reminders > Weapon skill turns it off." },
     { "sharedTrainerPrices", "Trainer prices on an alt",
         "Log in on another character of a class whose trainer you visited with someone else: the Spells tab shows ranks and prices \"seen by\" that character." },
-    { "settingsRows", "New settings rows",
-        "/mentor settings: \"Weapon skill\" (Reminders) and \"Auction upgrades\" (Gold) are there and nothing overlaps." },
-    { "bugReport", "Bug report still works",
-        "/mentor bug, Create report without writing: the report has the new parts and no \"could not read\"." },
 }
 
 local STATE_ORDER = { [""] = "ok", ok = "problem", problem = "" }
