@@ -399,10 +399,38 @@ local function CanDualWieldNow()
     return false
 end
 
+-- Profession tools you carry, not weapons to fight with: they never get an
+-- arrow, and the tooltip says to keep them. Fishing poles are found by their
+-- weapon type (they all count); the rest by item id.
+local PROFESSION_TOOL_ITEM_IDS = {
+    [7005] = "Skinning",        -- Skinning Knife
+    [2901] = "Mining",          -- Mining Pick
+    [5956] = "Blacksmithing",   -- Blacksmith Hammer
+}
+local WEAPON_ITEM_CLASS = 2
+local FISHING_POLE_SUBCLASS = 20
+
+-- The profession an item is a tool for ("Fishing", "Skinning", ...), or nil.
+function Mentor.GetProfessionToolName(itemLink)
+    local getItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+    if not getItemInfoInstant then
+        return nil
+    end
+    local isSuccess, itemId, _, _, _, _, classId, subclassId = pcall(getItemInfoInstant, itemLink)
+    if not isSuccess or not itemId then
+        return nil
+    end
+    if classId == WEAPON_ITEM_CLASS and subclassId == FISHING_POLE_SUBCLASS then
+        return "Fishing"
+    end
+    return PROFESSION_TOOL_ITEM_IDS[itemId]
+end
+
 -- Compares an item with your gear for the given weights.
 -- Returns a result table:
 --   kind = "upgrade" | "downgrade" | "same" | "empty" | "cannotUse" | "notGear"
---        | "loading" | "equipped" | "needsOneHand"
+--        | "loading" | "equipped" | "needsOneHand" | "tool"
+--   (toolFor = "Fishing" etc. when kind is "tool")
 --   percent, newScore, oldScore, replacedSlot, requiredLevel, reason
 function Mentor.CompareItem(itemLink, weights)
     local analysis = Mentor.AnalyzeItem(itemLink)
@@ -420,6 +448,10 @@ function Mentor.CompareItem(itemLink, weights)
         if GetEquippedLink(slotId) == itemLink then
             return { kind = "equipped" }
         end
+    end
+    local professionToolName = Mentor.GetProfessionToolName(itemLink)
+    if professionToolName then
+        return { kind = "tool", toolFor = professionToolName }
     end
 
     local newScore = Mentor.ScoreItem(itemLink, weights) or 0
@@ -607,6 +639,8 @@ function Mentor.DescribeComparison(result, specName, isShort)
         return "Off-hand: you are using a two-handed weapon", 0.8, 0.8, 0.8
     elseif result.kind == "equipped" then
         return "You are wearing this", 0.6, 0.8, 1.0
+    elseif result.kind == "tool" then
+        return "Profession tool (" .. (result.toolFor or "profession") .. ") - keep it", 0.6, 0.8, 1.0
     end
     return nil
 end

@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- **Profession tools** (fishing poles, Skinning Knife, Mining Pick, Blacksmith Hammer) no longer get a red arrow or a sell coin in your bags: the tooltip says "Keep - Fishing tool" instead of calling them a downgrade.
 - **Bug reports explain themselves** - writing is now optional. The report adds the items you hovered lately (with the exact tooltip text and Mentor's verdict), where you are, what every feature shows right now (bag arrows, procs, trainer prices, upgrades, Level pace, professions, reminders), problems Mentor handled quietly, and a log of what Mentor did lately - also from before your last /reload.
 - **Support Mentor** now shows the Buy Me a Coffee page (buymeacoffee.com/AGundersen).
 - The CurseForge description and README describe the new Upgrades, Spells and Level pace features.

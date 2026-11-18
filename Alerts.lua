@@ -88,6 +88,9 @@ end
 --   Keep - upgrade for <spec>   not for your spec, but for another spec of yours
 --   the sell advice             otherwise (when Sell advice is on)
 local function GetActionLine(tooltip, itemLink, currentResult, otherSpecUpgradeName)
+    if currentResult.kind == "tool" then
+        return "Keep - " .. (currentResult.toolFor or "profession") .. " tool", 0.6, 0.8, 1.0
+    end
     if currentResult.kind == "upgrade" or currentResult.kind == "empty" then
         if currentResult.requiredLevel then
             return "Equip at level " .. currentResult.requiredLevel, 1.0, 0.85, 0.1

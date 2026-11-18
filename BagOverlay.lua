@@ -383,8 +383,9 @@ function bagOverlay.Update(weights)
             elseif result.kind == "cannotUse" then
                 arrowDirection, arrowColor = CROSS, DOWNGRADE_COLOR
             end
-            -- Coin / disenchant icon on items that are not an upgrade but worth money.
-            if isSellAdviceEnabled and arrowDirection ~= UP_ARROW then
+            -- Coin / disenchant icon on items that are not an upgrade but worth
+            -- money. Never on profession tools: you need those.
+            if isSellAdviceEnabled and arrowDirection ~= UP_ARROW and result.kind ~= "tool" then
                 local sellAdvice = Mentor.SellAdvice.Evaluate(itemLink, IsButtonItemBound(itemButton))
                 local iconTexture = Mentor.SellAdvice.GetActionIcon(sellAdvice)
                 if iconTexture and IsUpgradeForAnotherSpec(itemLink) then
