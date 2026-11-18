@@ -895,7 +895,12 @@ function professions.RefreshPanel()
     local recipes = GetOpenRecipes()
     local recipesByName = {}
     for _, recipe in ipairs(recipes) do
-        recipesByName[recipe.name] = recipe
+        -- The window can list the same recipe more than once (a learned
+        -- copy and an unlearned variant): the learned one wins.
+        local earlierRecipe = recipesByName[recipe.name]
+        if not earlierRecipe or (recipe.isKnown and not earlierRecipe.isKnown) then
+            recipesByName[recipe.name] = recipe
+        end
     end
 
     -- Under the portrait in the WoW window, under the title otherwise.

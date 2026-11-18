@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- Fix: the profession panel could say "You don't know it yet" about a recipe you know (for example Earthen Vest), when the window lists the recipe twice.
 - Fix: the profession panel said "Your trainer teaches it" for recipes you buy as a pattern (for example Gem-studded Leather Belt from Rikqiz in Booty Bay). It now names the vendor, or uses the game's own source text, and only says trainer when nothing else is known. Also corrected: Lesser Mana Oil is sold by Kania (Cenarion Hold), Bold Dirk and Runecloth Cuffs by Pexmit who roams Dae'gun in Mount Hyjal, and Brilliant Smallfish is a recipe from a cooking supplier.
 
 ## 1.18.0 - 2026-11-18

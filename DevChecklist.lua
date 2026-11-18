@@ -21,6 +21,8 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
+    { "knownRecipe", "Known recipes count as known",
+        "Tailoring around 150-160 with Earthen Vest learned: the panel's Level up step says \"Craft about N to reach skill ...\", not \"You don't know it yet\"." },
     { "recipeSource", "Pattern recipes name the vendor",
         "Leatherworking 160+: the profession panel's Level up step says Gem-studded Leather Belt is sold by Rikqiz (Booty Bay), not \"Your trainer teaches it\". A recipe the trainer really has still says trainer. (Also fixed in the data: Lesser Mana Oil - Kania, Bold Dirk / Runecloth Cuffs - Pexmit in Hyjal, Brilliant Smallfish - cooking supplier.)" },
     -- Released 1.18.0 without an in-game check: the "Look out for" dungeon
