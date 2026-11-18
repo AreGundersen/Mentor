@@ -412,26 +412,60 @@ local function CreateItemRow()
     return row
 end
 
-local function CreateWindow()
-    -- Docked to the Mentor window like its other side panels (settings, build,
-    -- extras): it moves with the window, opens on the side with room, and
-    -- closes when the Mentor window closes.
-    local mentorWindow = _G.MentorFrame
-    window = CreateFrame("Frame", "MentorUpgradesWindow", mentorWindow or UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    window:SetWidth(WINDOW_WIDTH)
-    window:EnableMouse(true)
-    if mentorWindow and Mentor.RegisterSidePanel then
-        window:SetHeight(100)  -- real height is set in Refresh
-        Mentor.RegisterSidePanel(window, false)
-    else
-        window:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
+-- Where the content starts (from the window's top) and how far it stays from
+-- the bottom: Blizzard's frame has a title bar and portrait above the inset.
+local contentTopOffset = PADDING + 24
+local contentBottomPadding = PADDING
+
+-- The window as a real WoW window: Blizzard's ButtonFrameTemplate (the frame
+-- of the character windows) with Mentor's logo as the round portrait, the
+-- title in the title bar and the content in the dark inset. Returns false
+-- when this client doesn't have the template.
+local function TryCreateNativeWindow(parentFrame)
+    local isCreated, nativeWindow = pcall(CreateFrame, "Frame", "MentorUpgradesWindow", parentFrame, "ButtonFrameTemplate")
+    if not isCreated or not nativeWindow then
+        return false
     end
+    window = nativeWindow
+    if ButtonFrameTemplate_HideButtonBar then
+        pcall(ButtonFrameTemplate_HideButtonBar, window)
+    end
+    if window.SetTitle then
+        window:SetTitle("Where to get upgrades")
+    else
+        local titleText = window.TitleText or (type(window.TitleContainer) == "table" and window.TitleContainer.TitleText)
+        if type(titleText) == "table" and titleText.SetText then
+            titleText:SetText("Where to get upgrades")
+        end
+    end
+    local portraitTexture = window.portrait or (type(window.PortraitContainer) == "table" and window.PortraitContainer.portrait)
+    if type(portraitTexture) == "table" and portraitTexture.SetTexture then
+        if SetPortraitToTexture then
+            pcall(SetPortraitToTexture, portraitTexture, LOGO_TEXTURE)
+        else
+            portraitTexture:SetTexture(LOGO_TEXTURE)
+        end
+    end
+    window.closeButton = type(window.CloseButton) == "table" and window.CloseButton or nil
+    -- The grey line under the title, right of the portrait.
+    window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    window.subtitle:SetPoint("TOPLEFT", 64, -28)
+    window.subtitle:SetPoint("RIGHT", window, "RIGHT", -86, 0)   -- room for "Show all"
+    window.subtitle:SetJustifyH("LEFT")
+    window.subtitle:SetJustifyV("TOP")
+    window.subtitle:SetHeight(28)
+    window.isNative = true
+    contentTopOffset = 62        -- the inset starts under the portrait
+    contentBottomPadding = 12
+    return true
+end
+
+-- Mentor's own dark box (clients without Blizzard's template).
+local function CreateMentorStyleWindow(parentFrame)
+    window = CreateFrame("Frame", "MentorUpgradesWindow", parentFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
     if window.SetBackdrop then
         window:SetBackdrop(WINDOW_BACKDROP)
         window:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
-    end
-    if UISpecialFrames then
-        table.insert(UISpecialFrames, "MentorUpgradesWindow")   -- Escape closes it
     end
     local logo = window:CreateTexture(nil, "ARTWORK")
     logo:SetTexture(LOGO_TEXTURE)
@@ -440,12 +474,42 @@ local function CreateWindow()
     window.title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     window.title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
     window.title:SetText("Where to get upgrades")
-    local closeButton = CreateFrame("Button", nil, window, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", -2, -2)
+    window.closeButton = CreateFrame("Button", nil, window, "UIPanelCloseButton")
+    window.closeButton:SetPoint("TOPRIGHT", -2, -2)
+    window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    window.subtitle:SetPoint("TOPLEFT", PADDING, -PADDING - 24)
+    window.subtitle:SetWidth(WINDOW_WIDTH - 2 * PADDING)
+    window.subtitle:SetJustifyH("LEFT")
+end
+
+local function CreateWindow()
+    -- Docked to the Mentor window like its other side panels (settings, build,
+    -- extras): it moves with the window, opens on the side with room, and
+    -- closes when the Mentor window closes.
+    local mentorWindow = _G.MentorFrame
+    local parentFrame = mentorWindow or UIParent
+    if not TryCreateNativeWindow(parentFrame) then
+        CreateMentorStyleWindow(parentFrame)
+    end
+    window:SetWidth(WINDOW_WIDTH)
+    window:EnableMouse(true)
+    if mentorWindow and Mentor.RegisterSidePanel then
+        window:SetHeight(100)  -- real height is set in Refresh
+        Mentor.RegisterSidePanel(window, false)
+    else
+        window:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
+    end
+    if UISpecialFrames then
+        table.insert(UISpecialFrames, "MentorUpgradesWindow")   -- Escape closes it
+    end
     -- "Show all": back from one dungeon to every dungeon and vendor.
     window.showAllButton = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
     window.showAllButton:SetSize(70, 18)
-    window.showAllButton:SetPoint("RIGHT", closeButton, "LEFT", -2, 0)
+    if window.isNative then
+        window.showAllButton:SetPoint("TOPRIGHT", -10, -32)
+    else
+        window.showAllButton:SetPoint("RIGHT", window.closeButton, "LEFT", -2, 0)
+    end
     window.showAllButton:SetNormalFontObject("GameFontNormalSmall")
     window.showAllButton:SetHighlightFontObject("GameFontHighlightSmall")
     window.showAllButton:SetText("Show all")
@@ -454,10 +518,6 @@ local function CreateWindow()
         upgrades.Refresh()
     end)
     window.showAllButton:Hide()
-    window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    window.subtitle:SetPoint("TOPLEFT", PADDING, -PADDING - 24)
-    window.subtitle:SetWidth(WINDOW_WIDTH - 2 * PADDING)
-    window.subtitle:SetJustifyH("LEFT")
     window.emptyText = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     window.emptyText:SetWidth(WINDOW_WIDTH - 2 * PADDING)
     window.emptyText:SetJustifyH("LEFT")
@@ -561,7 +621,10 @@ function upgrades.Refresh()
     for _, row in ipairs(itemRows) do
         row:Hide()
     end
-    local verticalOffset = -PADDING - 24 - (window.subtitle:GetStringHeight() or 24) - 8
+    -- Native window: the subtitle sits beside the portrait, content starts in
+    -- the inset. Mentor's own box: content starts under the subtitle.
+    local verticalOffset = window.isNative and -contentTopOffset
+        or (-contentTopOffset - (window.subtitle:GetStringHeight() or 24) - 8)
     local usedRows = 0
     for dungeonIndex, dungeonResult in ipairs(shownResults) do
         local header = GetDungeonHeader(dungeonIndex)
@@ -614,7 +677,7 @@ function upgrades.Refresh()
     else
         window.emptyText:Hide()
     end
-    window:SetHeight(-verticalOffset + PADDING)
+    window:SetHeight(-verticalOffset + contentBottomPadding)
 
     -- Items arrive from the server one by one: look again a moment later.
     if isStillLoading and not isRefreshQueued and C_Timer then

@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- "Where to get upgrades" uses WoW's own window frame (title bar, round Mentor portrait, dark inset), so it looks like part of the game. Mentor's other windows follow if this works out.
 - **Handbook:** the "Spells & racials" and "Macros" buttons are one "Handbook" button that opens the panel on the tab you used last. Its tabs are Mentor's own red buttons, in two rows so every label has room.
 - Journey has headings (your professions, zones, dungeons, professions for you) instead of a tag on every row. Dungeons show where they are and how many upgrades they have; **click a dungeon** to see all its upgrades in "Where to get upgrades" ("Show all" goes back). Long texts are in the tooltip, and the level column has room from the border.
 - **Auction house panel:** click an upgrade to search for it on the auction house; the panel keeps the upgrades from all your searches while the auction house is open.
