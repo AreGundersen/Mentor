@@ -25,6 +25,6 @@ Download: [Mentor on CurseForge](https://www.curseforge.com/wow/addons/mentor-fo
 
 ## Support Mentor
 
-Mentor is free. If it helps you, you can support it with the **Donate** button on the [CurseForge page](https://www.curseforge.com/wow/addons/mentor-forever) - thank you!
+Mentor is free. If it helps you, you can [buy me a coffee](https://buymeacoffee.com/AGundersen) (or use the **Donate** button on the [CurseForge page](https://www.curseforge.com/wow/addons/mentor-forever)) - thank you!
 
 Guide content is based on the Mobalytics WoW Forever guides; trainer data and spell icons from WCLBox.

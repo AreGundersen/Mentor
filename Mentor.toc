@@ -9,6 +9,7 @@
 ## SavedVariables: MentorBugReports, MentorLifeLogAccountDB, MentorAccountDB
 ## SavedVariablesPerCharacter: MentorDB, MentorLifeLogCharDB
 
+Diagnostics.lua
 Data.lua
 SpellIcons.lua
 Talents.lua
@@ -47,3 +48,4 @@ LootRolls.lua
 Procs.lua
 BugReport.lua
 UI.lua
+DiagnosticsFeatures.lua

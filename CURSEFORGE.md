@@ -79,4 +79,4 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 Click **Report bug** in the Mentor window (or type `/mentor bug`). Mentor collects all the details, and you paste them into the bug report form on GitHub: https://github.com/AreGundersen/Mentor/issues
 
 ## Support Mentor
-Mentor is free and made by one player. If it helps you level, you can support it with the **Donate** button on this page. Thank you!
+Mentor is free and made by one player. If it helps you level, you can support it with the **Donate** button on this page or at https://buymeacoffee.com/AGundersen. Thank you!

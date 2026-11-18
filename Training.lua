@@ -53,6 +53,7 @@ end
 -- are switched on while reading and put back afterwards.
 local function ReadTrainerServices()
     if not GetNumTrainerServices or not GetTrainerServiceInfo then
+        Mentor.NoteProblem("Trainer", "this client has no GetNumTrainerServices / GetTrainerServiceInfo - no prices")
         return nil
     end
     local savedFilters = {}
@@ -98,8 +99,10 @@ local function SaveTrainerList()
     local services = ReadTrainerServices()
     isReadingTrainer = false
     if not services or #services == 0 then
+        Mentor.Trace("Trainer", "opened a class trainer but read no services")
         return
     end
+    Mentor.Trace("Trainer", string.format("read %d services from %s", #services, tostring(UnitName and UnitName("npc"))))
     MentorDB = MentorDB or {}
     local trainerName = UnitName and UnitName("npc")
     MentorDB.classTrainerList = {

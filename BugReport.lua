@@ -7,12 +7,13 @@
 --      Mentor version) and the player gets ONE chat hint per session that
 --      they can report it. The game's error handler is wrapped, not replaced,
 --      so BugSack / the default error window keep working.
---   2. The "Report bug" window: pick what kind of problem it is, describe it,
---      and shift-click any item into the text to attach it. Mentor then adds
---      everything a developer needs: version, game build, class/spec/talents,
---      settings, other addons, stored errors, and for every attached item the
---      exact tooltip text Mentor read, the stats it found and its verdict per
---      spec (plus the item you wear in that slot).
+--   2. The "Report bug" window: pick what kind of problem it is and, if you
+--      like, describe it - writing is optional. Mentor adds everything a
+--      developer needs: version, game build, class/spec/talents, settings,
+--      other addons, stored errors, the items you hovered lately (exact
+--      tooltip text, stats and verdict per spec), where you are, what every
+--      feature shows right now, problems Mentor handled quietly, and a log of
+--      what Mentor did lately (Diagnostics.lua, DiagnosticsFeatures.lua).
 --   3. Step two shows a link to the GitHub issue form and the finished report,
 --      both ready to copy. Addons cannot open a browser or send anything over
 --      the internet, so copy & paste is the only way out of the game.
@@ -394,7 +395,37 @@ local function BuildReportText(categoryKey, description)
             AddItemDetails(Add, equippedString, "  Worn in that slot: " .. PlainText(equippedLink), nil)
         end
     end
+    -- The items the player hovered lately: usually the one the report is about.
+    local diagnostics = Mentor.Diagnostics
+    local recentItemLinks = diagnostics and diagnostics.GetRecentItemLinks and diagnostics.GetRecentItemLinks() or {}
+    if #recentItemLinks > 0 then
+        Add("")
+        Add("Items hovered lately (newest last):")
+        for _, itemLink in ipairs(recentItemLinks) do
+            local itemString = itemLink:match("|H(item:[%-%d:]+)|h") or itemLink
+            Add("")
+            AddItemDetails(Add, itemString, "Hovered: " .. PlainText(itemLink), advice)
+        end
+    end
     Add("")
+
+    if diagnostics then
+        Add("Situation:")
+        pcall(diagnostics.AddSituation, function(text) Add("  " .. text) end)
+        Add("")
+        Add("What each feature shows right now:")
+        pcall(diagnostics.AddFeatureStates, function(text) Add("  " .. text) end)
+        Add("")
+        Add("Problems Mentor handled quietly:")
+        local problems = diagnostics.GetProblems()
+        if #problems == 0 then
+            Add("  none")
+        end
+        for _, problem in ipairs(problems) do
+            Add(string.format("  [%dx, %s-%s] %s: %s", problem.count, problem.firstSeen, problem.lastSeen, problem.area, problem.text))
+        end
+        Add("")
+    end
 
     local settingNames = {}
     for settingName, value in pairs(MentorDB or {}) do
@@ -416,6 +447,24 @@ local function BuildReportText(categoryKey, description)
                 SafeValue(storedError.lastSeen), SafeValue(storedError.message)))
             for stackLine in (storedError.stack or ""):gmatch("[^\n]+") do
                 Add("      " .. stackLine)
+            end
+        end
+    end
+    if diagnostics then
+        Add("")
+        Add("What Mentor did lately (this session, newest last):")
+        local traceLines = diagnostics.GetTraceLines()
+        if #traceLines == 0 then
+            Add("  nothing yet")
+        end
+        for _, traceLine in ipairs(traceLines) do
+            Add("  " .. traceLine)
+        end
+        local previousTraceLines = diagnostics.GetPreviousTraceLines()
+        if #previousTraceLines > 0 then
+            Add("Before the last reload / login (last 15):")
+            for traceIndex = math.max(1, #previousTraceLines - 14), #previousTraceLines do
+                Add("  " .. previousTraceLines[traceIndex])
             end
         end
     end
@@ -496,11 +545,9 @@ local function ShowWriteStep(keepText)
     dialog.isShowingReport = false
     dialog.title:SetText("Report a bug")
     local errorCount = bugReport.GetErrorCount()
-    dialog.info:SetText("What went wrong? What did you do, and what did you expect?\n"
-        .. GOLD_TEXT .. "Tip:|r shift-click an item into the box to attach it (for gear problems).\n"
-        .. MUTED_TEXT .. "Your class, spec, talents, settings"
-        .. (errorCount > 0 and (" and " .. errorCount .. " caught error(s)") or "")
-        .. " are added automatically.|r")
+    dialog.info:SetText("Pick what it is about. Writing is " .. GOLD_TEXT .. "optional|r - a few words help.\n"
+        .. MUTED_TEXT .. "Mentor adds the rest itself: the items you hovered lately, where you are, what Mentor showed and did"
+        .. (errorCount > 0 and (", and " .. errorCount .. " caught error(s)") or "") .. ".|r")
     for _, categoryButton in ipairs(dialog.categoryButtons) do
         categoryButton:Show()
     end

@@ -180,6 +180,10 @@ function Mentor.GetVersion()
 end
 
 function Mentor.Print(text)
+    -- Everything Mentor says in chat also goes into the bug report's activity log.
+    if Mentor.Trace then
+        Mentor.Trace("Chat", text)
+    end
     DEFAULT_CHAT_FRAME:AddMessage(BRAND_TEXT .. "Mentor:|r " .. text)
 end
 
@@ -982,7 +986,7 @@ local function BuildSettingsPanel()
     bugButton:SetSize(140, 22)
     bugButton:SetPoint("BOTTOMRIGHT", settingsPanel, "BOTTOM", -4, PADDING)
     bugButton:SetText("Report a bug")
-    -- Support Mentor: shows the CurseForge page (with its Donate button) to copy.
+    -- Support Mentor: shows the Buy Me a Coffee page to copy.
     local supportButton = CreateFrame("Button", nil, settingsPanel, "UIPanelButtonTemplate")
     supportButton:SetSize(140, 22)
     supportButton:SetPoint("BOTTOMLEFT", settingsPanel, "BOTTOM", 4, PADDING)
@@ -997,23 +1001,23 @@ local function BuildSettingsPanel()
     settingsPanel:Hide()
 end
 
--- The Donate button lives on the CurseForge page; addons cannot open web
+-- Support goes straight to Are's Buy Me a Coffee page. Addons cannot open web
 -- pages, so the link is shown ready to copy (Ctrl+C).
-local CURSEFORGE_PAGE = "https://www.curseforge.com/wow/addons/mentor-forever"
+local SUPPORT_PAGE = "https://buymeacoffee.com/AGundersen"
 function Mentor.ShowSupportLink()
     if not (StaticPopupDialogs and StaticPopup_Show) then
-        Mentor.Print("Support Mentor with the Donate button on " .. CURSEFORGE_PAGE)
+        Mentor.Print("Support Mentor on Buy Me a Coffee: " .. SUPPORT_PAGE)
         return
     end
     StaticPopupDialogs["MENTOR_SUPPORT"] = {
-        text = "Thank you for using Mentor!\n\nIf it helps you, you can support it with the Donate button on the CurseForge page. Copy the link (Ctrl+C) and open it in your browser:",
+        text = "Thank you for using Mentor!\n\nIf it helps you, you can buy me a coffee. Copy the link (Ctrl+C) and open it in your browser:",
         button1 = "Close",
         hasEditBox = true,
         editBoxWidth = 320,
         OnShow = function(self)
             local editBox = self.editBox or self.EditBox
             if editBox then
-                editBox:SetText(CURSEFORGE_PAGE)
+                editBox:SetText(SUPPORT_PAGE)
                 editBox:HighlightText()
                 editBox:SetFocus()
             end
