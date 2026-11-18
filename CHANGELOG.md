@@ -5,8 +5,11 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+
+## 1.18.0 - 2026-11-18
 - **Mentor looks like part of WoW:** All of Mentor's windows use WoW's own window frame (title bar, round portrait - your class or spec icon where it fits, Mentor's logo elsewhere - dark inset): the Mentor window, Handbook, Settings, talent build, How to play, Life log, Gold graph, "Where to get upgrades", Report a bug, the vendor list and the profession panel, and the Handbook has icon tabs down its right edge, like WoW Forever's own windows, and the modern thin scroll bar. On a client without these templates, Mentor keeps its own look.
-- **Handbook:** the "Spells & racials" and "Macros" buttons are one "Handbook" button that opens the panel on the tab you used last. Its tabs are Mentor's own red buttons, in two rows so every label has room.
+- **Handbook:** the "Spells & racials" and "Macros" buttons are one "Handbook" button that opens the panel on the tab you used last.
+- **Main window:** Life log, Settings and Report bug are small icon buttons under the title bar; the spec picker shows big spec icons; stats and tips sit in dark boxes like the Handbook rows. How to play has icon tabs showing your own spell for each situation.
 - Journey has headings (your professions, zones, dungeons, professions for you) instead of a tag on every row. Dungeons show where they are and how many upgrades they have; **click a dungeon** to see all its upgrades in "Where to get upgrades" ("Show all" goes back). Long texts are in the tooltip, and the level column has room from the border.
 - **Auction house panel:** click an upgrade to search for it on the auction house; the panel keeps the upgrades from all your searches while the auction house is open.
 - Factions: each row says what the next standing gives; hover for what every standing gives (perks and quartermaster gear); progress bars are all the same thickness.
