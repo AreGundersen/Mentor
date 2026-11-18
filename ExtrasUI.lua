@@ -52,7 +52,7 @@ local TABS = {
     { key = "macros",  label = "Macros" },
     { key = "journey", label = "Journey" },
     { key = "weapons", label = "Weapons" },
-    { key = "reputation", label = "Reputation" },
+    { key = "reputation", label = "Factions" },
     { key = "words",   label = "Words" },
 }
 
@@ -547,6 +547,9 @@ local function ShowRowTooltip(row)
         end
     else
         GameTooltip:AddLine(entry.name)
+        for _, tooltipLine in ipairs(entry.tooltipLines or {}) do
+            GameTooltip:AddLine(tooltipLine, 1, 1, 1, true)
+        end
     end
     GameTooltip:Show()
 end
@@ -563,6 +566,15 @@ local function CreateRow(rowIndex)
 
     row.levelText = CreateText(row, "GameFontNormal", LEVEL_COLUMN_WIDTH, "CENTER")
     row.levelText:SetPoint("LEFT", 0, 0)
+
+    -- A thin progress bar along the bottom (reputation rows).
+    row.progressBackground = row:CreateTexture(nil, "ARTWORK")
+    row.progressBackground:SetColorTexture(1, 1, 1, 0.08)
+    row.progressBackground:SetHeight(3)
+    row.progressBar = row:CreateTexture(nil, "OVERLAY")
+    row.progressBar:SetHeight(3)
+    row.progressBackground:Hide()
+    row.progressBar:Hide()
 
     row.iconFrame = CreateFrame("Frame", nil, row)
     row.iconFrame:SetSize(ICON_SIZE, ICON_SIZE)
@@ -624,7 +636,7 @@ local function FillRow(row, entry)
         row.levelText:SetText(GOLD_TEXT .. (entry.levelText or "") .. "|r")
     elseif entry.kind == "macro" then
         row.levelText:SetText("")
-    elseif entry.kind == "racial" or entry.kind == "passive" then
+    elseif entry.kind == "racial" or entry.kind == "passive" or entry.kind == "reputation" then
         row.levelText:SetText("")
     elseif entry.level then
         row.levelText:SetText(GOLD_TEXT .. entry.level .. "|r")
@@ -648,7 +660,8 @@ local function FillRow(row, entry)
         passive   = MUTED_TEXT .. "Passive|r",
         macro     = "",
     }
-    row.tagText:SetText(entry.kind == "journey" and (entry.tag or "") or tagByKind[entry.kind] or "")
+    local isTextTagKind = entry.kind == "journey" or entry.kind == "reputation"
+    row.tagText:SetText(isTextTagKind and (entry.tag or "") or tagByKind[entry.kind] or "")
 
     local descriptionText = entry.description or GetSpellDescription(entry.spellId) or ""
     -- New ranks: a short line instead of the whole spell text.
@@ -668,6 +681,7 @@ local function FillRow(row, entry)
     -- No level column on the racial and macro tabs (or for journey rows
     -- without a level): move the icon left.
     local hasLevelColumn = entry.kind ~= "macro" and entry.kind ~= "racial" and entry.kind ~= "passive"
+        and entry.kind ~= "reputation"
         and not (entry.kind == "journey" and (entry.levelText or "") == "")
     local textLeft = (hasLevelColumn and LEVEL_COLUMN_WIDTH or 6) + ICON_SIZE + 8
     -- The name stops before the tag (or the Create button), so they never overlap.
@@ -687,6 +701,22 @@ local function FillRow(row, entry)
     row.iconFrame:SetPoint("LEFT", hasLevelColumn and LEVEL_COLUMN_WIDTH or 6, 0)
     row.nameText:ClearAllPoints()
     row.nameText:SetPoint("TOPLEFT", textLeft, -5)
+
+    -- Progress to the next standing, in the standing's color.
+    local hasProgress = entry.progress ~= nil
+    row.progressBackground:SetShown(hasProgress)
+    row.progressBar:SetShown(hasProgress and entry.progress > 0)
+    if hasProgress then
+        local barWidth = row:GetWidth() - textLeft - 8
+        row.progressBackground:ClearAllPoints()
+        row.progressBackground:SetPoint("BOTTOMLEFT", textLeft, 5)
+        row.progressBackground:SetWidth(barWidth)
+        local color = entry.progressColor or GOLD
+        row.progressBar:SetColorTexture(color[1], color[2], color[3], 0.9)
+        row.progressBar:ClearAllPoints()
+        row.progressBar:SetPoint("BOTTOMLEFT", textLeft, 5)
+        row.progressBar:SetWidth(math.max(1, barWidth * math.min(1, entry.progress)))
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -708,17 +738,19 @@ function extrasUI.Build(mainFrame)
     -- tab gets its label's width plus room, and the row is scaled to fit.
     local rowWidth = PANEL_WIDTH - PADDING * 2 - TAB_GAP * (#TABS - 1)
     local measuringText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    local wantedWidths, totalWantedWidth = {}, 0
+    -- Each label gets its full width first; the space left over is shared
+    -- equally, so a long label is never squeezed below its text.
+    local labelWidths, totalLabelWidth = {}, 0
     for tabIndex, tab in ipairs(TABS) do
         measuringText:SetText(tab.label)
-        wantedWidths[tabIndex] = (measuringText:GetStringWidth() or 40) + TAB_TEXT_ROOM
-        totalWantedWidth = totalWantedWidth + wantedWidths[tabIndex]
+        labelWidths[tabIndex] = measuringText:GetStringWidth() or 40
+        totalLabelWidth = totalLabelWidth + labelWidths[tabIndex]
     end
     measuringText:Hide()
-    local widthScale = rowWidth / math.max(totalWantedWidth, 1)
+    local sharedRoom = math.max(0, (rowWidth - totalLabelWidth) / #TABS)
     local tabLeft = PADDING
     for tabIndex, tab in ipairs(TABS) do
-        local tabWidth = math.floor(wantedWidths[tabIndex] * widthScale)
+        local tabWidth = math.floor(labelWidths[tabIndex] + sharedRoom)
         local tabButton = CreateFrame("Button", nil, panel, BACKDROP_TEMPLATE)
         tabButton:SetSize(tabWidth, TAB_HEIGHT)
         tabButton:SetPoint("TOPLEFT", tabLeft, -PADDING - 26)
