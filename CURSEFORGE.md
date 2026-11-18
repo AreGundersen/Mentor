@@ -12,13 +12,15 @@
 - **Arrows on bag items** (Blizzard bags and Bagnon): green = upgrade, yellow = upgrade at a higher level, red = worse. A red cross marks items you can't use.
 - **Tooltips start with what to do:** "Equip", "Equip at level 24" or "Keep - upgrade for <your other spec>", followed by how much better or worse the item is for each of your specs.
 - See exactly which stats change, and what each stat does for you.
-- **Upgrades** button: the dungeons for your level that drop better gear for your spec, with the boss that drops it.
+- **Where to get upgrades** ("Find more" next to "Upgrades in your bags", or `/mentor upgrades`): a panel beside the Mentor window with the dungeons for your level that have better gear for your spec, best first, and which boss drops it. Rewards from the dungeons' quests are included (only your faction's, and not the ones you have done).
+- **From vendors:** gear you can simply buy, with who sells it and where (zone and map coordinates). Includes the new WoW Forever quartermasters (Darkspear Raiders, Ratchet, Booty Bay, Gadgetzan, Everlook and more), with the price and the reputation you need compared with yours.
 - Rings and trinkets are compared with both of the ones you wear.
 - Chat alert when you loot an upgrade, the best quest reward marked when you hand in a quest, and Need or Greed marked on group loot rolls.
 
 ## Where next? and reminders
 - **Journey tab:** zones and dungeons for your level and faction, and professions that suit your class.
 - **Weapons tab:** every weapon type your class can learn, which you already know, and which weapon master teaches the rest.
+- **Spells tab:** new spells and new ranks as you level. Open your class trainer once and Mentor shows the **rank and price** of each (your reputation discount included), which ones your spec should train ("Train now!") and which are optional, and what training costs right now.
 - **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, and empty bag slots.
 - **Dungeon tips:** a short tip about the dungeon and your role when you enter one.
 - **Mob warnings:** the mob tooltip says when a mob is elite or far above your level, and how many of it you have killed.
@@ -33,7 +35,7 @@ Needs the **Auctionator** addon. Off by default: turn it on under Settings or wi
 
 ## Life log, Level pace, Auto vendor, One-key fishing and Mana warning
 Life log is on (its window stays closed until you click "Life log" in the Mentor window). The others are off by default: turn them on under Settings.
-- **Level pace** (`/mentor pace on`) - a small window with your XP, XP per hour, time to level and kills to level.
+- **Level pace** (`/mentor pace on`) - a small window with your XP, XP per hour, time to level, kills to level, and how much XP your finished quests give when you hand them in ("= level!" when that is enough to level up).
 - **Auto vendor** (`/mentor vendor on`) - sells your grey items and repairs your gear when you open a vendor (hold Shift to skip once). A small window shows the value of your junk and your lowest durability. `/mentor keep <item>` keeps a grey item from being sold. Auto sell and auto repair each have their own check box in the window.
 - **Life log** (the "Life log" button, or `/mentor log`) - your character's story: kills, deaths, gold, loot, crafting, professions, consumables, reputation, travel, groups and more, for the session, this character and all your characters, and a graph of your gold over time. Coming from the LifeLog addon? Keep it installed for one login: Mentor copies all your LifeLog data (LifeLog itself is not changed), then you can disable LifeLog.
 - **Mana warning** (`/mentor mana on`) - a small box with your mana and a big LOW MANA / OUT OF MANA warning with a sound, and optionally a message to your group. Set the levels with `/mentor mana low 30` and `/mentor mana critical 10`.
@@ -66,7 +68,8 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor journey` - zones, dungeons and professions for your level
 - `/mentor weapons` - weapon skills and weapon masters
 - `/mentor words` - what the words in group chat mean
-- `/mentor upgrades` - dungeons for your level that drop upgrades for you
+- `/mentor upgrades` - where to get upgrades: dungeons, quests and vendors
+- `/mentor trainer` - what Mentor read at your class trainer (ranks and prices)
 - `/mentor version` - which Mentor version you have
 - `/mentor procs test` - show an example proc alert
 - `/mentor tour` - the short tour again

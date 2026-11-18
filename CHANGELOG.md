@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- The CurseForge description and README describe the new Upgrades, Spells and Level pace features.
 
 ## 1.16.0 - 2026-11-17
 - **New: XP from finished quests in Level pace** - a "Quests done" line shows how much XP the finished quests in your quest log give when you hand them in, and turns green with "= level!" when that is enough to reach the next level.

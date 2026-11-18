@@ -4,6 +4,8 @@ An all-in-one leveling helper for new **WoW Forever** players: talent picks, gea
 
 - **Talents** - your next point highlighted in the talent window, with the plan for the next 5 points. Every spec follows a published level-by-level leveling order (mostly the Mobalytics WoW Forever guides). Druids can pick Feral DPS or Feral Tank.
 - **Gear** - arrows on bag items (Blizzard bags and Bagnon), a red cross on items you can't use, and tooltips that start with what to do ("Equip") and show how much better an item is for each spec and what every stat does for you.
+- **Where to get upgrades** - the dungeons, dungeon quests and vendors (including the new WoW Forever quartermasters) with better gear for your spec, and who sells it where.
+- **Spells to train** - rank and price of every new spell and rank, read from your class trainer, and which ones your spec should train.
 - **How to play** - rotation, 1 / 2 / 3+ mobs, pet and "in trouble" advice for every spec (including Feral Tank) that changes as you learn new abilities.
 - **Profession help** - next to the profession window: which recipes make you an upgrade, and what to craft to level up, from Wowhead's WoW Forever guides.
 - **Proc alerts** - a big icon above you and/or a glow on the button to press when something procs (Shadow Trance, Clearcasting, Maelstrom Weapon, Overpower ...). Try `/mentor procs test`.
