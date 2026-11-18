@@ -263,19 +263,19 @@ function journey.GetEntries(advice)
         end
     end
     AddBestFitting(ZONES, MAX_ZONES_SHOWN, function(zone)
+        -- Long texts: the first sentence in the row, all of it in the tooltip.
+        local shortText = #zone[5] > 70 and (zone[5]:match("^(.-%.)%s") or zone[5]) or zone[5]
         return { kind = "journey", name = zone[1], icon = ZONE_ICON, levelText = FormatLevelRange(zone[2], zone[3]),
-            tag = "|cff66ccffZone|r", description = zone[5] }
+            tag = "|cff66ccffZone|r", description = shortText, tooltipLines = shortText ~= zone[5] and { zone[5] } or nil }
     end)
     AddBestFitting(DUNGEONS, MAX_DUNGEONS_SHOWN, function(dungeon)
-        -- How many upgrades it has for you, first in the description.
-        local upgradeText = ""
+        -- Just where it is and how many upgrades it has for you (which ones:
+        -- "Where to get upgrades"). The tip is in the tooltip.
         local dungeonUpgrades = Mentor.Upgrades and Mentor.Upgrades.GetUpgradesInDungeon(dungeon[1]) or {}
-        if #dungeonUpgrades > 0 then
-            upgradeText = string.format("|cff40ff40%d upgrade%s for you|r (best: %s). ", #dungeonUpgrades,
-                #dungeonUpgrades == 1 and "" or "s", dungeonUpgrades[1].itemLink)
-        end
+        local upgradeText = #dungeonUpgrades > 0 and string.format("  |cff40ff40%d upgrade%s|r", #dungeonUpgrades,
+            #dungeonUpgrades == 1 and "" or "s") or ""
         return { kind = "journey", name = dungeon[1], icon = DUNGEON_ICON, levelText = FormatLevelRange(dungeon[2], dungeon[3]),
-            tag = "|cffff6666Dungeon|r", description = upgradeText .. dungeon[5] .. ". " .. dungeon[6] }
+            tag = "|cffff6666Dungeon|r", description = dungeon[5] .. upgradeText, tooltipLines = { dungeon[6] } }
     end)
 
     -- Profession advice: what you have, otherwise two suggestions for your class.

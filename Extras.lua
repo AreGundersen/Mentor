@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- Mentor - Extras.lua
--- Data for the "Spells & macros" panel:
+-- Data for the Handbook panel (ExtrasUI.lua):
 --   * RACIALS: what each race's abilities do and when to press them.
 --   * MACROS:  ready-made, beginner-friendly macros per class.
 --

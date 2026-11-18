@@ -5,8 +5,11 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- **Handbook:** the "Spells & racials" and "Macros" buttons are one "Handbook" button that opens the panel on the tab you used last. Its tabs are Mentor's own red buttons now.
+- Journey rows are shorter: dungeons show where they are and how many upgrades they have (which ones: "Where to get upgrades"); long texts are in the tooltip, and the level column has room from the border.
+- Factions: each row says what the next standing gives; hover for what every standing gives (perks and quartermaster gear); progress bars are all the same thickness.
 - Test builds (+dev) have a test checklist for the developer (`/mentor check`); players never see it.
-- **Dungeon upgrades on the way:** when you enter a dungeon, the tip names the best gear for you in it and who drops it ("Look out for: [Cruel Barb] from Edwin VanCleef (+40%)"), and dungeons in the Journey tab say how many upgrades they have for you.
+- **Dungeon upgrades on the way:** when you enter a dungeon, the tip names the best gear for you in it and who drops it ("Look out for: [Cruel Barb] from Edwin VanCleef (+40%)").
 - **Upgrades on the auction house:** search the auction house (also through Auctionator) and a small Mentor panel next to it lists the results that are upgrades for you, best first, with the buyout price. Setting "Auction upgrades" under Gold.
 - **New: Factions tab** (`/mentor rep`): your factions with their standing and a progress bar, one short line on what each faction gives you (hover for the details) (cities, the goblin towns, Timbermaw, Argent Dawn and more), and quartermaster gear that is an upgrade for you with the standing it needs - also from quartermasters you haven't met yet.
 - **Profession window:** two new parts in Mentor's panel - "Your materials" (what you carry for your recipes, and the recipes that still give skill that you can craft right now) and "Tools" (Mining Pick, Skinning Knife, Blacksmith Hammer, Arclight Spanner, enchanting rods, fishing pole: which you have, which are missing and where to get them). A missing tool for a gathering profession also shows in the Journey tab.

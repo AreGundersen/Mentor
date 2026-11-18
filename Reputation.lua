@@ -49,6 +49,17 @@ local FACTION_BENEFITS = {
     [909] = { "Decks and crafted goods for prizes.", "Darkmoon Faire: turn in Darkmoon Faire decks and crafted goods for tickets and prizes." },
 }
 
+-- What you get at each standing, beyond the general text: { [standing] = "..." }.
+-- Every faction's vendors are 10% cheaper from Honored.
+local HONORED_DISCOUNT = "10% cheaper at its vendors"
+local CITY_PERKS = { [6] = "10% cheaper vendors and trainers", [8] = "buy its race's mount, whatever your race" }
+local STANDING_PERKS = {
+    [72] = CITY_PERKS, [47] = CITY_PERKS, [69] = CITY_PERKS, [54] = CITY_PERKS,
+    [76] = CITY_PERKS, [81] = CITY_PERKS, [68] = CITY_PERKS, [530] = CITY_PERKS,
+    [576] = { [4] = "its furbolgs stop attacking you; the tunnel opens", [5] = "quests in Timbermaw Hold", [6] = HONORED_DISCOUNT },
+    [589] = { [6] = HONORED_DISCOUNT, [8] = "the Winterspring Frostsaber mount" },
+}
+
 -- Standing colors, like the game's reputation bars.
 local STANDING_COLORS = {
     [1] = { 0.80, 0.13, 0.13 }, [2] = { 0.80, 0.13, 0.13 }, [3] = { 0.75, 0.27, 0.00 }, [4] = { 0.90, 0.70, 0.00 },
@@ -133,6 +144,71 @@ function reputation.GetGearGoals()
     return goalsByFaction
 end
 
+-- Everything a faction gives, standing by standing: { [standing] = { "text", ... } }.
+-- Quartermaster gear: the upgrades for you by name, the rest counted.
+local function GetPerksByStanding(factionId, goals)
+    local perksByStanding = {}
+    local function Add(standing, text)
+        perksByStanding[standing] = perksByStanding[standing] or {}
+        table.insert(perksByStanding[standing], text)
+    end
+    for standing, perkText in pairs(STANDING_PERKS[factionId] or { [6] = HONORED_DISCOUNT }) do
+        Add(standing, perkText)
+    end
+    local upgradeLinks = {}
+    for _, goal in ipairs(goals or {}) do
+        upgradeLinks[goal.itemLink] = true
+        Add(goal.standingNeeded, string.format("%s |cff40ff40+%.0f%%|r", goal.itemLink, goal.gain))
+    end
+    -- The other quartermaster items, counted per standing.
+    local otherItemCounts = {}
+    for itemId, gearEntry in pairs(Mentor.REPUTATION_GEAR or {}) do
+        local vendor = Mentor.REPUTATION_VENDORS and Mentor.REPUTATION_VENDORS[gearEntry[1]]
+        if vendor and vendor[2] == factionId then
+            local isListed = false
+            for itemLink in pairs(upgradeLinks) do
+                if itemLink:find("item:" .. itemId .. "[:|]") or itemLink == ("item:" .. itemId) then
+                    isListed = true
+                end
+            end
+            if not isListed then
+                otherItemCounts[gearEntry[3]] = (otherItemCounts[gearEntry[3]] or 0) + 1
+            end
+        end
+    end
+    for standing, itemCount in pairs(otherItemCounts) do
+        Add(standing, string.format("|cffa6a6a6%d other item%s at its quartermaster|r", itemCount, itemCount == 1 and "" or "s"))
+    end
+    return perksByStanding
+end
+
+-- Tooltip lines: one per standing from Neutral to Exalted that gives
+-- something, reached standings ticked.
+local function GetStandingTooltipLines(perksByStanding, playerStanding)
+    local lines = {}
+    for standing = 4, EXALTED_STANDING do
+        local perks = perksByStanding[standing]
+        if perks then
+            local isReached = playerStanding >= standing
+            table.insert(lines, string.format("%s %s: |cffffffff%s|r", isReached and "|cff40ff40+|r" or "|cff808080-|r",
+                ColorText(standing, STANDING_NAMES[standing]), table.concat(perks, ", ")))
+        end
+    end
+    return lines
+end
+
+-- The next standing that gives something: "Next - Honored: 10% cheaper ...".
+local function GetNextPerkText(perksByStanding, playerStanding)
+    for standing = playerStanding + 1, EXALTED_STANDING do
+        local perks = perksByStanding[standing]
+        if perks then
+            return "Next - " .. ColorText(standing, STANDING_NAMES[standing]) .. ": " .. perks[1]
+                .. (#perks > 1 and string.format(" |cffa6a6a6+%d more|r", #perks - 1) or "")
+        end
+    end
+    return nil
+end
+
 local function FormatGearGoal(goal, playerStanding)
     local readyText = playerStanding >= goal.standingNeeded and "|cff40ff40buy it now|r"
         or ("at " .. (STANDING_NAMES[goal.standingNeeded] or "?"))
@@ -153,19 +229,22 @@ function reputation.GetEntries()
             local tooltipLines = {}
             local isExalted = faction.standing >= EXALTED_STANDING
             if not isExalted and faction.maximum > 0 then
-                table.insert(tooltipLines, string.format("%d / %d to %s", faction.current, faction.maximum,
+                table.insert(tooltipLines, string.format("|cffa6a6a6%d / %d to %s|r", faction.current, faction.maximum,
                     STANDING_NAMES[faction.standing + 1] or "?"))
             end
-            for goalIndex = 1, math.min(4, goals and #goals or 0) do
-                table.insert(tooltipLines, "Gear: " .. FormatGearGoal(goals[goalIndex], faction.standing))
+            local perksByStanding = GetPerksByStanding(faction.factionId, goals)
+            for _, standingLine in ipairs(GetStandingTooltipLines(perksByStanding, faction.standing)) do
+                table.insert(tooltipLines, standingLine)
             end
             if benefit then
-                table.insert(tooltipLines, benefit[2])
+                table.insert(tooltipLines, "|cffa6a6a6" .. benefit[2] .. "|r")
             end
+            local nextPerkText = GetNextPerkText(perksByStanding, faction.standing)
             table.insert(entries, {
                 kind = "reputation", name = faction.name, icon = REPUTATION_ICON,
                 tag = ColorText(faction.standing, STANDING_NAMES[faction.standing] or "?"),
-                description = goals and ("Gear: " .. FormatGearGoal(goals[1], faction.standing)) or benefit[1],
+                description = goals and ("Gear: " .. FormatGearGoal(goals[1], faction.standing)) or nextPerkText
+                    or (benefit and benefit[1]) or "",
                 progress = (not isExalted and faction.maximum > 0) and (faction.current / faction.maximum) or (isExalted and 1 or 0),
                 progressColor = STANDING_COLORS[faction.standing],
                 tooltipLines = tooltipLines,
@@ -179,8 +258,8 @@ function reputation.GetEntries()
             local vendor = goals[1].vendor
             local factionName = vendor[3] or ("the faction of " .. vendor[1])
             local tooltipLines = { "You haven't met this faction yet. Quests near " .. vendor[1] .. " (" .. vendor[5] .. ") start it." }
-            for goalIndex = 1, math.min(4, #goals) do
-                table.insert(tooltipLines, "Gear: " .. FormatGearGoal(goals[goalIndex], 4))
+            for _, standingLine in ipairs(GetStandingTooltipLines(GetPerksByStanding(factionId, goals), 4)) do
+                table.insert(tooltipLines, standingLine)
             end
             table.insert(entries, {
                 kind = "reputation", name = factionName, icon = REPUTATION_ICON, tag = "|cffa6a6a6Not met|r",

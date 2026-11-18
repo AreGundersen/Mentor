@@ -33,7 +33,7 @@
 --   /mentor tour              show the first-time tour again
 --   /mentor lifelog on|off    Life log (LifeLog.lua); /mentor log [reset | wipe confirm | forget <name>]
 --   /mentor guide             open the "How to play" guide
---   /mentor spells | racials | macros   open the "Spells & macros" panel on that tab
+--   /mentor spells | racials | macros   open the Handbook panel on that tab
 --   /mentor bug               report a bug (saved as text, see BugReport.lua)
 --   /mentor debug             print what Mentor sees
 --   /mentor lock | unlock     lock or unlock the window position
@@ -585,25 +585,37 @@ local function BuildMainWindow()
     end)
     verticalOffset = verticalOffset - 26
 
-    -- Second row: new spells / racials, and ready-made macros. Both open the
-    -- "Spells & macros" panel, on their own tab.
-    local function CreateExtrasButton(tabKey, anchorPoint, xOffset)
-        local extrasButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
-        extrasButton:SetSize(halfWidth, 22)
-        extrasButton:SetPoint(anchorPoint, xOffset, verticalOffset)
-        extrasButton:SetScript("OnClick", function()
-            if Mentor.ExtrasUI.Toggle(tabKey) then
-                MentorDB.isBuildShown = false
-                Mentor.GuideUI.SetShown(false)
-            end
-            Mentor.RequestRefresh()
-        end)
-        return extrasButton
-    end
-    widgets.spellsButton = CreateExtrasButton("spells", "TOPLEFT", PADDING)
+    -- Second row: the Handbook (the panel with Spells, Racials, Macros,
+    -- Journey, Weapons, Factions and Words tabs; it opens on the tab you used
+    -- last). In test builds (+dev) the Test checklist button shares the row;
+    -- players only see the Handbook, full width.
+    local isDevBuild = Mentor.DevChecklist and Mentor.DevChecklist.IsDevBuild()
+    widgets.handbookButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+    widgets.handbookButton:SetSize(isDevBuild and halfWidth or CONTENT_WIDTH, 22)
+    widgets.handbookButton:SetPoint("TOPLEFT", PADDING, verticalOffset)
+    widgets.handbookButton:SetScript("OnClick", function()
+        if Mentor.ExtrasUI.Toggle() then
+            MentorDB.isBuildShown = false
+            Mentor.GuideUI.SetShown(false)
+        end
+        Mentor.RequestRefresh()
+    end)
+    widgets.handbookButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine("Handbook")
+        GameTooltip:AddLine("Spells to train, racials, macros, where to level, weapons, factions and the words in group chat.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    widgets.handbookButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     Mentor.tourTargets = Mentor.tourTargets or {}
-    Mentor.tourTargets.spellsButton = widgets.spellsButton
-    widgets.macrosButton = CreateExtrasButton("macros", "TOPRIGHT", -PADDING)
+    Mentor.tourTargets.spellsButton = widgets.handbookButton
+    if isDevBuild then
+        local checklistButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+        checklistButton:SetSize(halfWidth, 22)
+        checklistButton:SetPoint("TOPRIGHT", -PADDING, verticalOffset)
+        checklistButton:SetText("Test checklist")
+        checklistButton:SetScript("OnClick", function() Mentor.DevChecklist.Toggle() end)
+    end
     verticalOffset = verticalOffset - 24 - SECTION_GAP
     AddDivider(verticalOffset)
     verticalOffset = verticalOffset - SECTION_GAP
@@ -1299,8 +1311,7 @@ local function RefreshAll()
         widgets.guideButton:SetText(Mentor.GuideUI.IsShown() and "Hide guide" or "How to play")
         Mentor.ExtrasUI.Refresh(advice)
         local extrasTab = Mentor.ExtrasUI.IsShown() and Mentor.ExtrasUI.GetSelectedTab()
-        widgets.spellsButton:SetText((extrasTab == "spells" or extrasTab == "racials") and "Hide spells" or "Spells & racials")
-        widgets.macrosButton:SetText(extrasTab == "macros" and "Hide macros" or "Macros")
+        widgets.handbookButton:SetText(extrasTab and "Hide handbook" or "Handbook")
     end
     Mentor.GuideUI.RefreshRotationBar(advice)
     -- Each overlay runs on its own, so a problem in one never stops the other.

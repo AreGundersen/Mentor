@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- Mentor - ExtrasUI.lua
--- "Spells & macros" panel next to the Mentor window, with three tabs:
+-- The Handbook panel next to the Mentor window (the "Handbook" button), with tabs:
 --   * Coming up  new buttons as you level: spells from your spellbook with the
 --                level you get them, plus the big talents from your build
 --                (gold border). Spells you can already train are shown first,
@@ -22,11 +22,11 @@ local _, Mentor = ...
 local PANEL_WIDTH          = 360   -- room for seven tabs
 local PADDING              = 12
 local TAB_HEIGHT           = 22
-local TAB_GAP              = 4
+local TAB_GAP              = 2   -- tight: seven tabs with room around each label
 local ROW_HEIGHT           = 50
 local ROW_GAP              = 4
 local ICON_SIZE            = 30
-local LEVEL_COLUMN_WIDTH   = 34
+local LEVEL_COLUMN_WIDTH   = 40
 local MAX_COMING_UP_ROWS   = 18
 local DESCRIPTION_MAX_CHARS = 120
 local FIRST_TALENT_LEVEL   = 10
@@ -564,15 +564,23 @@ local function CreateRow(rowIndex)
         row:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.25)
     end
 
-    row.levelText = CreateText(row, "GameFontNormal", LEVEL_COLUMN_WIDTH, "CENTER")
-    row.levelText:SetPoint("LEFT", 0, 0)
+    row.levelText = CreateText(row, "GameFontNormal", LEVEL_COLUMN_WIDTH - 4, "CENTER")
+    row.levelText:SetPoint("LEFT", 4, 0)   -- off the row's border
 
     -- A thin progress bar along the bottom (reputation rows).
+    -- Pixel snapping off: otherwise a 3-4 pixel bar comes out thicker on
+    -- some rows than others, depending on where the row lands on screen.
     row.progressBackground = row:CreateTexture(nil, "ARTWORK")
     row.progressBackground:SetColorTexture(1, 1, 1, 0.08)
-    row.progressBackground:SetHeight(3)
+    row.progressBackground:SetHeight(4)
     row.progressBar = row:CreateTexture(nil, "OVERLAY")
-    row.progressBar:SetHeight(3)
+    row.progressBar:SetHeight(4)
+    for _, barTexture in ipairs({ row.progressBackground, row.progressBar }) do
+        if barTexture.SetSnapToPixelGrid then
+            barTexture:SetSnapToPixelGrid(false)
+            barTexture:SetTexelSnappingBias(0)
+        end
+    end
     row.progressBackground:Hide()
     row.progressBar:Hide()
 
@@ -751,15 +759,16 @@ function extrasUI.Build(mainFrame)
     local tabLeft = PADDING
     for tabIndex, tab in ipairs(TABS) do
         local tabWidth = math.floor(labelWidths[tabIndex] + sharedRoom)
-        local tabButton = CreateFrame("Button", nil, panel, BACKDROP_TEMPLATE)
+        -- The same red button as the rest of Mentor, with small text; the
+        -- selected tab stays lit (see Refresh).
+        local tabButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
         tabButton:SetSize(tabWidth, TAB_HEIGHT)
         tabButton:SetPoint("TOPLEFT", tabLeft, -PADDING - 26)
         tabLeft = tabLeft + tabWidth + TAB_GAP
-        if tabButton.SetBackdrop then
-            tabButton:SetBackdrop(Mentor.BOX_BACKDROP)
-        end
-        tabButton.label = CreateText(tabButton, "GameFontHighlightSmall", tabWidth, "CENTER")
-        tabButton.label:SetPoint("CENTER")
+        tabButton:SetNormalFontObject("GameFontNormalSmall")
+        tabButton:SetHighlightFontObject("GameFontHighlightSmall")
+        tabButton:SetText(tab.label)
+        tabButton.label = tabButton:GetFontString() or CreateText(tabButton, "GameFontHighlightSmall", tabWidth, "CENTER")
         tabButton.tabKey = tab.key
         tabButton.tabLabel = tab.label
         tabButton:SetScript("OnClick", function(self)
@@ -863,11 +872,12 @@ function extrasUI.Refresh(advice)
     local selectedKey = extrasUI.GetSelectedTab()
     for _, tabButton in ipairs(tabButtons) do
         local isSelected = tabButton.tabKey == selectedKey
-        if tabButton.SetBackdropColor then
-            tabButton:SetBackdropColor(GOLD[1], GOLD[2], GOLD[3], isSelected and 0.25 or 0.05)
-            tabButton:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], isSelected and 0.9 or 0.25)
+        if isSelected then
+            tabButton:LockHighlight()
+        else
+            tabButton:UnlockHighlight()
         end
-        tabButton.label:SetText((isSelected and "|cffffffff" or MUTED_TEXT) .. tabButton.tabLabel .. "|r")
+        tabButton.label:SetText((isSelected and "|cffffffff" or "") .. tabButton.tabLabel .. (isSelected and "|r" or ""))
     end
 
     local entries, emptyMessage

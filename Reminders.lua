@@ -261,7 +261,7 @@ function reminders.CheckTrainer(newLevel)
         end
     end
     local olderText = olderUntrainedCount > 0
-        and string.format(" (+%d older spell%s you have not trained yet - see Spells & racials.)",
+        and string.format(" (+%d older spell%s you have not trained yet - see the Handbook.)",
             olderUntrainedCount, olderUntrainedCount == 1 and "" or "s") or ""
     if #newSpellNames > 0 then
         Remind("trainer" .. newLevel, string.format("Level %d! New at your class trainer: %s.%s",
