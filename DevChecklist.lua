@@ -129,9 +129,16 @@ local function CreateWindow()
         local closeButton = CreateFrame("Button", nil, window, "UIPanelCloseButton")
         closeButton:SetPoint("TOPRIGHT", -2, -2)
     end
-    window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    window.subtitle:SetPoint("TOPLEFT", PADDING, -PADDING - 18 - contentShift)
-    window.subtitle:SetText("Click: OK, then Problem, then empty. Hover: how to test.")
+    if nativeWindow then
+        -- Beside the portrait, under the version: short so it fits one line.
+        window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        window.subtitle:SetPoint("TOPLEFT", window.title, "BOTTOMLEFT", 0, -4)
+        window.subtitle:SetText("Click to mark, hover for how to test.")
+    else
+        window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        window.subtitle:SetPoint("TOPLEFT", PADDING, -PADDING - 18)
+        window.subtitle:SetText("Click: OK, then Problem, then empty. Hover: how to test.")
+    end
 
     for itemIndex, item in ipairs(CHECKLIST_ITEMS) do
         local row = CreateFrame("Button", nil, window)
