@@ -782,7 +782,9 @@ function extrasUI.Build(mainFrame)
     panel.hint = CreateText(panel, "GameFontHighlightSmall", PANEL_WIDTH - PADDING * 2)
     panel.hint:SetPoint("TOPLEFT", PADDING, -contentTop - tabsBlockHeight - 4)
 
-    local scrollFrame = CreateFrame("ScrollFrame", "MentorExtrasScroll", panel, "UIPanelScrollFrameTemplate")
+    -- The WoW-style window gets the modern thin scroll bar.
+    local scrollFrame = nativeWindow and Mentor.NativeFrame.CreateScrollFrame("MentorExtrasScroll", panel)
+        or CreateFrame("ScrollFrame", "MentorExtrasScroll", panel, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", PADDING, -contentTop - tabsBlockHeight - 36)
     scrollFrame:SetPoint("BOTTOMRIGHT", -PADDING - 20, PADDING)
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)

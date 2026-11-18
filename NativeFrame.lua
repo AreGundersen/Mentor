@@ -146,3 +146,17 @@ function nativeFrame.SelectTab(window, selectedIndex)
         tabButton.iconTexture:SetVertexColor(brightness, brightness, brightness)
     end
 end
+
+-- A scroll frame with the modern thin scroll bar (dark track, gold thumb) that
+-- WoW's own windows use. Falls back to the classic one with the arrow buttons
+-- when this client lacks the newer template.
+function nativeFrame.CreateScrollFrame(frameName, parentFrame)
+    local isCreated, scrollFrame = pcall(CreateFrame, "ScrollFrame", frameName, parentFrame, "ScrollFrameTemplate")
+    if isCreated and scrollFrame and type(scrollFrame.ScrollBar) == "table" then
+        return scrollFrame
+    end
+    if isCreated and scrollFrame then
+        scrollFrame:Hide()     -- a half-made one; the fallback takes over its name
+    end
+    return CreateFrame("ScrollFrame", frameName, parentFrame, "UIPanelScrollFrameTemplate")
+end

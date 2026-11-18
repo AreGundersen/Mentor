@@ -928,24 +928,44 @@ local function UpdateDependentSettings()
 end
 
 local function BuildSettingsPanel()
-    settingsPanel = CreateFrame("Frame", "MentorSettingsPanel", mainFrame, BACKDROP_TEMPLATE)
+    -- A real WoW window ("Mentor settings" in the title bar, Mentor's
+    -- portrait) when the client has Blizzard's template; otherwise Mentor's
+    -- own dark box with the logo and title at the top.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorSettingsPanel", mainFrame, "Mentor settings")
+    settingsPanel = nativeWindow or CreateFrame("Frame", "MentorSettingsPanel", mainFrame, BACKDROP_TEMPLATE)
     settingsPanel:SetFrameStrata("DIALOG")
     settingsPanel:EnableMouse(true)
-    ApplyBackdrop(settingsPanel)
-
-    local logo = settingsPanel:CreateTexture(nil, "ARTWORK")
-    logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
-    logo:SetSize(20, 20)
-    logo:SetPoint("TOPLEFT", PADDING - 2, -PADDING + 3)
-    local title = CreateText(settingsPanel, "GameFontNormalLarge")
-    title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
-    title:SetText("Mentor settings  |cff808080v" .. Mentor.GetVersion() .. "|r")
-    local closeButton = CreateFrame("Button", nil, settingsPanel, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", -2, -2)
-    closeButton:SetScript("OnClick", function() settingsPanel:Hide() end)
+    local contentTopOffset
+    if nativeWindow then
+        -- The version beside the portrait, where WoW puts a window's subtitle.
+        local versionText = CreateText(settingsPanel, "GameFontNormal")
+        versionText:SetPoint("TOPLEFT", Mentor.NativeFrame.SUBTITLE_LEFT, -Mentor.NativeFrame.SUBTITLE_TOP - 4)
+        versionText:SetText("Version " .. Mentor.GetVersion())
+        local nativeCloseButton = nativeWindow.closeButton
+        if type(nativeCloseButton) == "table" and nativeCloseButton.SetScript then
+            nativeCloseButton:SetScript("OnClick", function() settingsPanel:Hide() end)
+        end
+        contentTopOffset = Mentor.NativeFrame.CONTENT_TOP
+    else
+        ApplyBackdrop(settingsPanel)
+        local logo = settingsPanel:CreateTexture(nil, "ARTWORK")
+        logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
+        logo:SetSize(20, 20)
+        logo:SetPoint("TOPLEFT", PADDING - 2, -PADDING + 3)
+        local title = CreateText(settingsPanel, "GameFontNormalLarge")
+        title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
+        title:SetText("Mentor settings  |cff808080v" .. Mentor.GetVersion() .. "|r")
+        local closeButton = CreateFrame("Button", nil, settingsPanel, "UIPanelCloseButton")
+        closeButton:SetPoint("TOPRIGHT", -2, -2)
+        closeButton:SetScript("OnClick", function() settingsPanel:Hide() end)
+        contentTopOffset = SETTINGS_TOP_OFFSET
+    end
+    if UISpecialFrames then
+        table.insert(UISpecialFrames, "MentorSettingsPanel")   -- Escape closes it
+    end
 
     -- Each column is filled from the top, section by section.
-    local columnOffsets = { SETTINGS_TOP_OFFSET, SETTINGS_TOP_OFFSET }
+    local columnOffsets = { contentTopOffset, contentTopOffset }
     for _, section in ipairs(SETTINGS_SECTIONS) do
         local columnLeft = PADDING + (section.column - 1) * SETTINGS_COLUMN_WIDTH
         local verticalOffset = columnOffsets[section.column]

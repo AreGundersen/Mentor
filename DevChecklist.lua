@@ -23,9 +23,12 @@ Mentor.DevChecklist = devChecklist
 local CHECKLIST_ITEMS = {
     { "nativeUpgradesWindow", "Upgrades window looks like WoW",
         "Click \"Find more\": \"Where to get upgrades\" has Blizzard's window frame (stone border, title bar, round Mentor logo top left, dark inset with the list). Does it look right? Show all, closing (X and Escape) and the item tooltips still work. Screenshot it for Are's verdict." },
-    { "nativeHandbook", "Handbook looks like WoW",
-        "Open the Handbook: Blizzard's window frame with \"Handbook\" in the title bar, the Mentor portrait, the tab's title beside it, and square icon tabs down the right edge like the character window (hover shows the name). Clicking one switches tab and gives it a gold border. With Mentor near the right screen edge the Handbook opens on the left and its tabs don't cover the Mentor window." },
-    -- Tested OK already this cycle (removed): Handbook and checklist buttons,
+    { "nativeSettings", "Settings look like WoW",
+        "Open Settings (gear button): Blizzard's window frame with \"Mentor settings\" in the title bar, the Mentor portrait, the version beside it, and the two columns of settings in the dark inset. Nothing overlaps the frame; Report a bug / Support Mentor sit at the bottom; X and Escape close it." },
+    { "modernScrollBar", "Handbook scroll bar",
+        "In the Handbook, the scroll bar is the thin modern one (dark track, no grey square). Scrolling with the wheel and dragging it both work, also on a long tab like Journey." },
+    -- Tested OK already this cycle (removed): Handbook as a WoW window with
+    -- side tabs, Handbook and checklist buttons,
     -- tabs, Journey layout and dungeon click, auction panel and click, Factions
     -- bars and standings, profession materials and tools, missing gathering
     -- tool, settings rows, bug report.

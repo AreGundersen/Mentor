@@ -5,7 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
-- **Mentor looks like part of WoW:** "Where to get upgrades" and the Handbook use WoW's own window frame (title bar, round Mentor portrait, dark inset), and the Handbook has icon tabs down its right edge, like WoW Forever's own windows. On a client without these templates, Mentor keeps its own look.
+- **Mentor looks like part of WoW:** "Where to get upgrades", the Handbook and Settings use WoW's own window frame (title bar, round Mentor portrait, dark inset), and the Handbook has icon tabs down its right edge, like WoW Forever's own windows, and the modern thin scroll bar. On a client without these templates, Mentor keeps its own look.
 - **Handbook:** the "Spells & racials" and "Macros" buttons are one "Handbook" button that opens the panel on the tab you used last. Its tabs are Mentor's own red buttons, in two rows so every label has room.
 - Journey has headings (your professions, zones, dungeons, professions for you) instead of a tag on every row. Dungeons show where they are and how many upgrades they have; **click a dungeon** to see all its upgrades in "Where to get upgrades" ("Show all" goes back). Long texts are in the tooltip, and the level column has room from the border.
 - **Auction house panel:** click an upgrade to search for it on the auction house; the panel keeps the upgrades from all your searches while the auction house is open.
