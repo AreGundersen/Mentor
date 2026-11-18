@@ -22,9 +22,9 @@ Mentor.DevChecklist = devChecklist
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
     { "nativeMainWindow", "Main window looks like WoW",
-        "The Mentor window: WoW frame, class icon as the portrait, class + level beside it. Top right: three small square icon buttons (bug = Report bug, book = Life log, gear = Settings) with tooltips. Spec picker: square spec icons with the chosen one in a gold border and gold name. Lower part: \"Best stats on gear\" as plain text 1. 2. 3., tips with small gold bullets, headers in WoW's gold font. Nothing overlaps." },
+        "The Mentor window: WoW frame, class icon as the portrait, class + level beside it. Top right: three small square icon buttons (bug = Report bug, book = Life log, gear = Settings) with tooltips. Spec picker: big square spec icons with the chosen one in a gold border and gold name. Lower part: \"Best stats on gear\" in one dark box, each tip in its own dark box (like the Handbook rows), headers in WoW's gold font. Nothing overlaps." },
     { "nativeSidePanels", "Talent build and How to play look like WoW",
-        "Open the talent build (/mentor build) and How to play (/mentor guide): WoW frames with the spec icon as the portrait and the spec name beside it. How to play has icon tabs down its right edge (hover = Rotation, 1 mob, 2 mobs, 3+ mobs, Pet, In trouble; Pet only for pet classes); the selected one is gold and named beside the portrait." },
+        "Open the talent build (/mentor build) and How to play (/mentor guide): WoW frames with the spec icon as the portrait and the spec name beside it. How to play has icon tabs down its right edge showing your own spell for each situation (hover = Rotation, 1 mob, 2 mobs, 3+ mobs, Pet, In trouble; Pet only for pet classes); the selected one is gold and named beside the portrait." },
     { "nativeLifeLogAndGraph", "Life log and Gold graph look like WoW",
         "Life log: WoW frame, your name beside the portrait, thin scroll bar, buttons clear of the bottom edge, drag by the title bar. Gold graph: WoW frame \"Gold over time\", the summary beside the portrait, 7 days / 30 days / All under it, the graph fits; X closes it." },
     { "nativeSmallWindows", "Bug report, vendor list, profession panel, this list",

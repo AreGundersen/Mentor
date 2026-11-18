@@ -233,6 +233,11 @@ else
 end
 -- How much lower the content starts in the WoW window (its title bar).
 local MAIN_CONTENT_SHIFT = isNativeMainWindow and 16 or 0
+-- The WoW window's spec buttons are big square icons with the name under them.
+local NATIVE_SPEC_ICON_SIZE = 44
+if isNativeMainWindow then
+    SPEC_BUTTON_HEIGHT = NATIVE_SPEC_ICON_SIZE + 22
+end
 local widgets = {}
 local specButtons = {}
 local upgradeRows = {}
@@ -313,7 +318,7 @@ local function CreateSpecButton(specIndex, verticalOffset, buttonCount, buttonPo
         -- WoW style: a square icon with a thin border (gold when chosen) and
         -- the name under it, no box around the whole button.
         specButton.iconBorder = CreateFrame("Frame", nil, specButton, BACKDROP_TEMPLATE)
-        specButton.iconBorder:SetSize(34, 34)
+        specButton.iconBorder:SetSize(NATIVE_SPEC_ICON_SIZE, NATIVE_SPEC_ICON_SIZE)
         specButton.iconBorder:SetPoint("TOP", 0, -2)
         Mentor.NativeFrame.StyleIconFrame(specButton.iconBorder)
         specButton.icon = specButton.iconBorder:CreateTexture(nil, "ARTWORK")
@@ -330,7 +335,7 @@ local function CreateSpecButton(specIndex, verticalOffset, buttonCount, buttonPo
     specButton.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
     specButton.nameText = CreateText(specButton, "GameFontHighlightSmall", buttonWidth - 4, "CENTER")
-    specButton.nameText:SetPoint("TOP", specButton.icon, "BOTTOM", 0, -3)
+    specButton.nameText:SetPoint("TOP", specButton.iconBorder or specButton.icon, "BOTTOM", 0, -3)
     specButton.nameText:SetWordWrap(false)
 
     specButton.tagText = CreateText(specButton, "GameFontNormalSmall", buttonWidth, "CENTER")
@@ -621,13 +626,8 @@ local function BuildMainWindow()
     card:SetPoint("TOPLEFT", PADDING, verticalOffset)
     if card.SetBackdrop then
         card:SetBackdrop(Mentor.BOX_BACKDROP)
-        card:SetBackdropColor(0, 0, 0, isNativeMainWindow and 0.5 or 0.35)
-        -- A grey edge in the WoW window, like WoW's own insets.
-        if isNativeMainWindow then
-            card:SetBackdropBorderColor(0.45, 0.45, 0.45, 0.8)
-        else
-            card:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.35)
-        end
+        card:SetBackdropColor(0, 0, 0, 0.35)
+        card:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.35)
     end
     widgets.talentIconFrame = CreateFrame("Frame", nil, card)
     widgets.talentIconFrame:SetSize(42, 42)
@@ -771,6 +771,17 @@ local PILL_GAP = 5
 local PILL_PADDING = 7
 local TIP_GAP = 6
 
+-- The dark box of the Handbook rows, used in the WoW window for the stats and
+-- the tips: dark background, faint gold edge.
+local DARK_BOX_TEXT_INSET = 8
+local function StyleDarkBox(boxFrame)
+    if boxFrame.SetBackdrop and Mentor.BOX_BACKDROP then
+        boxFrame:SetBackdrop(Mentor.BOX_BACKDROP)
+        boxFrame:SetBackdropColor(0, 0, 0, 0.35)
+        boxFrame:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.25)
+    end
+end
+
 -- A small box: gold rank number + stat name.
 local function GetStatPill(pillIndex)
     local pill = widgets.statPills[pillIndex]
@@ -812,19 +823,24 @@ local function GetTipRow(tipIndex)
     if tipRow then
         return tipRow
     end
+    if isNativeMainWindow then
+        -- WoW window: each tip in a dark box, like the rows of the Handbook.
+        tipRow = CreateFrame("Frame", nil, widgets.lowerFrame, BACKDROP_TEMPLATE)
+        tipRow:SetWidth(CONTENT_WIDTH)
+        StyleDarkBox(tipRow)
+        tipRow.text = CreateText(tipRow, "GameFontHighlightSmall", CONTENT_WIDTH - 2 * DARK_BOX_TEXT_INSET)
+        tipRow.text:SetPoint("TOPLEFT", DARK_BOX_TEXT_INSET, -DARK_BOX_TEXT_INSET + 2)
+        tipRow.text:SetJustifyV("TOP")
+        widgets.tipRows[tipIndex] = tipRow
+        return tipRow
+    end
     tipRow = CreateFrame("Frame", nil, widgets.lowerFrame)
     tipRow:SetWidth(CONTENT_WIDTH)
     tipRow.bar = tipRow:CreateTexture(nil, "ARTWORK")
     tipRow.bar:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.8)
-    if isNativeMainWindow then
-        -- A small gold bullet, like a list in WoW's own text.
-        tipRow.bar:SetSize(4, 4)
-        tipRow.bar:SetPoint("TOPLEFT", 1, -4)
-    else
-        tipRow.bar:SetWidth(2)
-        tipRow.bar:SetPoint("TOPLEFT", 0, -1)
-        tipRow.bar:SetPoint("BOTTOMLEFT", 0, 1)
-    end
+    tipRow.bar:SetWidth(2)
+    tipRow.bar:SetPoint("TOPLEFT", 0, -1)
+    tipRow.bar:SetPoint("BOTTOMLEFT", 0, 1)
     tipRow.text = CreateText(tipRow, "GameFontHighlightSmall", CONTENT_WIDTH - 10)
     tipRow.text:SetPoint("TOPLEFT", 8, 0)
     tipRow.text:SetJustifyV("TOP")
@@ -860,7 +876,18 @@ local function LayoutLowerSection(advice, visibleUpgradeRows)
     for statName in advice.specData.statPriority:gmatch("[^>]+") do
         table.insert(statNames, (statName:gsub("^%s+", ""):gsub("%s+$", "")))
     end
-    local cursorX = PADDING
+    -- WoW window: the stats sit in one dark box (statsBox), indented inside.
+    local statsBoxTop = cursorY
+    if isNativeMainWindow then
+        if not widgets.statsBox then
+            widgets.statsBox = CreateFrame("Frame", nil, lowerFrame, BACKDROP_TEMPLATE)
+            widgets.statsBox:SetFrameLevel(math.max(0, lowerFrame:GetFrameLevel()))
+            StyleDarkBox(widgets.statsBox)
+        end
+        cursorY = cursorY - 4
+    end
+    local rowLeft = isNativeMainWindow and (PADDING + DARK_BOX_TEXT_INSET) or PADDING
+    local cursorX = rowLeft
     for pillIndex, statName in ipairs(statNames) do
         local pill = GetStatPill(pillIndex)
         pill.rankText:SetText(isNativeMainWindow and (pillIndex .. ".") or tostring(pillIndex))
@@ -869,8 +896,8 @@ local function LayoutLowerSection(advice, visibleUpgradeRows)
         -- Plain text (WoW window): no inner padding, a little more room after it.
         local pillPadding = isNativeMainWindow and 0 or PILL_PADDING * 2
         local pillWidth = pillPadding + (isNativeMainWindow and 8 or 0) + MeasureTextWidth(pill.rankText, 8) + 4 + MeasureTextWidth(pill.nameText, #statName * 6)
-        if cursorX + pillWidth > WINDOW_WIDTH - PADDING then
-            cursorX = PADDING
+        if cursorX + pillWidth > WINDOW_WIDTH - rowLeft then
+            cursorX = rowLeft
             cursorY = cursorY - PILL_HEIGHT - PILL_GAP
         end
         pill:SetWidth(pillWidth)
@@ -887,9 +914,16 @@ local function LayoutLowerSection(advice, visibleUpgradeRows)
     for unusedIndex = #statNames + 1, #widgets.statPills do
         widgets.statPills[unusedIndex]:Hide()
     end
-    cursorY = cursorY - PILL_HEIGHT - SECTION_GAP - 4
+    cursorY = cursorY - PILL_HEIGHT
+    if widgets.statsBox then
+        cursorY = cursorY - 4
+        widgets.statsBox:ClearAllPoints()
+        widgets.statsBox:SetPoint("TOPLEFT", PADDING, statsBoxTop)
+        widgets.statsBox:SetSize(CONTENT_WIDTH, statsBoxTop - cursorY)
+    end
+    cursorY = cursorY - SECTION_GAP - 4
 
-    -- Tips, each with its own gold bar.
+    -- Tips, each with its own gold bar (or its own dark box in the WoW window).
     widgets.tipLabel:ClearAllPoints()
     widgets.tipLabel:SetPoint("TOPLEFT", PADDING, cursorY)
     cursorY = cursorY - 16
@@ -897,6 +931,9 @@ local function LayoutLowerSection(advice, visibleUpgradeRows)
         local tipRow = GetTipRow(tipIndex)
         tipRow.text:SetText(tipText)
         local tipHeight = math.max(14, MeasureTextHeight(tipRow.text, 26))
+        if isNativeMainWindow then
+            tipHeight = tipHeight + 2 * DARK_BOX_TEXT_INSET - 4    -- room inside the box
+        end
         tipRow:SetHeight(tipHeight)
         tipRow:ClearAllPoints()
         tipRow:SetPoint("TOPLEFT", PADDING, cursorY)

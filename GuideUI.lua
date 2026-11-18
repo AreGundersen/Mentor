@@ -396,6 +396,28 @@ function guideUI.Refresh(advice)
             end
         end
         Mentor.NativeFrame.SetSideTabsShown(guidePanel, isShownByIndex)
+        -- Each tab shows your own spell for that situation (the first spell
+        -- of its list that you know and no earlier tab shows), so the icons
+        -- mean something for your class; the generic icon otherwise.
+        local usedIcons = {}
+        for tabIndex, situation in ipairs(Mentor.GUIDE_SITUATIONS) do
+            local tabButton = guidePanel.sideTabs[tabIndex]
+            local section = isShownByIndex[tabIndex] and Mentor.GetGuideSection(classFileName, specNumber, situation.key)
+            local tabIcon
+            for _, spellName in ipairs(section and section.spells or {}) do
+                local resolvedSpell = Mentor.ResolveSpell(spellName)
+                if resolvedSpell.isKnown and resolvedSpell.icon and not usedIcons[resolvedSpell.icon] then
+                    tabIcon = resolvedSpell.icon
+                    break
+                end
+            end
+            if tabIcon then
+                usedIcons[tabIcon] = true
+            end
+            if tabButton and tabButton.iconTexture then
+                tabButton.iconTexture:SetTexture(tabIcon or SITUATION_ICONS[situation.key])
+            end
+        end
         guidePanel.title:SetText(advice.specData.name .. "  |cffffffff" .. selectedLabel .. "|r")
     else
         guidePanel.title:SetText("How to play: " .. advice.specData.name)
