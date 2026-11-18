@@ -21,23 +21,15 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
-    { "nativeMainWindow", "Main window looks like WoW",
-        "The Mentor window: WoW frame, class icon as the portrait, class + level beside it. Top right: three small square icon buttons (bug = Report bug, book = Life log, gear = Settings) with tooltips. Spec picker: big square spec icons with the chosen one in a gold border and gold name. Lower part: \"Best stats on gear\" in one dark box, each tip in its own dark box (like the Handbook rows), headers in WoW's gold font. Nothing overlaps." },
-    { "nativeSidePanels", "Talent build and How to play look like WoW",
-        "Open the talent build (/mentor build) and How to play (/mentor guide): WoW frames with the spec icon as the portrait and the spec name beside it. How to play has icon tabs down its right edge showing your own spell for each situation (hover = Rotation, 1 mob, 2 mobs, 3+ mobs, Pet, In trouble; Pet only for pet classes); the selected one is gold and named beside the portrait." },
-    { "nativeLifeLogAndGraph", "Life log and Gold graph look like WoW",
-        "Life log: WoW frame, your name beside the portrait, thin scroll bar, buttons clear of the bottom edge, drag by the title bar. Gold graph: WoW frame \"Gold over time\", the summary beside the portrait, 7 days / 30 days / All under it, the graph fits; X closes it." },
-    { "nativeSmallWindows", "Bug report, vendor list, profession panel, this list",
-        "Report bug: WoW frame \"Report a bug\", step title beside the portrait, all three steps fit. At a vendor with \"only worth vendoring\" items: WoW frame, hint beside the portrait, list below. Open a profession: Mentor's panel beside it is a WoW frame with the profession and skill beside the portrait. This checklist: WoW frame too." },
-    -- Tested OK already this cycle (removed): Handbook and Settings as WoW
-    -- windows, Upgrades window, side tabs, thin scroll bar, Handbook and checklist buttons,
+    -- Tested OK already this cycle (removed): all windows as WoW windows
+    -- (main, Handbook, Settings, talent build, How to play, Life log, gold
+    -- graph, bug report, vendor list, profession panel, this list), Factions
+    -- quartermaster gear, Upgrades window, side tabs, thin scroll bar, Handbook and checklist buttons,
     -- tabs, Journey layout and dungeon click, auction panel and click, Factions
     -- bars and standings, profession materials and tools, missing gathering
     -- tool, settings rows, bug report.
     { "dungeonTip", "Dungeon tip names your upgrades",
         "Enter a dungeon for your level: after the tip, a \"Look out for:\" line names the best items for you and who drops them." },
-    { "reputationGear", "Factions: quartermaster gear",
-        "Rows with gear name a quartermaster upgrade and the standing it needs (also factions you haven't met)." },
     { "weaponSkill", "Weapon skill reminder",
         "Equip a weapon type you rarely use (skill 25+ below max): a reminder says so. Settings > Reminders > Weapon skill turns it off." },
     { "sharedTrainerPrices", "Trainer prices on an alt",
