@@ -31,6 +31,8 @@ local ISSUE_FORM_URL       = ISSUES_PAGE_URL .. "/new?template=bug_report.yml"
 
 local DIALOG_WIDTH         = 480
 local DIALOG_HEIGHT        = 470
+-- How much lower the content sits in the WoW-style window (set in BuildDialog).
+local dialogContentShift = 0
 local PADDING              = 14
 local MAX_SAVED_REPORTS    = 20
 local MAX_STORED_ERRORS    = 20
@@ -554,7 +556,7 @@ local function ShowWriteStep(keepText)
     dialog.linkLabel:Hide()
     dialog.linkBox:Hide()
     dialog.linkBackground:Hide()
-    dialog.scrollFrame:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 118)
+    dialog.scrollFrame:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 118 - dialogContentShift)
     if not keepText then
         dialog.descriptionText = ""
         SelectCategory(errorCount > 0 and "error" or "advice")
@@ -581,7 +583,7 @@ local function ShowReportStep(reportText)
     dialog.linkBackground:Show()
     dialog.linkBox:SetText(ISSUE_FORM_URL)
     dialog.linkBox:SetCursorPosition(0)
-    dialog.scrollFrame:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 150)
+    dialog.scrollFrame:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 150 - dialogContentShift)
     dialog.editBox:SetText(reportText)
     dialog.primaryButton:SetText("Done")
     dialog.secondaryButton:SetText("Back")
@@ -590,8 +592,14 @@ local function ShowReportStep(reportText)
 end
 
 local function BuildDialog()
-    dialog = CreateFrame("Frame", "MentorBugReportDialog", UIParent, BACKDROP_TEMPLATE)
-    dialog:SetSize(DIALOG_WIDTH, DIALOG_HEIGHT)
+    -- A WoW window ("Report a bug" in the title bar, Mentor's portrait, the
+    -- step's title beside it) or Mentor's own box. The content sits lower in
+    -- the WoW window, under its title bar.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorBugReportDialog", UIParent, "Report a bug")
+    local contentShift = nativeWindow and 30 or 0
+    dialogContentShift = contentShift
+    dialog = nativeWindow or CreateFrame("Frame", "MentorBugReportDialog", UIParent, BACKDROP_TEMPLATE)
+    dialog:SetSize(DIALOG_WIDTH, DIALOG_HEIGHT + contentShift)
     dialog:SetPoint("CENTER")
     dialog:SetFrameStrata("DIALOG")
     dialog:EnableMouse(true)
@@ -599,7 +607,7 @@ local function BuildDialog()
     dialog:RegisterForDrag("LeftButton")
     dialog:SetScript("OnDragStart", dialog.StartMoving)
     dialog:SetScript("OnDragStop", dialog.StopMovingOrSizing)
-    if dialog.SetBackdrop then
+    if not nativeWindow and dialog.SetBackdrop then
         dialog:SetBackdrop({
             bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 14,
@@ -612,13 +620,17 @@ local function BuildDialog()
         table.insert(UISpecialFrames, "MentorBugReportDialog")
     end
 
-    dialog.title = CreateText(dialog, "GameFontNormalLarge")
-    dialog.title:SetPoint("TOPLEFT", PADDING, -PADDING)
-    local closeButton = CreateFrame("Button", nil, dialog, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", -2, -2)
+    if nativeWindow then
+        dialog.title = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontNormalLarge")
+    else
+        dialog.title = CreateText(dialog, "GameFontNormalLarge")
+        dialog.title:SetPoint("TOPLEFT", PADDING, -PADDING)
+        local closeButton = CreateFrame("Button", nil, dialog, "UIPanelCloseButton")
+        closeButton:SetPoint("TOPRIGHT", -2, -2)
+    end
 
     dialog.info = CreateText(dialog, "GameFontHighlightSmall", DIALOG_WIDTH - PADDING * 2)
-    dialog.info:SetPoint("TOPLEFT", PADDING, -PADDING - 26)
+    dialog.info:SetPoint("TOPLEFT", PADDING, -PADDING - 26 - contentShift)
 
     -- Category buttons (step 1).
     dialog.categoryButtons = {}
@@ -627,7 +639,7 @@ local function BuildDialog()
     for categoryIndex, category in ipairs(CATEGORIES) do
         local categoryButton = CreateFrame("Button", nil, dialog, "UIPanelButtonTemplate")
         categoryButton:SetSize(buttonWidth, 22)
-        categoryButton:SetPoint("TOPLEFT", PADDING + (categoryIndex - 1) * (buttonWidth + buttonGap), -PADDING - 80)
+        categoryButton:SetPoint("TOPLEFT", PADDING + (categoryIndex - 1) * (buttonWidth + buttonGap), -PADDING - 80 - contentShift)
         categoryButton:SetNormalFontObject("GameFontNormalSmall")
         categoryButton:SetHighlightFontObject("GameFontHighlightSmall")
         categoryButton:SetText(category.label)
@@ -638,11 +650,11 @@ local function BuildDialog()
 
     -- Link to the GitHub form (step 2): a one-line box so it can be copied.
     dialog.linkLabel = CreateText(dialog, "GameFontNormalSmall")
-    dialog.linkLabel:SetPoint("TOPLEFT", PADDING, -PADDING - 84)
+    dialog.linkLabel:SetPoint("TOPLEFT", PADDING, -PADDING - 84 - contentShift)
     dialog.linkLabel:SetText("Bug report form:")
     dialog.linkBox = CreateFrame("EditBox", nil, dialog)
     dialog.linkBox:SetSize(DIALOG_WIDTH - PADDING * 2 - 12, 20)
-    dialog.linkBox:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 104)
+    dialog.linkBox:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 104 - contentShift)
     dialog.linkBox:SetAutoFocus(false)
     dialog.linkBox:SetFontObject(ChatFontNormal)
     dialog.linkBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
@@ -658,7 +670,7 @@ local function BuildDialog()
     dialog.linkBackground = AddDarkBackground(dialog.linkBox, dialog)
 
     local scrollFrame, editBox = CreateTextArea(dialog, "MentorBugReportScroll")
-    scrollFrame:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 118)
+    scrollFrame:SetPoint("TOPLEFT", PADDING + 6, -PADDING - 118 - contentShift)
     scrollFrame:SetPoint("BOTTOMRIGHT", -PADDING - 26, PADDING + 40)
     dialog.scrollFrame = scrollFrame
     dialog.editBox = editBox

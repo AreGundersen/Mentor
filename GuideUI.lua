@@ -268,21 +268,31 @@ local function MeasureHeight(fontString, fallbackHeight)
 end
 
 function guideUI.Build(mainFrame)
-    guidePanel = CreateFrame("Frame", "MentorGuidePanel", mainFrame, BACKDROP_TEMPLATE)
+    -- A WoW window ("How to play" in the title bar, the spec icon as the
+    -- portrait) or Mentor's own box.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorGuidePanel", mainFrame, "How to play")
+    guidePanel = nativeWindow or CreateFrame("Frame", "MentorGuidePanel", mainFrame, BACKDROP_TEMPLATE)
     guidePanel:SetWidth(PANEL_WIDTH)
     guidePanel:SetPoint("TOPLEFT", mainFrame, "TOPRIGHT", 2, 0)
     guidePanel:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMRIGHT", 2, 0)
-    if guidePanel.SetBackdrop then
-        guidePanel:SetBackdrop(PANEL_BACKDROP)
-        guidePanel:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
+    local contentShift = 0      -- how much lower the tabs start in the WoW window
+    if nativeWindow then
+        guidePanel.specIcon = Mentor.NativeFrame.GetPortrait(nativeWindow) or guidePanel:CreateTexture(nil, "ARTWORK")
+        guidePanel.title = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontNormal", PANEL_WIDTH - Mentor.NativeFrame.SUBTITLE_LEFT - 12)
+        contentShift = 30
+    else
+        if guidePanel.SetBackdrop then
+            guidePanel:SetBackdrop(PANEL_BACKDROP)
+            guidePanel:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
+        end
+        guidePanel.specIcon = guidePanel:CreateTexture(nil, "ARTWORK")
+        guidePanel.specIcon:SetSize(24, 24)
+        guidePanel.specIcon:SetPoint("TOPLEFT", PADDING, -PADDING)
+        guidePanel.specIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        guidePanel.title = CreateText(guidePanel, "GameFontNormal")
+        guidePanel.title:SetPoint("LEFT", guidePanel.specIcon, "RIGHT", 8, 0)
     end
-
-    guidePanel.specIcon = guidePanel:CreateTexture(nil, "ARTWORK")
-    guidePanel.specIcon:SetSize(24, 24)
-    guidePanel.specIcon:SetPoint("TOPLEFT", PADDING, -PADDING)
-    guidePanel.specIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    guidePanel.title = CreateText(guidePanel, "GameFontNormal")
-    guidePanel.title:SetPoint("LEFT", guidePanel.specIcon, "RIGHT", 8, 0)
+    guidePanel.isNativeWindow = nativeWindow and true or false
 
     -- Tabs: two rows of three.
     local tabWidth = (PANEL_WIDTH - PADDING * 2 - TAB_GAP * 2) / 3
@@ -290,7 +300,7 @@ function guideUI.Build(mainFrame)
         local tabButton = CreateFrame("Button", nil, guidePanel, BACKDROP_TEMPLATE)
         tabButton:SetSize(tabWidth, TAB_HEIGHT)
         local column, row = (tabIndex - 1) % 3, math.floor((tabIndex - 1) / 3)
-        tabButton:SetPoint("TOPLEFT", PADDING + column * (tabWidth + TAB_GAP), -PADDING - 32 - row * (TAB_HEIGHT + TAB_GAP))
+        tabButton:SetPoint("TOPLEFT", PADDING + column * (tabWidth + TAB_GAP), -PADDING - 32 - contentShift - row * (TAB_HEIGHT + TAB_GAP))
         if tabButton.SetBackdrop then
             tabButton:SetBackdrop(Mentor.BOX_BACKDROP)
         end
@@ -304,12 +314,12 @@ function guideUI.Build(mainFrame)
         end)
         tabButtons[tabIndex] = tabButton
     end
-    guidePanel.contentTop = -PADDING - 32 - 2 * (TAB_HEIGHT + TAB_GAP) - 8
+    guidePanel.contentTop = -PADDING - 32 - contentShift - 2 * (TAB_HEIGHT + TAB_GAP) - 8
 
     -- Rotation bar switch at the bottom.
     local barButton = CreateFrame("Button", nil, guidePanel, "UIPanelButtonTemplate")
     barButton:SetSize(150, 22)
-    barButton:SetPoint("BOTTOM", 0, PADDING)
+    barButton:SetPoint("BOTTOM", 0, nativeWindow and PADDING - 2 or PADDING)
     barButton:SetScript("OnClick", function()
         MentorDB.isRotationBarShown = not MentorDB.isRotationBarShown
         guideUI.Refresh(Mentor.currentAdvice)
@@ -336,7 +346,8 @@ function guideUI.Refresh(advice)
     end
     local classFileName, specNumber = advice.classFileName, advice.specNumber
     guidePanel.specIcon:SetTexture(advice.specData.icon)
-    guidePanel.title:SetText("How to play: " .. advice.specData.name)
+    -- The WoW window already says "How to play" in its title bar.
+    guidePanel.title:SetText(guidePanel.isNativeWindow and advice.specData.name or ("How to play: " .. advice.specData.name))
 
     -- Tabs: hide the ones without content (e.g. "Pet" for a mage).
     local selectedKey = MentorDB.guideTab or "rotation"

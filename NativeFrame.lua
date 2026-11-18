@@ -56,6 +56,47 @@ function nativeFrame.CreateWindow(frameName, parentFrame, titleText)
     return window
 end
 
+-- The round portrait texture top left (to show a class or spec icon instead
+-- of Mentor's logo), or nil.
+function nativeFrame.GetPortrait(window)
+    return FindField(window, "portrait", "PortraitContainer")
+end
+
+-- Shows a class or spec icon in the round portrait. textureCoordinates is
+-- optional ({ left, right, top, bottom }).
+function nativeFrame.SetPortraitIcon(window, texturePath, textureCoordinates)
+    local portraitTexture = nativeFrame.GetPortrait(window)
+    if not (portraitTexture and portraitTexture.SetTexture and texturePath) then
+        return
+    end
+    portraitTexture:SetTexture(texturePath)
+    if textureCoordinates then
+        portraitTexture:SetTexCoord(unpack(textureCoordinates))
+    else
+        portraitTexture:SetTexCoord(0, 1, 0, 1)
+    end
+end
+
+-- A text beside the portrait, under the title bar: where WoW puts a window's
+-- subtitle.
+function nativeFrame.CreateSubtitle(window, fontObject, width)
+    local subtitleText = window:CreateFontString(nil, "OVERLAY", fontObject or "GameFontNormal")
+    subtitleText:SetPoint("TOPLEFT", nativeFrame.SUBTITLE_LEFT, -nativeFrame.SUBTITLE_TOP - 4)
+    subtitleText:SetJustifyH("LEFT")
+    if width then
+        subtitleText:SetWidth(width)
+    end
+    return subtitleText
+end
+
+-- Points the window's own close button (X) at onClose.
+function nativeFrame.SetCloseAction(window, onClose)
+    local closeButton = window.closeButton
+    if type(closeButton) == "table" and closeButton.SetScript then
+        closeButton:SetScript("OnClick", onClose)
+    end
+end
+
 function nativeFrame.SetTitle(window, titleText)
     if type(window.SetTitle) == "function" and pcall(window.SetTitle, window, titleText) then
         return

@@ -37,10 +37,16 @@ local function FormatGoldShort(copperAmount)
 end
 
 local function BuildGoldGraph()
-    goldGraph = CreateFrame("Frame", "MentorLifeLogGoldGraph", mainFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    goldGraph:SetSize(GRAPH_WIDTH, GRAPH_HEIGHT)
+    -- A WoW window ("Gold over time" in the title bar, Mentor's portrait) or
+    -- Mentor's own box. The WoW window is taller: its title bar takes room.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorLifeLogGoldGraph", mainFrame, "Gold over time")
+    local contentShift = nativeWindow and 24 or 0
+    goldGraph = nativeWindow or CreateFrame("Frame", "MentorLifeLogGoldGraph", mainFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    goldGraph:SetSize(GRAPH_WIDTH, GRAPH_HEIGHT + contentShift)
     goldGraph:SetPoint("TOPLEFT", mainFrame, "TOPRIGHT", 2, 0)
-    if goldGraph.SetBackdrop then
+    if nativeWindow then
+        Mentor.NativeFrame.SetCloseAction(nativeWindow, function() goldGraph:Hide() end)
+    elseif goldGraph.SetBackdrop then
         goldGraph:SetBackdrop({
             bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 14,
@@ -48,12 +54,17 @@ local function BuildGoldGraph()
         })
         goldGraph:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
     end
-    goldGraph.title = goldGraph:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    goldGraph.title:SetPoint("TOPLEFT", 12, -10)
-    goldGraph.title:SetText("Gold over time")
     goldGraph.summary = goldGraph:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    goldGraph.summary:SetPoint("TOPLEFT", 12, -28)
     goldGraph.summary:SetJustifyH("LEFT")
+    if nativeWindow then
+        -- Beside the portrait, under the title bar.
+        goldGraph.summary:SetPoint("TOPLEFT", Mentor.NativeFrame.SUBTITLE_LEFT, -Mentor.NativeFrame.SUBTITLE_TOP - 4)
+    else
+        goldGraph.title = goldGraph:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        goldGraph.title:SetPoint("TOPLEFT", 12, -10)
+        goldGraph.title:SetText("Gold over time")
+        goldGraph.summary:SetPoint("TOPLEFT", 12, -28)
+    end
 
     -- Range buttons (top right).
     goldGraph.rangeButtons = {}
@@ -65,7 +76,8 @@ local function BuildGoldGraph()
         if previousButton then
             rangeButton:SetPoint("RIGHT", previousButton, "LEFT", -3, 0)
         else
-            rangeButton:SetPoint("TOPRIGHT", -10, -9)
+            -- Under the summary in the WoW window, top right otherwise.
+            rangeButton:SetPoint("TOPRIGHT", -10, nativeWindow and -50 or -9)
         end
         rangeButton:SetText(graphRange.label)
         rangeButton:SetScript("OnClick", function()
@@ -78,7 +90,7 @@ local function BuildGoldGraph()
 
     -- Plot area with three gold guide lines and their labels.
     goldGraph.plot = CreateFrame("Frame", nil, goldGraph)
-    goldGraph.plot:SetPoint("TOPLEFT", PLOT_LEFT, -PLOT_TOP)
+    goldGraph.plot:SetPoint("TOPLEFT", PLOT_LEFT, -PLOT_TOP - contentShift)
     goldGraph.plot:SetPoint("BOTTOMRIGHT", -PLOT_RIGHT, PLOT_BOTTOM)
     goldGraph.guideLines, goldGraph.guideLabels = {}, {}
     for guideIndex = 1, 3 do

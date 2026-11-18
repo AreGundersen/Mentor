@@ -21,12 +21,16 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
-    { "nativeUpgradesWindow", "Upgrades window looks like WoW",
-        "Click \"Find more\": \"Where to get upgrades\" has Blizzard's window frame (stone border, title bar, round Mentor logo top left, dark inset with the list). Does it look right? Show all, closing (X and Escape) and the item tooltips still work. Screenshot it for Are's verdict." },
-    { "nativeLifeLog", "Life log looks like WoW",
-        "Open the Life log (button in Mentor, or /mentor log): Blizzard's window frame with \"Life log\" in the title bar, the Mentor portrait, your character's name beside it, the thin scroll bar, and the buttons at the bottom clear of the frame. You can still drag it by the title bar, and X closes it (stays closed after /reload). Gold graph still opens." },
+    { "nativeMainWindow", "Main window looks like WoW",
+        "The Mentor window: Blizzard's frame with \"Mentor\" in the title bar, your class icon as the round portrait, class + level beside it, Life log / Settings / Report bug at the top right under the title bar. Nothing overlaps. Dragging, X (stays closed after /reload) and all buttons still work." },
+    { "nativeSidePanels", "Talent build and How to play look like WoW",
+        "Open the talent build (/mentor build) and How to play (/mentor guide): WoW frames with the spec icon as the portrait and the spec name beside it; the tabs, list and scroll bar fit inside." },
+    { "nativeLifeLogAndGraph", "Life log and Gold graph look like WoW",
+        "Life log: WoW frame, your name beside the portrait, thin scroll bar, buttons clear of the bottom edge, drag by the title bar. Gold graph: WoW frame \"Gold over time\", the summary beside the portrait, 7 days / 30 days / All under it, the graph fits; X closes it." },
+    { "nativeSmallWindows", "Bug report, vendor list, profession panel, this list",
+        "Report bug: WoW frame \"Report a bug\", step title beside the portrait, all three steps fit. At a vendor with \"only worth vendoring\" items: WoW frame, hint beside the portrait, list below. Open a profession: Mentor's panel beside it is a WoW frame with the profession and skill beside the portrait. This checklist: WoW frame too." },
     -- Tested OK already this cycle (removed): Handbook and Settings as WoW
-    -- windows, side tabs, thin scroll bar, Handbook and checklist buttons,
+    -- windows, Upgrades window, side tabs, thin scroll bar, Handbook and checklist buttons,
     -- tabs, Journey layout and dungeon click, auction panel and click, Factions
     -- bars and standings, profession materials and tools, missing gathering
     -- tool, settings rows, bug report.
@@ -95,8 +99,12 @@ local function RefreshWindow()
 end
 
 local function CreateWindow()
-    window = CreateFrame("Frame", "MentorDevChecklist", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-    window:SetSize(WINDOW_WIDTH, PADDING * 2 + 44 + #CHECKLIST_ITEMS * ROW_HEIGHT + 30)
+    -- A WoW window ("Test checklist" in the title bar) or Mentor's own box;
+    -- the WoW window's content sits lower, under its title bar.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorDevChecklist", UIParent, "Test checklist")
+    local contentShift = nativeWindow and 26 or 0
+    window = nativeWindow or CreateFrame("Frame", "MentorDevChecklist", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    window:SetSize(WINDOW_WIDTH, PADDING * 2 + 44 + #CHECKLIST_ITEMS * ROW_HEIGHT + 30 + contentShift)
     window:SetPoint("CENTER", UIParent, "CENTER", 300, 0)
     window:SetFrameStrata("DIALOG")
     window:SetMovable(true)
@@ -105,25 +113,30 @@ local function CreateWindow()
     window:SetClampedToScreen(true)
     window:SetScript("OnDragStart", window.StartMoving)
     window:SetScript("OnDragStop", window.StopMovingOrSizing)
-    if window.SetBackdrop and Mentor.BOX_BACKDROP then
+    if not nativeWindow and window.SetBackdrop and Mentor.BOX_BACKDROP then
         window:SetBackdrop(Mentor.BOX_BACKDROP)
         window:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
         -- Dark background: the backdrop texture is plain white until colored.
         window:SetBackdropColor(0.05, 0.05, 0.07, 0.95)
     end
-    window.title = window:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    window.title:SetPoint("TOPLEFT", PADDING, -PADDING)
-    window.title:SetText("Test checklist  |cffa6a6a6v" .. Mentor.GetVersion() .. "|r")
+    if nativeWindow then
+        window.title = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontNormal")
+        window.title:SetText("v" .. Mentor.GetVersion())
+    else
+        window.title = window:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        window.title:SetPoint("TOPLEFT", PADDING, -PADDING)
+        window.title:SetText("Test checklist  |cffa6a6a6v" .. Mentor.GetVersion() .. "|r")
+        local closeButton = CreateFrame("Button", nil, window, "UIPanelCloseButton")
+        closeButton:SetPoint("TOPRIGHT", -2, -2)
+    end
     window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    window.subtitle:SetPoint("TOPLEFT", PADDING, -PADDING - 18)
+    window.subtitle:SetPoint("TOPLEFT", PADDING, -PADDING - 18 - contentShift)
     window.subtitle:SetText("Click: OK, then Problem, then empty. Hover: how to test.")
-    local closeButton = CreateFrame("Button", nil, window, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", -2, -2)
 
     for itemIndex, item in ipairs(CHECKLIST_ITEMS) do
         local row = CreateFrame("Button", nil, window)
         row:SetSize(WINDOW_WIDTH - 2 * PADDING, ROW_HEIGHT)
-        row:SetPoint("TOPLEFT", PADDING, -PADDING - 40 - (itemIndex - 1) * ROW_HEIGHT)
+        row:SetPoint("TOPLEFT", PADDING, -PADDING - 40 - contentShift - (itemIndex - 1) * ROW_HEIGHT)
         row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         row.text:SetPoint("LEFT")
         row.text:SetJustifyH("LEFT")

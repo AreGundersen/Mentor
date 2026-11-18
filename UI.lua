@@ -221,7 +221,18 @@ end
 --------------------------------------------------------------------------------
 -- Main window
 --------------------------------------------------------------------------------
-local mainFrame = CreateFrame("Frame", "MentorFrame", UIParent, BACKDROP_TEMPLATE)
+-- A real WoW window ("Mentor" in the title bar, your class icon as the round
+-- portrait) when the client has Blizzard's template; otherwise Mentor's own
+-- dark box with a class-colored border.
+local isNativeMainWindow = false
+local mainFrame = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorFrame", UIParent, "Mentor")
+if mainFrame then
+    isNativeMainWindow = true
+else
+    mainFrame = CreateFrame("Frame", "MentorFrame", UIParent, BACKDROP_TEMPLATE)
+end
+-- How much lower the content starts in the WoW window (its title bar).
+local MAIN_CONTENT_SHIFT = isNativeMainWindow and 16 or 0
 local widgets = {}
 local specButtons = {}
 local upgradeRows = {}
@@ -429,23 +440,34 @@ local function BuildMainWindow()
         SaveWindowPosition()
         Mentor.PlaceSidePanels()
     end)
-    ApplyBackdrop(mainFrame)
-
-    -- Header: class icon, class name, level and role.
-    widgets.classIcon = mainFrame:CreateTexture(nil, "ARTWORK")
-    widgets.classIcon:SetSize(38, 38)
-    widgets.classIcon:SetPoint("TOPLEFT", PADDING, -PADDING)
-    widgets.classIcon:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
-    widgets.className = CreateText(mainFrame, "GameFontNormalLarge")
-    widgets.className:SetPoint("TOPLEFT", widgets.classIcon, "TOPRIGHT", 10, -2)
+    -- Header: class icon, class name, level and role. In the WoW window the
+    -- class icon is the round portrait and the name sits beside it.
+    local closeButton
+    if isNativeMainWindow then
+        widgets.classIcon = Mentor.NativeFrame.GetPortrait(mainFrame) or mainFrame:CreateTexture(nil, "ARTWORK")
+        widgets.classIcon:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+        widgets.className = CreateText(mainFrame, "GameFontNormalLarge")
+        widgets.className:SetPoint("TOPLEFT", Mentor.NativeFrame.SUBTITLE_LEFT, -Mentor.NativeFrame.SUBTITLE_TOP)
+        closeButton = mainFrame.closeButton
+    else
+        ApplyBackdrop(mainFrame)
+        widgets.classIcon = mainFrame:CreateTexture(nil, "ARTWORK")
+        widgets.classIcon:SetSize(38, 38)
+        widgets.classIcon:SetPoint("TOPLEFT", PADDING, -PADDING)
+        widgets.classIcon:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+        widgets.className = CreateText(mainFrame, "GameFontNormalLarge")
+        widgets.className:SetPoint("TOPLEFT", widgets.classIcon, "TOPRIGHT", 10, -2)
+    end
     widgets.subtitle = CreateText(mainFrame, "GameFontHighlightSmall")
     widgets.subtitle:SetPoint("TOPLEFT", widgets.className, "BOTTOMLEFT", 0, -3)
-    local closeButton = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
-    closeButton:SetPoint("TOPRIGHT", -2, -2)
+    if type(closeButton) ~= "table" then
+        closeButton = CreateFrame("Button", nil, mainFrame, "UIPanelCloseButton")
+        closeButton:SetPoint("TOPRIGHT", -2, -2)
+    end
     -- Mentor's version, small and grey, in the bottom right corner (the
     -- header has no room: the Life log / Settings buttons sit there).
     widgets.versionText = CreateText(mainFrame, "GameFontDisableSmall")
-    widgets.versionText:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -8, 5)
+    widgets.versionText:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -8, isNativeMainWindow and 7 or 5)
     widgets.versionText:SetText("v" .. Mentor.GetVersion())
     closeButton:SetScript("OnClick", function()
         MentorDB.isShown = false
@@ -453,7 +475,12 @@ local function BuildMainWindow()
     end)
     local settingsButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
     settingsButton:SetSize(70, 20)
-    settingsButton:SetPoint("TOPRIGHT", -32, -PADDING + 2)
+    -- Under the title bar in the WoW window, beside the close button otherwise.
+    if isNativeMainWindow then
+        settingsButton:SetPoint("TOPRIGHT", -10, -28)
+    else
+        settingsButton:SetPoint("TOPRIGHT", -32, -PADDING + 2)
+    end
     settingsButton:SetText("Settings")
     settingsButton:SetScript("OnClick", function()
         Mentor.ToggleSettings()
@@ -501,7 +528,7 @@ local function BuildMainWindow()
     end)
     bugButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-    local verticalOffset = -PADDING - HEADER_HEIGHT
+    local verticalOffset = -PADDING - HEADER_HEIGHT - MAIN_CONTENT_SHIFT
     AddDivider(verticalOffset)
     verticalOffset = verticalOffset - SECTION_GAP
 
@@ -1099,31 +1126,41 @@ local buildPanel
 local buildRows = {}
 
 local function BuildBuildPanel()
-    buildPanel = CreateFrame("Frame", "MentorBuildPanel", mainFrame, BACKDROP_TEMPLATE)
+    -- A WoW window ("Talent build" in the title bar, the spec icon as the
+    -- portrait, the spec name beside it) or Mentor's own box.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorBuildPanel", mainFrame, "Talent build")
+    buildPanel = nativeWindow or CreateFrame("Frame", "MentorBuildPanel", mainFrame, BACKDROP_TEMPLATE)
     buildPanel:SetWidth(BUILD_PANEL_WIDTH)
     Mentor.RegisterSidePanel(buildPanel, true)
-    ApplyBackdrop(buildPanel)
-
-    buildPanel.specIcon = buildPanel:CreateTexture(nil, "ARTWORK")
-    buildPanel.specIcon:SetSize(26, 26)
-    buildPanel.specIcon:SetPoint("TOPLEFT", PADDING + 2, -PADDING - 2)
-    buildPanel.specIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-    local specIconHolder = CreateFrame("Frame", nil, buildPanel)
-    specIconHolder:SetAllPoints(buildPanel.specIcon)
-    Mentor.AddRoundedBorder(specIconHolder, GOLD[1], GOLD[2], GOLD[3], 1, 10)
-    buildPanel.title = CreateText(buildPanel, "GameFontNormalLarge")
-    buildPanel.title:SetPoint("LEFT", buildPanel.specIcon, "RIGHT", 10, 0)
-    -- Thin gold line under the title, like the section headers.
-    local titleLine = buildPanel:CreateTexture(nil, "ARTWORK")
-    titleLine:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.3)
-    titleLine:SetHeight(1)
-    titleLine:SetPoint("TOPLEFT", PADDING, -PADDING - 34)
-    titleLine:SetPoint("TOPRIGHT", -PADDING, -PADDING - 34)
+    local contentShift = 0      -- how much lower the content starts in the WoW window
+    if nativeWindow then
+        buildPanel.specIcon = Mentor.NativeFrame.GetPortrait(nativeWindow) or buildPanel:CreateTexture(nil, "ARTWORK")
+        buildPanel.title = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontNormalLarge")
+        contentShift = 18
+    else
+        ApplyBackdrop(buildPanel)
+        buildPanel.specIcon = buildPanel:CreateTexture(nil, "ARTWORK")
+        buildPanel.specIcon:SetSize(26, 26)
+        buildPanel.specIcon:SetPoint("TOPLEFT", PADDING + 2, -PADDING - 2)
+        buildPanel.specIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        local specIconHolder = CreateFrame("Frame", nil, buildPanel)
+        specIconHolder:SetAllPoints(buildPanel.specIcon)
+        Mentor.AddRoundedBorder(specIconHolder, GOLD[1], GOLD[2], GOLD[3], 1, 10)
+        buildPanel.title = CreateText(buildPanel, "GameFontNormalLarge")
+        buildPanel.title:SetPoint("LEFT", buildPanel.specIcon, "RIGHT", 10, 0)
+        -- Thin gold line under the title, like the section headers.
+        local titleLine = buildPanel:CreateTexture(nil, "ARTWORK")
+        titleLine:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.3)
+        titleLine:SetHeight(1)
+        titleLine:SetPoint("TOPLEFT", PADDING, -PADDING - 34)
+        titleLine:SetPoint("TOPRIGHT", -PADDING, -PADDING - 34)
+    end
     buildPanel.legend = CreateText(buildPanel, "GameFontHighlightSmall", BUILD_PANEL_WIDTH - PADDING * 2)
-    buildPanel.legend:SetPoint("TOPLEFT", PADDING, -PADDING - 40)
+    buildPanel.legend:SetPoint("TOPLEFT", PADDING, -PADDING - 40 - contentShift)
 
-    local scrollFrame = CreateFrame("ScrollFrame", "MentorBuildScroll", buildPanel, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 72)
+    local scrollFrame = nativeWindow and Mentor.NativeFrame.CreateScrollFrame("MentorBuildScroll", buildPanel)
+        or CreateFrame("ScrollFrame", "MentorBuildScroll", buildPanel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 72 - contentShift)
     scrollFrame:SetPoint("BOTTOMRIGHT", -30, PADDING)
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetSize(BUILD_PANEL_WIDTH - PADDING - 42, 1)
@@ -1236,7 +1273,7 @@ local function RefreshHeader(advice)
     end
     widgets.className:SetText(classColorCode .. (UnitClass("player") or advice.classFileName) .. "|r")
     widgets.subtitle:SetText(MUTED_TEXT .. "Level " .. advice.level .. "  ·  " .. advice.specData.role .. "|r")
-    if mainFrame.SetBackdropBorderColor then
+    if not isNativeMainWindow and mainFrame.SetBackdropBorderColor then
         mainFrame:SetBackdropBorderColor(red, green, blue, 0.9)
     end
 end

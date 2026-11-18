@@ -758,19 +758,27 @@ local function CreateRecipeRow()
 end
 
 local function CreatePanel()
-    panel = CreateFrame("Frame", "MentorProfessionPanel", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    -- A WoW window ("Mentor" in the title bar, Mentor's portrait, the
+    -- profession and skill beside it) or Mentor's own box.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorProfessionPanel", UIParent, "Mentor")
+    panel = nativeWindow or CreateFrame("Frame", "MentorProfessionPanel", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     panel:SetWidth(PANEL_WIDTH)
     panel:SetFrameStrata("HIGH")
-    if panel.SetBackdrop then
-        panel:SetBackdrop(PANEL_BACKDROP)
-        panel:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
+    panel.isNativeWindow = nativeWindow and true or false
+    if nativeWindow then
+        panel.title = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontNormal")
+    else
+        if panel.SetBackdrop then
+            panel:SetBackdrop(PANEL_BACKDROP)
+            panel:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
+        end
+        local logo = panel:CreateTexture(nil, "ARTWORK")
+        logo:SetTexture(LOGO_TEXTURE)
+        logo:SetSize(16, 16)
+        logo:SetPoint("TOPLEFT", PANEL_PADDING, -PANEL_PADDING + 2)
+        panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        panel.title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
     end
-    local logo = panel:CreateTexture(nil, "ARTWORK")
-    logo:SetTexture(LOGO_TEXTURE)
-    logo:SetSize(16, 16)
-    logo:SetPoint("TOPLEFT", PANEL_PADDING, -PANEL_PADDING + 2)
-    panel.title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    panel.title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
     panel.levelHeader = CreateTextLine(panel, "GameFontNormalSmall")
     panel.levelHeader:SetText("Level up")
     panel.levelRow = CreateRecipeRow()
@@ -851,7 +859,8 @@ function professions.RefreshPanel()
         recipesByName[recipe.name] = recipe
     end
 
-    local verticalOffset = -PANEL_PADDING - 22
+    -- Under the portrait in the WoW window, under the title otherwise.
+    local verticalOffset = panel.isNativeWindow and -(Mentor.NativeFrame.CONTENT_TOP - 4) or (-PANEL_PADDING - 22)
     local function Place(region, height)
         region:ClearAllPoints()
         region:SetPoint("TOPLEFT", PANEL_PADDING, verticalOffset)

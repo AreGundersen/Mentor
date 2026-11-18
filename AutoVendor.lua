@@ -259,6 +259,11 @@ end
 local SELL_WINDOW_WIDTH = 320
 local SELL_ROW_HEIGHT = 28
 local MAX_SELL_ROWS = 10
+-- Where the item list starts: under the hint, or under the portrait in the
+-- WoW-style window.
+local SELL_LIST_TOP = 56
+local SELL_LIST_TOP_NATIVE = 74
+local sellListTop = SELL_LIST_TOP
 local MENTOR_GOLD = { 1.00, 0.78, 0.10 }
 local sellWindow
 
@@ -276,11 +281,18 @@ local function UpdateSellWindowTotal()
 end
 
 local function BuildSellWindow()
-    sellWindow = CreateFrame("Frame", "MentorSellVendorItemsWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    -- A WoW window ("Only worth vendoring" in the title bar, Mentor's
+    -- portrait, the hint beside it) or Mentor's own box.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorSellVendorItemsWindow", UIParent, "Only worth vendoring")
+    sellWindow = nativeWindow or CreateFrame("Frame", "MentorSellVendorItemsWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    sellListTop = nativeWindow and SELL_LIST_TOP_NATIVE or SELL_LIST_TOP
     sellWindow:SetWidth(SELL_WINDOW_WIDTH)
     sellWindow:SetFrameStrata("DIALOG")
     sellWindow:SetClampedToScreen(true)
-    if sellWindow.SetBackdrop then
+    if nativeWindow then
+        sellWindow.hint = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontHighlightSmall",
+            SELL_WINDOW_WIDTH - Mentor.NativeFrame.SUBTITLE_LEFT - 14)
+    elseif sellWindow.SetBackdrop then
         sellWindow:SetBackdrop({
             bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 14,
@@ -288,24 +300,26 @@ local function BuildSellWindow()
         })
         sellWindow:SetBackdropBorderColor(MENTOR_GOLD[1], MENTOR_GOLD[2], MENTOR_GOLD[3], 0.9)
     end
-    local logo = sellWindow:CreateTexture(nil, "ARTWORK")
-    logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
-    logo:SetSize(18, 18)
-    logo:SetPoint("TOPLEFT", 10, -9)
-    sellWindow.title = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sellWindow.title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
-    sellWindow.title:SetText("Only worth vendoring")
-    sellWindow.hint = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    sellWindow.hint:SetPoint("TOPLEFT", 12, -32)
-    sellWindow.hint:SetWidth(SELL_WINDOW_WIDTH - 24)
-    sellWindow.hint:SetJustifyH("LEFT")
+    if not nativeWindow then
+        local logo = sellWindow:CreateTexture(nil, "ARTWORK")
+        logo:SetTexture("Interface\\AddOns\\Mentor\\Media\\Logo")
+        logo:SetSize(18, 18)
+        logo:SetPoint("TOPLEFT", 10, -9)
+        sellWindow.title = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        sellWindow.title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
+        sellWindow.title:SetText("Only worth vendoring")
+        sellWindow.hint = sellWindow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        sellWindow.hint:SetPoint("TOPLEFT", 12, -32)
+        sellWindow.hint:SetWidth(SELL_WINDOW_WIDTH - 24)
+        sellWindow.hint:SetJustifyH("LEFT")
+    end
     sellWindow.hint:SetText("|cffa6a6a6Not an upgrade for any of your specs, and not worth more on the AH. Untick what you want to keep.|r")
 
     sellWindow.rows = {}
     for rowIndex = 1, MAX_SELL_ROWS do
         local row = CreateFrame("Button", nil, sellWindow, BackdropTemplateMixin and "BackdropTemplate" or nil)
         row:SetSize(SELL_WINDOW_WIDTH - 20, SELL_ROW_HEIGHT)
-        row:SetPoint("TOPLEFT", 10, -56 - (rowIndex - 1) * (SELL_ROW_HEIGHT + 2))
+        row:SetPoint("TOPLEFT", 10, -sellListTop - (rowIndex - 1) * (SELL_ROW_HEIGHT + 2))
         if row.SetBackdrop and Mentor.BOX_BACKDROP then
             row:SetBackdrop(Mentor.BOX_BACKDROP)
             row:SetBackdropColor(0, 0, 0, 0.35)
@@ -407,7 +421,7 @@ local function ShowSellWindow()
         end
     end
     -- Items beyond the first rows are sold too when ticked (they are all ticked).
-    local listBottom = 56 + shownRows * (SELL_ROW_HEIGHT + 2)
+    local listBottom = sellListTop + shownRows * (SELL_ROW_HEIGHT + 2)
     sellWindow.moreText:ClearAllPoints()
     sellWindow.moreText:SetPoint("TOPLEFT", 14, -listBottom - 2)
     if #pendingVendorItems > MAX_SELL_ROWS then
