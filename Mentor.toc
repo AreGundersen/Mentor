@@ -49,5 +49,6 @@ Alerts.lua
 LootRolls.lua
 Procs.lua
 BugReport.lua
+DevChecklist.lua
 UI.lua
 DiagnosticsFeatures.lua

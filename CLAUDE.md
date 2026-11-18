@@ -10,6 +10,9 @@ Instructions for working in this repository.
   make sure `## Version` in `Mentor.toc` is `<last release>+dev`.
 - Test builds come from `tools/package.sh` and are named `...+dev.zip`. They
   must never be described as a release or uploaded to CurseForge.
+- Every change Are should test in game gets an item in `CHECKLIST_ITEMS` in
+  `DevChecklist.lua` (Are's in-game test list, `/mentor check`, only in
+  `+dev` builds). Start a fresh list after each release.
 
 ## Code style
 

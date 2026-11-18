@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- Test builds (+dev) have a test checklist for the developer (`/mentor check`); players never see it.
 - **Dungeon upgrades on the way:** when you enter a dungeon, the tip names the best gear for you in it and who drops it ("Look out for: [Cruel Barb] from Edwin VanCleef (+40%)"), and dungeons in the Journey tab say how many upgrades they have for you.
 - **Upgrades on the auction house:** search the auction house (also through Auctionator) and a small Mentor panel next to it lists the results that are upgrades for you, best first, with the buyout price. Setting "Auction upgrades" under Gold.
 - **New: Reputation tab** (`/mentor rep`): your factions, how far you are to the next standing, what each faction gives you (cities, the goblin towns, Timbermaw, Argent Dawn and more), and quartermaster gear that is an upgrade for you with the standing it needs - also from quartermasters you haven't met yet.

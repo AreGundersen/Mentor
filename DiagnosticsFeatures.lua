@@ -228,3 +228,16 @@ end)
 Mentor.RegisterDiagnostics("Recently hovered mobs", function(Add)
     Add(#recentMobs > 0 and table.concat(recentMobs, ", ") or "none")
 end)
+
+Mentor.RegisterDiagnostics("Test checklist (test builds)", function(Add)
+    local devChecklist = Mentor.DevChecklist
+    if not (devChecklist and devChecklist.IsDevBuild()) then
+        Add("not a test build")
+        return
+    end
+    local savedChecklist = MentorAccountDB and MentorAccountDB.devChecklist
+    local states = savedChecklist and savedChecklist.states or {}
+    for _, item in ipairs(devChecklist.CHECKLIST_ITEMS) do
+        Add(string.format("[%s] %s", states[item[1]] or " ", item[2]))
+    end
+end)

@@ -1529,6 +1529,8 @@ SlashCmdList["MENTOR"] = function(input)
         Mentor.Upgrades.Toggle()
     elseif command == "trainer" then
         Mentor.Training.PrintDebug()
+    elseif command == "check" or command == "checklist" then
+        Mentor.DevChecklist.Toggle()
     elseif command == "version" then
         Mentor.Print("Mentor version " .. Mentor.GetVersion() .. ".")
     elseif command == "procs" or command == "proc" then

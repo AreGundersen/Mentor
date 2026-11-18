@@ -9,6 +9,10 @@
   added (for example `1.9.0+dev`) as soon as there are unreleased changes.
   Bug reports from test builds then show `+dev` and can't be mistaken for a
   real release.
+- Every change Are should test in game also gets an item in `CHECKLIST_ITEMS`
+  in `DevChecklist.lua` (what to check and how). In a `+dev` build Are opens
+  the list with `/mentor check` and marks each item OK or Problem; players
+  never see it (it only exists when the version ends in `+dev`).
 - Test builds are made with `tools/package.sh` and named
   `Mentor-1.9.0+dev.zip`. They are for testing only - never upload them to
   CurseForge.
@@ -27,4 +31,6 @@
    `CF_API_KEY`. If the Action can't be used: `tools/package.sh` ->
    `Mentor-<version>.zip`, upload it by hand (Forever, Release) and paste the
    changelog.
-6. After the release the next change sets the version to `<version>+dev` again.
+6. After the release the next change sets the version to `<version>+dev` again,
+   and `CHECKLIST_ITEMS` in `DevChecklist.lua` is emptied and filled with the
+   new cycle's changes.
