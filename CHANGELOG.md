@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- Fix: the profession panel said "Your trainer teaches it" for recipes you buy as a pattern (for example Gem-studded Leather Belt from Rikqiz in Booty Bay). It now names the vendor, or uses the game's own source text, and only says trainer when nothing else is known.
 
 ## 1.18.0 - 2026-11-18
 - **Mentor looks like part of WoW:** All of Mentor's windows use WoW's own window frame (title bar, round portrait - your class or spec icon where it fits, Mentor's logo elsewhere - dark inset): the Mentor window, Handbook, Settings, talent build, How to play, Life log, Gold graph, "Where to get upgrades", Report a bug, the vendor list and the profession panel, and the Handbook has icon tabs down its right edge, like WoW Forever's own windows, and the modern thin scroll bar. On a client without these templates, Mentor keeps its own look.

@@ -195,6 +195,39 @@ function professions.GetRecipeSourceText(recipeName)
     return "Sold by " .. table.concat(vendorTexts, " or ") .. ", or on the auction house."
 end
 
+-- The game's own "where to get it" text for a recipe in the open window
+-- (for example "Vendor: Rikqiz"), as one line without color codes, or nil.
+local function GetClientRecipeSourceText(recipeId)
+    if not (recipeId and C_TradeSkillUI and C_TradeSkillUI.GetRecipeSourceText) then
+        return nil
+    end
+    local isSuccess, clientSourceText = pcall(C_TradeSkillUI.GetRecipeSourceText, recipeId)
+    if not isSuccess or type(clientSourceText) ~= "string" or (issecretvalue and issecretvalue(clientSourceText)) then
+        return nil
+    end
+    -- Strip color codes, textures and line breaks: "Vendor: Rikqiz Zone: ..."
+    local plainText = clientSourceText:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|T.-|t", "")
+    plainText = plainText:gsub("|n", ", "):gsub("\n", ", "):gsub("%s+", " "):gsub("^[%s,]+", ""):gsub("[%s,]+$", "")
+    if plainText == "" then
+        return nil
+    end
+    return plainText .. "."
+end
+
+-- Where to get a recipe you haven't learned: Mentor's own list of vendor and
+-- quest recipes first, then the game's source text, then the trainer.
+-- recipe is the entry from the open profession window (may be nil).
+function professions.GetUnknownRecipeSourceText(recipeName, recipe)
+    if RECIPE_SOURCES[recipeName] then
+        return professions.GetRecipeSourceText(recipeName)
+    end
+    local clientSourceText = recipe and GetClientRecipeSourceText(recipe.recipeId)
+    if clientSourceText then
+        return clientSourceText
+    end
+    return "Your trainer teaches it."
+end
+
 -- A recipe you know that still gives skill (orange first, then yellow), to
 -- craft while you don't have the guide's recipe. Guide recipes are preferred.
 local DIFFICULTY_RANK = { optimal = 1, medium = 2 }
@@ -884,9 +917,10 @@ function professions.RefreshPanel()
             local isKnown = recipe and recipe.isKnown
             local alternative
             if not isKnown then
-                -- Where to get it, and what you can craft meanwhile.
-                local trainerTeachesIt = recipe and not recipe.isKnown       -- in the window, not learned yet
-                local sourceText = trainerTeachesIt and "Your trainer teaches it." or professions.GetRecipeSourceText(step.recipe)
+                -- Where to get it, and what you can craft meanwhile. The window
+                -- also lists unlearned recipes that come from a vendor or a
+                -- drop, so being in the window doesn't mean the trainer has it.
+                local sourceText = professions.GetUnknownRecipeSourceText(step.recipe, recipe)
                 panel.levelText:SetText("|cffff9933You don't know it yet.|r " .. sourceText)
                 alternative = professions.GetAlternativeRecipe(recipes, professionName, step.recipe)
             elseif recipe.difficulty == "trivial" then

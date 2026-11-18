@@ -21,7 +21,8 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
-    -- New cycle after 1.18.0: nothing to test yet.
+    { "recipeSource", "Pattern recipes name the vendor",
+        "Leatherworking 160+: the profession panel's Level up step says Gem-studded Leather Belt is sold by Rikqiz (Booty Bay), not \"Your trainer teaches it\". A recipe the trainer really has still says trainer." },
     -- Released 1.18.0 without an in-game check: the "Look out for" dungeon
     -- tip, the weapon skill reminder, and trainer prices on an alt.
 }
