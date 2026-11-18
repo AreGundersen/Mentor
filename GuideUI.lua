@@ -267,6 +267,28 @@ local function MeasureHeight(fontString, fallbackHeight)
     return (type(measuredHeight) == "number" and measuredHeight > 0) and measuredHeight or fallbackHeight
 end
 
+-- Icons for the side tabs of the WoW-style window, by situation key.
+local SITUATION_ICONS = {
+    rotation = "Interface\\Icons\\INV_Misc_PocketWatch_01",
+    single   = "Interface\\Icons\\Ability_Hunter_SniperShot",
+    two      = "Interface\\Icons\\Ability_Warrior_Cleave",
+    many     = "Interface\\Icons\\Spell_Fire_SelfDestruct",
+    pet      = "Interface\\Icons\\Ability_Hunter_BeastCall",
+    trouble  = "Interface\\Icons\\Spell_Holy_SealOfProtection",
+}
+
+-- The situations as side tabs: { label, icon }.
+local function GetSituationTabs()
+    local situationTabs = {}
+    for tabIndex, situation in ipairs(Mentor.GUIDE_SITUATIONS) do
+        situationTabs[tabIndex] = {
+            label = situation.label,
+            icon = SITUATION_ICONS[situation.key] or "Interface\\Icons\\INV_Misc_QuestionMark",
+        }
+    end
+    return situationTabs
+end
+
 function guideUI.Build(mainFrame)
     -- A WoW window ("How to play" in the title bar, the spec icon as the
     -- portrait) or Mentor's own box.
@@ -294,27 +316,37 @@ function guideUI.Build(mainFrame)
     end
     guidePanel.isNativeWindow = nativeWindow and true or false
 
-    -- Tabs: two rows of three.
-    local tabWidth = (PANEL_WIDTH - PADDING * 2 - TAB_GAP * 2) / 3
-    for tabIndex, situation in ipairs(Mentor.GUIDE_SITUATIONS) do
-        local tabButton = CreateFrame("Button", nil, guidePanel, BACKDROP_TEMPLATE)
-        tabButton:SetSize(tabWidth, TAB_HEIGHT)
-        local column, row = (tabIndex - 1) % 3, math.floor((tabIndex - 1) / 3)
-        tabButton:SetPoint("TOPLEFT", PADDING + column * (tabWidth + TAB_GAP), -PADDING - 32 - contentShift - row * (TAB_HEIGHT + TAB_GAP))
-        if tabButton.SetBackdrop then
-            tabButton:SetBackdrop(Mentor.BOX_BACKDROP)
+    -- Tabs: icon tabs down the right edge in the WoW window (like WoW
+    -- Forever's own windows), two rows of three buttons otherwise.
+    guidePanel.sideTabs = nativeWindow and Mentor.NativeFrame.CreateSideTabs(guidePanel, GetSituationTabs(), function(tabIndex)
+        MentorDB.guideTab = Mentor.GUIDE_SITUATIONS[tabIndex].key
+        guideUI.Refresh(Mentor.currentAdvice)
+    end)
+    if guidePanel.sideTabs then
+        guidePanel.contentTop = -Mentor.NativeFrame.CONTENT_TOP - 2
+    else
+        -- Tabs: two rows of three.
+        local tabWidth = (PANEL_WIDTH - PADDING * 2 - TAB_GAP * 2) / 3
+        for tabIndex, situation in ipairs(Mentor.GUIDE_SITUATIONS) do
+            local tabButton = CreateFrame("Button", nil, guidePanel, BACKDROP_TEMPLATE)
+            tabButton:SetSize(tabWidth, TAB_HEIGHT)
+            local column, row = (tabIndex - 1) % 3, math.floor((tabIndex - 1) / 3)
+            tabButton:SetPoint("TOPLEFT", PADDING + column * (tabWidth + TAB_GAP), -PADDING - 32 - contentShift - row * (TAB_HEIGHT + TAB_GAP))
+            if tabButton.SetBackdrop then
+                tabButton:SetBackdrop(Mentor.BOX_BACKDROP)
+            end
+            tabButton.label = CreateText(tabButton, "GameFontHighlightSmall", tabWidth, "CENTER")
+            tabButton.label:SetPoint("CENTER")
+            tabButton.label:SetText(situation.label)
+            tabButton.situationKey = situation.key
+            tabButton:SetScript("OnClick", function(self)
+                MentorDB.guideTab = self.situationKey
+                guideUI.Refresh(Mentor.currentAdvice)
+            end)
+            tabButtons[tabIndex] = tabButton
         end
-        tabButton.label = CreateText(tabButton, "GameFontHighlightSmall", tabWidth, "CENTER")
-        tabButton.label:SetPoint("CENTER")
-        tabButton.label:SetText(situation.label)
-        tabButton.situationKey = situation.key
-        tabButton:SetScript("OnClick", function(self)
-            MentorDB.guideTab = self.situationKey
-            guideUI.Refresh(Mentor.currentAdvice)
-        end)
-        tabButtons[tabIndex] = tabButton
+        guidePanel.contentTop = -PADDING - 32 - contentShift - 2 * (TAB_HEIGHT + TAB_GAP) - 8
     end
-    guidePanel.contentTop = -PADDING - 32 - contentShift - 2 * (TAB_HEIGHT + TAB_GAP) - 8
 
     -- Rotation bar switch at the bottom.
     local barButton = CreateFrame("Button", nil, guidePanel, "UIPanelButtonTemplate")
@@ -346,13 +378,27 @@ function guideUI.Refresh(advice)
     end
     local classFileName, specNumber = advice.classFileName, advice.specNumber
     guidePanel.specIcon:SetTexture(advice.specData.icon)
-    -- The WoW window already says "How to play" in its title bar.
-    guidePanel.title:SetText(guidePanel.isNativeWindow and advice.specData.name or ("How to play: " .. advice.specData.name))
 
     -- Tabs: hide the ones without content (e.g. "Pet" for a mage).
     local selectedKey = MentorDB.guideTab or "rotation"
     if not Mentor.GetGuideSection(classFileName, specNumber, selectedKey) then
         selectedKey = "rotation"
+    end
+    -- The WoW window already says "How to play" in its title bar; beside the
+    -- portrait: the spec and the selected tab.
+    if guidePanel.sideTabs then
+        local isShownByIndex, selectedLabel = {}, ""
+        for tabIndex, situation in ipairs(Mentor.GUIDE_SITUATIONS) do
+            isShownByIndex[tabIndex] = Mentor.GetGuideSection(classFileName, specNumber, situation.key) ~= nil
+            if situation.key == selectedKey then
+                Mentor.NativeFrame.SelectTab(guidePanel, tabIndex)
+                selectedLabel = situation.label
+            end
+        end
+        Mentor.NativeFrame.SetSideTabsShown(guidePanel, isShownByIndex)
+        guidePanel.title:SetText(advice.specData.name .. "  |cffffffff" .. selectedLabel .. "|r")
+    else
+        guidePanel.title:SetText("How to play: " .. advice.specData.name)
     end
     for _, tabButton in ipairs(tabButtons) do
         local hasContent = Mentor.GetGuideSection(classFileName, specNumber, tabButton.situationKey) ~= nil

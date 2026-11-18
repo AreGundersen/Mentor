@@ -256,10 +256,19 @@ local function AddDivider(verticalOffset)
     divider:SetPoint("TOPRIGHT", -PADDING, verticalOffset)
 end
 
+-- Section header: WoW's gold header font in the WoW window ("Next talent"),
+-- small gold capitals in Mentor's own look.
+local function FormatSectionLabel(labelText)
+    if isNativeMainWindow then
+        return labelText
+    end
+    return GOLD_TEXT .. labelText:upper() .. "|r"
+end
+
 local function AddSectionLabel(labelText, verticalOffset)
-    local label = CreateText(mainFrame, "GameFontNormalSmall", CONTENT_WIDTH)
-    label:SetPoint("TOPLEFT", PADDING, verticalOffset)
-    label:SetText(GOLD_TEXT .. labelText:upper() .. "|r")
+    local label = CreateText(mainFrame, isNativeMainWindow and "GameFontNormal" or "GameFontNormalSmall", CONTENT_WIDTH)
+    label:SetPoint("TOPLEFT", PADDING, verticalOffset - (isNativeMainWindow and -1 or 0))
+    label:SetText(FormatSectionLabel(labelText))
     return label
 end
 
@@ -299,14 +308,25 @@ local function CreateSpecButton(specIndex, verticalOffset, buttonCount, buttonPo
     local specButton = CreateFrame("Button", nil, mainFrame, BACKDROP_TEMPLATE)
     specButton:SetSize(buttonWidth, SPEC_BUTTON_HEIGHT)
     specButton:SetPoint("TOPLEFT", PADDING + (buttonPosition - 1) * (buttonWidth + SPEC_BUTTON_GAP), verticalOffset)
-    if specButton.SetBackdrop then
-        specButton:SetBackdrop(Mentor.BOX_BACKDROP)
-    end
     specButton.specNumber = specIndex
-
-    specButton.icon = specButton:CreateTexture(nil, "ARTWORK")
-    specButton.icon:SetSize(28, 28)
-    specButton.icon:SetPoint("TOP", 0, -6)
+    if isNativeMainWindow then
+        -- WoW style: a square icon with a thin border (gold when chosen) and
+        -- the name under it, no box around the whole button.
+        specButton.iconBorder = CreateFrame("Frame", nil, specButton, BACKDROP_TEMPLATE)
+        specButton.iconBorder:SetSize(34, 34)
+        specButton.iconBorder:SetPoint("TOP", 0, -2)
+        Mentor.NativeFrame.StyleIconFrame(specButton.iconBorder)
+        specButton.icon = specButton.iconBorder:CreateTexture(nil, "ARTWORK")
+        specButton.icon:SetPoint("TOPLEFT", 4, -4)
+        specButton.icon:SetPoint("BOTTOMRIGHT", -4, 4)
+    else
+        if specButton.SetBackdrop then
+            specButton:SetBackdrop(Mentor.BOX_BACKDROP)
+        end
+        specButton.icon = specButton:CreateTexture(nil, "ARTWORK")
+        specButton.icon:SetSize(28, 28)
+        specButton.icon:SetPoint("TOP", 0, -6)
+    end
     specButton.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 
     specButton.nameText = CreateText(specButton, "GameFontHighlightSmall", buttonWidth - 4, "CENTER")
@@ -317,8 +337,14 @@ local function CreateSpecButton(specIndex, verticalOffset, buttonCount, buttonPo
     specButton.tagText:SetPoint("BOTTOM", specButton, "TOP", 0, 1)
 
     local highlight = specButton:CreateTexture(nil, "HIGHLIGHT")
-    highlight:SetAllPoints()
-    highlight:SetColorTexture(1, 1, 1, 0.06)
+    if isNativeMainWindow then
+        highlight:SetAllPoints(specButton.icon)
+        highlight:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+        highlight:SetBlendMode("ADD")
+    else
+        highlight:SetAllPoints()
+        highlight:SetColorTexture(1, 1, 1, 0.06)
+    end
 
     specButton:SetScript("OnClick", OnSpecButtonClicked)
     specButton:SetScript("OnEnter", function(self)
@@ -473,23 +499,51 @@ local function BuildMainWindow()
         MentorDB.isShown = false
         mainFrame:Hide()
     end)
-    local settingsButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
-    settingsButton:SetSize(70, 20)
-    -- Under the title bar in the WoW window, beside the close button otherwise.
+    -- In the WoW window: small square icon buttons in a row under the title
+    -- bar, like WoW Forever's own buttons (the name shows in the tooltip).
+    -- Otherwise: Mentor's red text buttons.
+    local HEADER_ICON_SIZE = 28
+    local function CreateHeaderButton(buttonText, iconTexture, width, height)
+        local headerButton
+        if isNativeMainWindow then
+            headerButton = CreateFrame("Button", nil, mainFrame, BACKDROP_TEMPLATE)
+            headerButton:SetSize(HEADER_ICON_SIZE, HEADER_ICON_SIZE)
+            Mentor.NativeFrame.StyleIconFrame(headerButton)
+            local iconImage = headerButton:CreateTexture(nil, "ARTWORK")
+            iconImage:SetPoint("TOPLEFT", 4, -4)
+            iconImage:SetPoint("BOTTOMRIGHT", -4, 4)
+            iconImage:SetTexture(iconTexture)
+            iconImage:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            local highlightImage = headerButton:CreateTexture(nil, "HIGHLIGHT")
+            highlightImage:SetAllPoints(iconImage)
+            highlightImage:SetTexture("Interface\\Buttons\\ButtonHilight-Square")
+            highlightImage:SetBlendMode("ADD")
+        else
+            headerButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
+            headerButton:SetSize(width, height)
+            headerButton:SetText(buttonText)
+        end
+        return headerButton
+    end
+    local settingsButton = CreateHeaderButton("Settings", "Interface\\Icons\\INV_Misc_Gear_01", 70, 20)
     if isNativeMainWindow then
         settingsButton:SetPoint("TOPRIGHT", -10, -28)
     else
         settingsButton:SetPoint("TOPRIGHT", -32, -PADDING + 2)
     end
-    settingsButton:SetText("Settings")
+    settingsButton:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine("Settings")
+        GameTooltip:AddLine("Turn Mentor's features on and off.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    settingsButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     settingsButton:SetScript("OnClick", function()
         Mentor.ToggleSettings()
     end)
     -- Life log window, left of Settings.
-    local lifeLogButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
-    lifeLogButton:SetSize(70, 20)
+    local lifeLogButton = CreateHeaderButton("Life log", "Interface\\Icons\\INV_Misc_Book_08", 70, 20)
     lifeLogButton:SetPoint("RIGHT", settingsButton, "LEFT", -4, 0)
-    lifeLogButton:SetText("Life log")
     lifeLogButton:SetScript("OnClick", function()
         Mentor.LifeLog.ToggleWindow()
     end)
@@ -505,12 +559,15 @@ local function BuildMainWindow()
     Mentor.tourTargets.settingsButton = settingsButton
     Mentor.tourTargets.lifeLogButton = lifeLogButton
     -- Report a bug, right under Settings so it is always in view.
-    local bugButton = CreateFrame("Button", nil, mainFrame, "UIPanelButtonTemplate")
-    bugButton:SetSize(70, 18)
-    bugButton:SetPoint("TOP", settingsButton, "BOTTOM", 0, -3)
-    bugButton:SetNormalFontObject("GameFontNormalSmall")
-    bugButton:SetHighlightFontObject("GameFontHighlightSmall")
-    bugButton:SetText("Report bug")
+    local bugButton = CreateHeaderButton("Report bug", "Interface\\Icons\\Spell_Nature_InsectSwarm", 70, 18)
+    if isNativeMainWindow then
+        -- Third in the row, left of Life log.
+        bugButton:SetPoint("RIGHT", lifeLogButton, "LEFT", -4, 0)
+    else
+        bugButton:SetPoint("TOP", settingsButton, "BOTTOM", 0, -3)
+        bugButton:SetNormalFontObject("GameFontNormalSmall")
+        bugButton:SetHighlightFontObject("GameFontHighlightSmall")
+    end
     bugButton:SetScript("OnClick", function()
         Mentor.BugReport.Open()
     end)
@@ -564,8 +621,13 @@ local function BuildMainWindow()
     card:SetPoint("TOPLEFT", PADDING, verticalOffset)
     if card.SetBackdrop then
         card:SetBackdrop(Mentor.BOX_BACKDROP)
-        card:SetBackdropColor(0, 0, 0, 0.35)
-        card:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.35)
+        card:SetBackdropColor(0, 0, 0, isNativeMainWindow and 0.5 or 0.35)
+        -- A grey edge in the WoW window, like WoW's own insets.
+        if isNativeMainWindow then
+            card:SetBackdropBorderColor(0.45, 0.45, 0.45, 0.8)
+        else
+            card:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.35)
+        end
     end
     widgets.talentIconFrame = CreateFrame("Frame", nil, card)
     widgets.talentIconFrame:SetSize(42, 42)
@@ -691,11 +753,11 @@ local function BuildMainWindow()
     lowerDivider:SetPoint("TOPLEFT", PADDING, 0)
     lowerDivider:SetPoint("TOPRIGHT", -PADDING, 0)
 
-    widgets.statLabel = CreateText(lowerFrame, "GameFontNormalSmall", CONTENT_WIDTH)
-    widgets.statLabel:SetText(GOLD_TEXT .. "BEST STATS ON GEAR|r")
+    widgets.statLabel = CreateText(lowerFrame, isNativeMainWindow and "GameFontNormal" or "GameFontNormalSmall", CONTENT_WIDTH)
+    widgets.statLabel:SetText(FormatSectionLabel("Best stats on gear"))
     widgets.statPills = {}
-    widgets.tipLabel = CreateText(lowerFrame, "GameFontNormalSmall", CONTENT_WIDTH)
-    widgets.tipLabel:SetText(GOLD_TEXT .. "TIPS|r")
+    widgets.tipLabel = CreateText(lowerFrame, isNativeMainWindow and "GameFontNormal" or "GameFontNormalSmall", CONTENT_WIDTH)
+    widgets.tipLabel:SetText(FormatSectionLabel("Tips"))
     widgets.tipRows = {}
     -- Starting size; the first refresh sizes the window to its content.
     mainFrame:SetSize(WINDOW_WIDTH, -widgets.upgradeListTop + 200)
@@ -717,11 +779,14 @@ local function GetStatPill(pillIndex)
     end
     pill = CreateFrame("Frame", nil, widgets.lowerFrame, BACKDROP_TEMPLATE)
     pill:SetHeight(PILL_HEIGHT)
-    if pill.SetBackdrop then
+    -- The WoW window shows the stats as plain text (no boxes), like WoW's
+    -- own stat lists; Mentor's own look uses small boxes.
+    if pill.SetBackdrop and not isNativeMainWindow then
         pill:SetBackdrop(Mentor.BOX_BACKDROP)
     end
     pill.rankText = CreateText(pill, "GameFontNormalSmall")
-    pill.rankText:SetPoint("LEFT", PILL_PADDING, 0)
+    -- Plain text in the WoW window starts at the left edge like the header.
+    pill.rankText:SetPoint("LEFT", isNativeMainWindow and 0 or PILL_PADDING, 0)
     pill.nameText = CreateText(pill, "GameFontHighlightSmall")
     pill.nameText:SetPoint("LEFT", pill.rankText, "RIGHT", 4, 0)
     -- "What is this stat?": hover a pill for a plain explanation.
@@ -751,9 +816,15 @@ local function GetTipRow(tipIndex)
     tipRow:SetWidth(CONTENT_WIDTH)
     tipRow.bar = tipRow:CreateTexture(nil, "ARTWORK")
     tipRow.bar:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.8)
-    tipRow.bar:SetWidth(2)
-    tipRow.bar:SetPoint("TOPLEFT", 0, -1)
-    tipRow.bar:SetPoint("BOTTOMLEFT", 0, 1)
+    if isNativeMainWindow then
+        -- A small gold bullet, like a list in WoW's own text.
+        tipRow.bar:SetSize(4, 4)
+        tipRow.bar:SetPoint("TOPLEFT", 1, -4)
+    else
+        tipRow.bar:SetWidth(2)
+        tipRow.bar:SetPoint("TOPLEFT", 0, -1)
+        tipRow.bar:SetPoint("BOTTOMLEFT", 0, 1)
+    end
     tipRow.text = CreateText(tipRow, "GameFontHighlightSmall", CONTENT_WIDTH - 10)
     tipRow.text:SetPoint("TOPLEFT", 8, 0)
     tipRow.text:SetJustifyV("TOP")
@@ -792,10 +863,12 @@ local function LayoutLowerSection(advice, visibleUpgradeRows)
     local cursorX = PADDING
     for pillIndex, statName in ipairs(statNames) do
         local pill = GetStatPill(pillIndex)
-        pill.rankText:SetText(tostring(pillIndex))
+        pill.rankText:SetText(isNativeMainWindow and (pillIndex .. ".") or tostring(pillIndex))
         pill.nameText:SetText(statName)
         pill.statText = statName
-        local pillWidth = PILL_PADDING * 2 + MeasureTextWidth(pill.rankText, 8) + 4 + MeasureTextWidth(pill.nameText, #statName * 6)
+        -- Plain text (WoW window): no inner padding, a little more room after it.
+        local pillPadding = isNativeMainWindow and 0 or PILL_PADDING * 2
+        local pillWidth = pillPadding + (isNativeMainWindow and 8 or 0) + MeasureTextWidth(pill.rankText, 8) + 4 + MeasureTextWidth(pill.nameText, #statName * 6)
         if cursorX + pillWidth > WINDOW_WIDTH - PADDING then
             cursorX = PADDING
             cursorY = cursorY - PILL_HEIGHT - PILL_GAP
@@ -804,7 +877,7 @@ local function LayoutLowerSection(advice, visibleUpgradeRows)
         pill:ClearAllPoints()
         pill:SetPoint("TOPLEFT", cursorX, cursorY)
         -- The most important stat stands out.
-        if pill.SetBackdropColor then
+        if not isNativeMainWindow and pill.SetBackdropColor then
             pill:SetBackdropColor(GOLD[1], GOLD[2], GOLD[3], pillIndex == 1 and 0.18 or 0.06)
             pill:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], pillIndex == 1 and 0.8 or 0.3)
         end
@@ -1286,9 +1359,15 @@ local function RefreshSpecButtons(advice)
         specButton.icon:SetTexture(specData.icon)
         specButton.icon:SetDesaturated(not isSelected)
         -- buttonName: a shorter name where four buttons share the row (druids).
-        specButton.nameText:SetText((isSelected and "|cffffffff" or MUTED_TEXT) .. (specData.buttonName or specData.name) .. "|r")
+        -- The chosen spec's name is gold in the WoW window (like a selected
+        -- tab), white in Mentor's own look.
+        local selectedColor = isNativeMainWindow and "|cffffd100" or "|cffffffff"
+        specButton.nameText:SetText((isSelected and selectedColor or MUTED_TEXT) .. (specData.buttonName or specData.name) .. "|r")
+        if specButton.iconBorder then
+            Mentor.NativeFrame.SetIconFrameSelected(specButton.iconBorder, isSelected)
+        end
         specButton.tagText:SetText(specIndex == advice.classData.defaultSpec and (MUTED_TEXT .. "leveling pick|r") or "")
-        if specButton.SetBackdropColor then
+        if not specButton.iconBorder and specButton.SetBackdropColor then
             specButton:SetBackdropColor(1, 1, 1, isSelected and 0.10 or 0.03)
             if isSelected then
                 specButton:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 1)

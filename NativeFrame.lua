@@ -127,6 +127,48 @@ local NORMAL_BORDER_COLOR = { 0.45, 0.45, 0.45 }
 -- The side tab buttons of each window, for SelectTab.
 local sideTabsByWindow = setmetatable({}, { __mode = "k" })
 
+-- Gives a frame the look of WoW Forever's icon buttons: black square, thin
+-- grey border, gold border when selected (see SetIconFrameSelected). Returns
+-- false when this client has no backdrop support.
+function nativeFrame.StyleIconFrame(iconFrame)
+    if not iconFrame.SetBackdrop then
+        return false
+    end
+    iconFrame:SetBackdrop(SIDE_TAB_BACKDROP)
+    iconFrame:SetBackdropColor(0, 0, 0, 1)
+    iconFrame:SetBackdropBorderColor(NORMAL_BORDER_COLOR[1], NORMAL_BORDER_COLOR[2], NORMAL_BORDER_COLOR[3], 1)
+    return true
+end
+
+function nativeFrame.SetIconFrameSelected(iconFrame, isSelected)
+    if iconFrame.SetBackdropBorderColor then
+        local borderColor = isSelected and SELECTED_BORDER_COLOR or NORMAL_BORDER_COLOR
+        iconFrame:SetBackdropBorderColor(borderColor[1], borderColor[2], borderColor[3], 1)
+    end
+end
+
+-- Positions side tab number tabIndex at the given place in the column.
+local function PlaceSideTab(window, tabButton, columnPosition)
+    tabButton:ClearAllPoints()
+    -- Overlaps the window's stone border by 2 px so it looks attached.
+    tabButton:SetPoint("TOPLEFT", window, "TOPRIGHT", -2,
+        -nativeFrame.SIDE_TAB_TOP - (columnPosition - 1) * (nativeFrame.SIDE_TAB_SIZE + nativeFrame.SIDE_TAB_GAP))
+end
+
+-- Shows only some side tabs (isShownByIndex[tabIndex] = true / false) and
+-- closes the gaps, so hidden tabs leave no hole in the column.
+function nativeFrame.SetSideTabsShown(window, isShownByIndex)
+    local columnPosition = 0
+    for tabIndex, tabButton in ipairs(sideTabsByWindow[window] or {}) do
+        local isShown = isShownByIndex[tabIndex] ~= false
+        tabButton:SetShown(isShown)
+        if isShown then
+            columnPosition = columnPosition + 1
+            PlaceSideTab(window, tabButton, columnPosition)
+        end
+    end
+end
+
 function nativeFrame.CreateSideTabs(window, tabs, onSelect)
     if not BackdropTemplateMixin then
         return nil
@@ -141,11 +183,8 @@ function nativeFrame.CreateSideTabs(window, tabs, onSelect)
             return nil
         end
         tabButton:SetSize(nativeFrame.SIDE_TAB_SIZE, nativeFrame.SIDE_TAB_SIZE)
-        -- Overlaps the window's stone border by 2 px so it looks attached.
-        tabButton:SetPoint("TOPLEFT", window, "TOPRIGHT", -2,
-            -nativeFrame.SIDE_TAB_TOP - (tabIndex - 1) * (nativeFrame.SIDE_TAB_SIZE + nativeFrame.SIDE_TAB_GAP))
-        tabButton:SetBackdrop(SIDE_TAB_BACKDROP)
-        tabButton:SetBackdropColor(0, 0, 0, 1)
+        PlaceSideTab(window, tabButton, tabIndex)
+        nativeFrame.StyleIconFrame(tabButton)
 
         local iconTexture = tabButton:CreateTexture(nil, "ARTWORK")
         iconTexture:SetPoint("TOPLEFT", 5, -5)
@@ -181,8 +220,7 @@ end
 function nativeFrame.SelectTab(window, selectedIndex)
     for tabIndex, tabButton in ipairs(sideTabsByWindow[window] or {}) do
         local isSelected = tabIndex == selectedIndex
-        local borderColor = isSelected and SELECTED_BORDER_COLOR or NORMAL_BORDER_COLOR
-        tabButton:SetBackdropBorderColor(borderColor[1], borderColor[2], borderColor[3], 1)
+        nativeFrame.SetIconFrameSelected(tabButton, isSelected)
         local brightness = isSelected and 1 or 0.75
         tabButton.iconTexture:SetVertexColor(brightness, brightness, brightness)
     end
