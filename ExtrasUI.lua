@@ -742,17 +742,65 @@ end
 -- Panel
 --------------------------------------------------------------------------------
 function extrasUI.Build(mainFrame)
-    panel = CreateFrame("Frame", "MentorExtrasPanel", mainFrame, BACKDROP_TEMPLATE)
+    -- A real WoW window ("Handbook" in the title bar, Mentor's portrait, tabs
+    -- along the bottom) when the client has Blizzard's templates; otherwise
+    -- Mentor's own dark box with two rows of button tabs.
+    local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorExtrasPanel", mainFrame, "Handbook")
+    panel = nativeWindow or CreateFrame("Frame", "MentorExtrasPanel", mainFrame, BACKDROP_TEMPLATE)
     panel:SetWidth(PANEL_WIDTH)
     Mentor.RegisterSidePanel(panel, true)      -- right or left of the Mentor window, where there is room
-    if panel.SetBackdrop then
+    if not nativeWindow and panel.SetBackdrop then
         panel:SetBackdrop(PANEL_BACKDROP)
         panel:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
     end
 
-    panel.title = CreateText(panel, "GameFontNormal", PANEL_WIDTH - PADDING * 2)
-    panel.title:SetPoint("TOPLEFT", PADDING, -PADDING - 4)
+    -- The tab's own title: beside the portrait in the native window, at the
+    -- top of Mentor's box otherwise.
+    local contentTop
+    if nativeWindow then
+        panel.title = CreateText(panel, "GameFontNormal", PANEL_WIDTH - Mentor.NativeFrame.SUBTITLE_LEFT - 30)
+        panel.title:SetPoint("TOPLEFT", Mentor.NativeFrame.SUBTITLE_LEFT, -Mentor.NativeFrame.SUBTITLE_TOP - 4)
+        contentTop = Mentor.NativeFrame.CONTENT_TOP - 6
+    else
+        panel.title = CreateText(panel, "GameFontNormal", PANEL_WIDTH - PADDING * 2)
+        panel.title:SetPoint("TOPLEFT", PADDING, -PADDING - 4)
+        contentTop = PADDING + 26
+    end
 
+    -- Blizzard's tabs under the window; if that fails, button tabs inside.
+    local tabLabels = {}
+    for tabIndex, tab in ipairs(TABS) do
+        tabLabels[tabIndex] = tab.label
+    end
+    panel.nativeTabs = nativeWindow and Mentor.NativeFrame.CreateBottomTabs(panel, tabLabels, function(tabIndex)
+        MentorDB.extrasTab = TABS[tabIndex].key
+        extrasUI.Refresh(Mentor.currentAdvice)
+    end)
+    local tabsBlockHeight = panel.nativeTabs and 0 or (TABS_BLOCK_HEIGHT + 4)
+    if not panel.nativeTabs then
+        extrasUI.CreateButtonTabs(contentTop)
+    end
+
+    panel.hint = CreateText(panel, "GameFontHighlightSmall", PANEL_WIDTH - PADDING * 2)
+    panel.hint:SetPoint("TOPLEFT", PADDING, -contentTop - tabsBlockHeight - 4)
+
+    local scrollFrame = CreateFrame("ScrollFrame", "MentorExtrasScroll", panel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", PADDING, -contentTop - tabsBlockHeight - 36)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -PADDING - 20, PADDING)
+    local scrollChild = CreateFrame("Frame", nil, scrollFrame)
+    scrollChild:SetSize(PANEL_WIDTH - PADDING * 2 - 22, 10)
+    scrollFrame:SetScrollChild(scrollChild)
+    panel.scrollFrame = scrollFrame
+    panel.scrollChild = scrollChild
+
+    panel.emptyText = CreateText(scrollChild, "GameFontHighlightSmall", PANEL_WIDTH - PADDING * 2 - 22)
+    panel.emptyText:SetPoint("TOPLEFT", 4, -4)
+    panel:Hide()
+end
+
+-- Mentor's own tabs: two rows of red buttons (four and three) inside the
+-- panel, starting at topOffset. Used when Blizzard's tab template is missing.
+function extrasUI.CreateButtonTabs(topOffset)
     local measuringText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     -- Two rows of tabs (four and three), so every label has room around it.
     -- In each row a label gets its full width first and the space left over
@@ -788,7 +836,7 @@ function extrasUI.Build(mainFrame)
         -- selected tab stays lit (see Refresh).
         local tabButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
         tabButton:SetSize(tabWidth, TAB_HEIGHT)
-        tabButton:SetPoint("TOPLEFT", tabLeft, -PADDING - 26 - (tabRow - 1) * (TAB_HEIGHT + TAB_GAP))
+        tabButton:SetPoint("TOPLEFT", tabLeft, -topOffset - (tabRow - 1) * (TAB_HEIGHT + TAB_GAP))
         tabLeftByRow[tabRow] = tabLeft + tabWidth + TAB_GAP
         tabButton:SetNormalFontObject("GameFontNormalSmall")
         tabButton:SetHighlightFontObject("GameFontHighlightSmall")
@@ -802,22 +850,6 @@ function extrasUI.Build(mainFrame)
         end)
         tabButtons[tabIndex] = tabButton
     end
-
-    panel.hint = CreateText(panel, "GameFontHighlightSmall", PANEL_WIDTH - PADDING * 2)
-    panel.hint:SetPoint("TOPLEFT", PADDING, -PADDING - 26 - TABS_BLOCK_HEIGHT - 8)
-
-    local scrollFrame = CreateFrame("ScrollFrame", "MentorExtrasScroll", panel, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 26 - TABS_BLOCK_HEIGHT - 40)
-    scrollFrame:SetPoint("BOTTOMRIGHT", -PADDING - 20, PADDING)
-    local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetSize(PANEL_WIDTH - PADDING * 2 - 22, 10)
-    scrollFrame:SetScrollChild(scrollChild)
-    panel.scrollFrame = scrollFrame
-    panel.scrollChild = scrollChild
-
-    panel.emptyText = CreateText(scrollChild, "GameFontHighlightSmall", PANEL_WIDTH - PADDING * 2 - 22)
-    panel.emptyText:SetPoint("TOPLEFT", 4, -4)
-    panel:Hide()
 end
 
 function extrasUI.IsShown()
@@ -895,6 +927,11 @@ function extrasUI.Refresh(advice)
         return
     end
     local selectedKey = extrasUI.GetSelectedTab()
+    for tabIndex, tab in ipairs(TABS) do
+        if panel.nativeTabs and tab.key == selectedKey then
+            Mentor.NativeFrame.SelectTab(panel, tabIndex)
+        end
+    end
     for _, tabButton in ipairs(tabButtons) do
         local isSelected = tabButton.tabKey == selectedKey
         if isSelected then

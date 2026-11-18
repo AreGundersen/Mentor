@@ -10,6 +10,7 @@
 ## SavedVariablesPerCharacter: MentorDB, MentorLifeLogCharDB
 
 Diagnostics.lua
+NativeFrame.lua
 Data.lua
 SpellIcons.lua
 Talents.lua
