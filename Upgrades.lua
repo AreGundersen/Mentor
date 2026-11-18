@@ -23,6 +23,8 @@ local ROW_HEIGHT = 20
 local DUNGEON_HEADER_HEIGHT = 32  -- dungeon name, with level and place on a line under it
 local MAX_DUNGEONS_SHOWN = 4
 local MAX_ITEMS_PER_DUNGEON = 3
+local MAX_ITEMS_ONE_DUNGEON = 10   -- when the window shows one dungeon (clicked in Journey)
+local focusedDungeonName           -- set by upgrades.ShowDungeon
 local LEVELS_ABOVE_SHOWN = 3            -- items you can wear within this many levels count
 local LEVELS_BELOW_RANGE = 2            -- dungeons start counting a little before their range
 local LOGO_TEXTURE = "Interface\\AddOns\\Mentor\\Media\\Logo"
@@ -440,6 +442,18 @@ local function CreateWindow()
     window.title:SetText("Where to get upgrades")
     local closeButton = CreateFrame("Button", nil, window, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", -2, -2)
+    -- "Show all": back from one dungeon to every dungeon and vendor.
+    window.showAllButton = CreateFrame("Button", nil, window, "UIPanelButtonTemplate")
+    window.showAllButton:SetSize(70, 18)
+    window.showAllButton:SetPoint("RIGHT", closeButton, "LEFT", -2, 0)
+    window.showAllButton:SetNormalFontObject("GameFontNormalSmall")
+    window.showAllButton:SetHighlightFontObject("GameFontHighlightSmall")
+    window.showAllButton:SetText("Show all")
+    window.showAllButton:SetScript("OnClick", function()
+        focusedDungeonName = nil
+        upgrades.Refresh()
+    end)
+    window.showAllButton:Hide()
     window.subtitle = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     window.subtitle:SetPoint("TOPLEFT", PADDING, -PADDING - 24)
     window.subtitle:SetWidth(WINDOW_WIDTH - 2 * PADDING)
@@ -510,18 +524,35 @@ function upgrades.Refresh()
     end
     local advice = Mentor.currentAdvice
     local specName = advice and advice.specData and advice.specData.name or "your spec"
-    window.subtitle:SetText(string.format("Dungeons and vendors for level %d with gear better than yours for |cffffffff%s|r, best first.",
-        UnitLevel("player") or 1, specName))
-    local dungeonResults, isStillLoading = upgrades.FindDungeonUpgrades()
-    local shownResults = {}
-    for dungeonIndex = 1, math.min(MAX_DUNGEONS_SHOWN, #dungeonResults) do
-        table.insert(shownResults, dungeonResults[dungeonIndex])
-    end
-    -- Gear from vendors comes last, as its own section.
-    local vendorUpgrades, isVendorStillLoading = upgrades.FindVendorUpgrades()
-    isStillLoading = isStillLoading or isVendorStillLoading
-    if #vendorUpgrades > 0 then
-        table.insert(shownResults, { name = "From vendors", isVendorSection = true, upgrades = vendorUpgrades })
+    local shownResults, isStillLoading = {}, false
+    window.showAllButton:SetShown(focusedDungeonName ~= nil)
+    if focusedDungeonName then
+        -- One dungeon, all its upgrades (clicked in the Journey tab).
+        window.subtitle:SetText(string.format("Everything in %s that is better than yours for |cffffffff%s|r, best first.",
+            focusedDungeonName, specName))
+        for _, dungeon in ipairs(Mentor.Journey and Mentor.Journey.DUNGEONS or {}) do
+            if dungeon[1] == focusedDungeonName then
+                table.insert(shownResults, { name = dungeon[1], minLevel = dungeon[2], maxLevel = dungeon[3], place = dungeon[5],
+                    upgrades = upgrades.GetUpgradesInDungeon(dungeon[1]) })
+            end
+        end
+        if shownResults[1] and #shownResults[1].upgrades == 0 then
+            shownResults = {}
+        end
+    else
+        window.subtitle:SetText(string.format("Dungeons and vendors for level %d with gear better than yours for |cffffffff%s|r, best first.",
+            UnitLevel("player") or 1, specName))
+        local dungeonResults
+        dungeonResults, isStillLoading = upgrades.FindDungeonUpgrades()
+        for dungeonIndex = 1, math.min(MAX_DUNGEONS_SHOWN, #dungeonResults) do
+            table.insert(shownResults, dungeonResults[dungeonIndex])
+        end
+        -- Gear from vendors comes last, as its own section.
+        local vendorUpgrades, isVendorStillLoading = upgrades.FindVendorUpgrades()
+        isStillLoading = isStillLoading or isVendorStillLoading
+        if #vendorUpgrades > 0 then
+            table.insert(shownResults, { name = "From vendors", isVendorSection = true, upgrades = vendorUpgrades })
+        end
     end
 
     for _, header in ipairs(dungeonHeaders) do
@@ -545,7 +576,8 @@ function upgrades.Refresh()
         header:SetPoint("TOPLEFT", PADDING, verticalOffset)
         header:Show()
         verticalOffset = verticalOffset - DUNGEON_HEADER_HEIGHT - 2
-        local itemLimit = dungeonResult.isVendorSection and MAX_VENDOR_ITEMS_SHOWN or MAX_ITEMS_PER_DUNGEON
+        local itemLimit = dungeonResult.isVendorSection and MAX_VENDOR_ITEMS_SHOWN
+            or (focusedDungeonName and MAX_ITEMS_ONE_DUNGEON or MAX_ITEMS_PER_DUNGEON)
         for itemIndex = 1, math.min(itemLimit, #dungeonResult.upgrades) do
             local upgrade = dungeonResult.upgrades[itemIndex]
             usedRows = usedRows + 1
@@ -598,10 +630,11 @@ function upgrades.Toggle()
     if not window then
         CreateWindow()
     end
-    if window:IsShown() then
+    if window:IsShown() and not focusedDungeonName then
         window:Hide()
         return
     end
+    focusedDungeonName = nil
     -- Opened by command while the Mentor window is closed: open it too, since
     -- this panel sits beside it.
     local mentorWindow = _G.MentorFrame
@@ -620,6 +653,23 @@ function upgrades.Toggle()
     if mentorWindow and mentorWindow.GetFrameLevel then
         window:SetFrameLevel((mentorWindow:GetFrameLevel() or 1) + 20)
     end
+    window:Show()
+    upgrades.Refresh()
+    if Mentor.PlaceSidePanels then
+        Mentor.PlaceSidePanels()
+    end
+end
+
+-- One dungeon with all its upgrades (a dungeon clicked in the Journey tab).
+-- The Handbook stays open underneath; this window opens on top of it.
+function upgrades.ShowDungeon(dungeonName)
+    if not window then
+        CreateWindow()
+    end
+    focusedDungeonName = dungeonName
+    local mentorWindow = _G.MentorFrame
+    local handbookPanel = _G.MentorExtrasPanel
+    window:SetFrameLevel(((handbookPanel and handbookPanel:GetFrameLevel()) or (mentorWindow and mentorWindow:GetFrameLevel()) or 1) + 20)
     window:Show()
     upgrades.Refresh()
     if Mentor.PlaceSidePanels then

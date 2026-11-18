@@ -22,7 +22,11 @@ local _, Mentor = ...
 local PANEL_WIDTH          = 360   -- room for seven tabs
 local PADDING              = 12
 local TAB_HEIGHT           = 22
-local TAB_GAP              = 2   -- tight: seven tabs with room around each label
+local TAB_GAP              = 4
+local SECTION_HEIGHT       = 20   -- "Dungeons" headings in the Journey tab
+local SECTION_TOP_GAP      = 6
+local TABS_IN_FIRST_ROW    = 4   -- Spells Racials Macros Journey / Weapons Factions Words
+local TABS_BLOCK_HEIGHT    = TAB_HEIGHT * 2 + TAB_GAP
 local ROW_HEIGHT           = 50
 local ROW_GAP              = 4
 local ICON_SIZE            = 30
@@ -62,6 +66,7 @@ Mentor.ExtrasUI = extrasUI
 local panel
 local tabButtons = {}
 local rows = {}
+local sectionLabels = {}   -- section headings in the Journey tab
 
 --------------------------------------------------------------------------------
 -- Small helpers
@@ -619,6 +624,12 @@ local function CreateRow(rowIndex)
     end)
 
     row:SetScript("OnEnter", ShowRowTooltip)
+    -- Rows that do something when clicked (a dungeon opens its upgrades).
+    row:SetScript("OnMouseUp", function(self)
+        if self.entry and self.entry.onClick then
+            self.entry.onClick()
+        end
+    end)
     row:SetScript("OnLeave", function() GameTooltip:Hide() end)
     rows[rowIndex] = row
     return row
@@ -742,29 +753,43 @@ function extrasUI.Build(mainFrame)
     panel.title = CreateText(panel, "GameFontNormal", PANEL_WIDTH - PADDING * 2)
     panel.title:SetPoint("TOPLEFT", PADDING, -PADDING - 4)
 
-    -- Tab widths follow their labels ("Weapons" is wider than "Words"): each
-    -- tab gets its label's width plus room, and the row is scaled to fit.
-    local rowWidth = PANEL_WIDTH - PADDING * 2 - TAB_GAP * (#TABS - 1)
     local measuringText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    -- Each label gets its full width first; the space left over is shared
-    -- equally, so a long label is never squeezed below its text.
-    local labelWidths, totalLabelWidth = {}, 0
+    -- Two rows of tabs (four and three), so every label has room around it.
+    -- In each row a label gets its full width first and the space left over
+    -- is shared equally.
+    local labelWidths = {}
     for tabIndex, tab in ipairs(TABS) do
         measuringText:SetText(tab.label)
         labelWidths[tabIndex] = measuringText:GetStringWidth() or 40
-        totalLabelWidth = totalLabelWidth + labelWidths[tabIndex]
     end
     measuringText:Hide()
-    local sharedRoom = math.max(0, (rowWidth - totalLabelWidth) / #TABS)
-    local tabLeft = PADDING
+    local tabRowOf, sharedRoomByRow, tabLeftByRow = {}, {}, {}
+    for tabIndex = 1, #TABS do
+        local tabRow = tabIndex <= TABS_IN_FIRST_ROW and 1 or 2
+        tabRowOf[tabIndex] = tabRow
+    end
+    for tabRow = 1, 2 do
+        local labelTotal, tabCount = 0, 0
+        for tabIndex = 1, #TABS do
+            if tabRowOf[tabIndex] == tabRow then
+                labelTotal = labelTotal + labelWidths[tabIndex]
+                tabCount = tabCount + 1
+            end
+        end
+        local rowWidthForTabs = (PANEL_WIDTH - PADDING * 2) - TAB_GAP * math.max(0, tabCount - 1)
+        sharedRoomByRow[tabRow] = math.max(0, (rowWidthForTabs - labelTotal) / math.max(1, tabCount))
+        tabLeftByRow[tabRow] = PADDING
+    end
     for tabIndex, tab in ipairs(TABS) do
-        local tabWidth = math.floor(labelWidths[tabIndex] + sharedRoom)
+        local tabRow = tabRowOf[tabIndex]
+        local tabWidth = math.floor(labelWidths[tabIndex] + sharedRoomByRow[tabRow])
+        local tabLeft = tabLeftByRow[tabRow]
         -- The same red button as the rest of Mentor, with small text; the
         -- selected tab stays lit (see Refresh).
         local tabButton = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
         tabButton:SetSize(tabWidth, TAB_HEIGHT)
-        tabButton:SetPoint("TOPLEFT", tabLeft, -PADDING - 26)
-        tabLeft = tabLeft + tabWidth + TAB_GAP
+        tabButton:SetPoint("TOPLEFT", tabLeft, -PADDING - 26 - (tabRow - 1) * (TAB_HEIGHT + TAB_GAP))
+        tabLeftByRow[tabRow] = tabLeft + tabWidth + TAB_GAP
         tabButton:SetNormalFontObject("GameFontNormalSmall")
         tabButton:SetHighlightFontObject("GameFontHighlightSmall")
         tabButton:SetText(tab.label)
@@ -779,10 +804,10 @@ function extrasUI.Build(mainFrame)
     end
 
     panel.hint = CreateText(panel, "GameFontHighlightSmall", PANEL_WIDTH - PADDING * 2)
-    panel.hint:SetPoint("TOPLEFT", PADDING, -PADDING - 26 - TAB_HEIGHT - 8)
+    panel.hint:SetPoint("TOPLEFT", PADDING, -PADDING - 26 - TABS_BLOCK_HEIGHT - 8)
 
     local scrollFrame = CreateFrame("ScrollFrame", "MentorExtrasScroll", panel, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 26 - TAB_HEIGHT - 40)
+    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 26 - TABS_BLOCK_HEIGHT - 40)
     scrollFrame:SetPoint("BOTTOMRIGHT", -PADDING - 20, PADDING)
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetSize(PANEL_WIDTH - PADDING * 2 - 22, 10)
@@ -920,17 +945,38 @@ function extrasUI.Refresh(advice)
         emptyMessage = "Nothing new coming up - you have it all!"
     end
 
-    for rowIndex, entry in ipairs(entries) do
-        local row = rows[rowIndex] or CreateRow(rowIndex)
-        row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", 0, -(rowIndex - 1) * (ROW_HEIGHT + ROW_GAP))
-        FillRow(row, entry)
-        row:Show()
+    -- Rows and section headings ("Dungeons", ...) one under the other.
+    local verticalOffset, rowCount, sectionCount = 0, 0, 0
+    for _, entry in ipairs(entries) do
+        if entry.kind == "section" then
+            sectionCount = sectionCount + 1
+            local sectionLabel = sectionLabels[sectionCount]
+            if not sectionLabel then
+                sectionLabel = CreateText(panel.scrollChild, "GameFontNormal", PANEL_WIDTH - PADDING * 2 - 26)
+                sectionLabels[sectionCount] = sectionLabel
+            end
+            sectionLabel:ClearAllPoints()
+            sectionLabel:SetPoint("TOPLEFT", 4, -verticalOffset - (verticalOffset > 0 and SECTION_TOP_GAP or 0))
+            sectionLabel:SetText(entry.name)
+            sectionLabel:Show()
+            verticalOffset = verticalOffset + SECTION_HEIGHT + (verticalOffset > 0 and SECTION_TOP_GAP or 0)
+        else
+            rowCount = rowCount + 1
+            local row = rows[rowCount] or CreateRow(rowCount)
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", 0, -verticalOffset)
+            FillRow(row, entry)
+            row:Show()
+            verticalOffset = verticalOffset + ROW_HEIGHT + ROW_GAP
+        end
     end
-    for unusedIndex = #entries + 1, #rows do
+    for unusedIndex = rowCount + 1, #rows do
         rows[unusedIndex]:Hide()
         rows[unusedIndex].entry = nil
     end
-    panel.emptyText:SetText(#entries == 0 and (MUTED_TEXT .. emptyMessage .. "|r") or "")
-    panel.scrollChild:SetHeight(math.max(10, #entries * (ROW_HEIGHT + ROW_GAP)))
+    for unusedIndex = sectionCount + 1, #sectionLabels do
+        sectionLabels[unusedIndex]:Hide()
+    end
+    panel.emptyText:SetText(rowCount == 0 and (MUTED_TEXT .. emptyMessage .. "|r") or "")
+    panel.scrollChild:SetHeight(math.max(10, verticalOffset))
 end

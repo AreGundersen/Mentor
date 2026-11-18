@@ -110,9 +110,49 @@ end
 --------------------------------------------------------------------------------
 local panel
 local rows = {}
+-- Every upgrade seen in searches since the auction house opened (cheapest
+-- price kept), so searching for one of them doesn't empty the list.
+local upgradesSeenThisVisit = {}
 
 local function GetAuctionWindow()
     return _G.AuctionHouseFrame or _G.AuctionFrame
+end
+
+-- Searches the auction house for an item, so you can buy it: the modern
+-- search bar (C_AuctionHouse) or the classic Browse tab, whichever exists.
+function auctionUpgrades.SearchFor(itemLink)
+    local getItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+    local itemName = getItemInfo and getItemInfo(itemLink)
+    if not itemName then
+        itemName = itemLink:match("%[(.-)%]")
+    end
+    if not itemName then
+        return false
+    end
+    local searchBar = _G.AuctionHouseFrame and _G.AuctionHouseFrame.SearchBar
+    if searchBar and searchBar.SearchBox then
+        if _G.AuctionHouseFrame.SetDisplayMode and _G.AuctionHouseFrameDisplayMode then
+            pcall(_G.AuctionHouseFrame.SetDisplayMode, _G.AuctionHouseFrame, _G.AuctionHouseFrameDisplayMode.Buy)
+        end
+        searchBar.SearchBox:SetText(itemName)
+        if searchBar.StartSearch then
+            searchBar:StartSearch()
+            return true
+        end
+    end
+    if _G.BrowseName and _G.AuctionFrameBrowse_Search then
+        if _G.AuctionFrameTab1 and _G.AuctionFrameTab_OnClick then
+            pcall(_G.AuctionFrameTab_OnClick, _G.AuctionFrameTab1)
+        end
+        _G.BrowseName:SetText(itemName)
+        _G.AuctionFrameBrowse_Search()
+        return true
+    end
+    if QueryAuctionItems then
+        QueryAuctionItems(itemName)
+        return true
+    end
+    return false
 end
 
 local function CreateRow(rowIndex)
@@ -136,9 +176,16 @@ local function CreateRow(rowIndex)
         if self.itemLink then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetHyperlink(self.itemLink)
+            GameTooltip:AddLine("|cff66ccffMentor:|r click to find it on the auction house.", 1, 1, 1)
             GameTooltip:Show()
         end
     end)
+    row:SetScript("OnClick", function(self)
+        if self.itemLink and not auctionUpgrades.SearchFor(self.itemLink) then
+            Mentor.Print("Could not search the auction house here - search for the name yourself.")
+        end
+    end)
+    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     row:SetScript("OnLeave", function() GameTooltip:Hide() end)
     rows[rowIndex] = row
     return row
@@ -178,13 +225,24 @@ function auctionUpgrades.Refresh()
     if #results == 0 then
         results = ReadClassicResults()
     end
-    local upgrades = auctionUpgrades.FindUpgrades(results)
-    if #results == 0 then
+    for _, upgrade in ipairs(auctionUpgrades.FindUpgrades(results)) do
+        local seenUpgrade = upgradesSeenThisVisit[upgrade.itemLink]
+        if not seenUpgrade or (upgrade.buyoutPrice or 0) < (seenUpgrade.buyoutPrice or 0) then
+            upgradesSeenThisVisit[upgrade.itemLink] = upgrade
+        end
+    end
+    local seenList = {}
+    for itemLink, seenUpgrade in pairs(upgradesSeenThisVisit) do
+        table.insert(seenList, { itemLink = itemLink, buyoutPrice = seenUpgrade.buyoutPrice })
+    end
+    -- Rated again against what you wear now (you may have bought one).
+    local upgrades = auctionUpgrades.FindUpgrades(seenList)
+    if #results == 0 and #upgrades == 0 then
         panel.hint:SetText("Search for gear (your armor type, or a slot) and Mentor marks the upgrades.")
     elseif #upgrades == 0 then
         panel.hint:SetText(string.format("None of these %d results is an upgrade for you.", #results))
     else
-        panel.hint:SetText("Best first. Hover for the item; buy it in the list.")
+        panel.hint:SetText("From your searches this visit, best first. Click one to find it.")
     end
     for rowIndex = 1, MAX_ROWS do
         local upgrade = upgrades[rowIndex]
@@ -231,6 +289,7 @@ for _, eventName in ipairs({ "AUCTION_HOUSE_SHOW", "AUCTION_HOUSE_CLOSED", "AUCT
 end
 eventFrame:SetScript("OnEvent", function(_, eventName)
     if eventName == "AUCTION_HOUSE_CLOSED" then
+        upgradesSeenThisVisit = {}
         if panel then
             panel:Hide()
         end

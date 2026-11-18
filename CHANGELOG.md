@@ -5,8 +5,9 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
-- **Handbook:** the "Spells & racials" and "Macros" buttons are one "Handbook" button that opens the panel on the tab you used last. Its tabs are Mentor's own red buttons now.
-- Journey rows are shorter: dungeons show where they are and how many upgrades they have (which ones: "Where to get upgrades"); long texts are in the tooltip, and the level column has room from the border.
+- **Handbook:** the "Spells & racials" and "Macros" buttons are one "Handbook" button that opens the panel on the tab you used last. Its tabs are Mentor's own red buttons, in two rows so every label has room.
+- Journey has headings (your professions, zones, dungeons, professions for you) instead of a tag on every row. Dungeons show where they are and how many upgrades they have; **click a dungeon** to see all its upgrades in "Where to get upgrades" ("Show all" goes back). Long texts are in the tooltip, and the level column has room from the border.
+- **Auction house panel:** click an upgrade to search for it on the auction house; the panel keeps the upgrades from all your searches while the auction house is open.
 - Factions: each row says what the next standing gives; hover for what every standing gives (perks and quartermaster gear); progress bars are all the same thickness.
 - Test builds (+dev) have a test checklist for the developer (`/mentor check`); players never see it.
 - **Dungeon upgrades on the way:** when you enter a dungeon, the tip names the best gear for you in it and who drops it ("Look out for: [Cruel Barb] from Edwin VanCleef (+40%)").

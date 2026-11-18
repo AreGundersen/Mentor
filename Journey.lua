@@ -262,20 +262,32 @@ function journey.GetEntries(advice)
             table.insert(entries, makeEntry(candidates[candidateIndex].listEntry))
         end
     end
+    -- Section headings instead of a "Zone" / "Dungeon" tag on every row.
+    local professionRowCount = #entries
+    if professionRowCount > 0 then
+        table.insert(entries, 1, { kind = "section", name = "Your professions" })
+    end
+    table.insert(entries, { kind = "section", name = "Zones for your level" })
     AddBestFitting(ZONES, MAX_ZONES_SHOWN, function(zone)
         -- Long texts: the first sentence in the row, all of it in the tooltip.
         local shortText = #zone[5] > 70 and (zone[5]:match("^(.-%.)%s") or zone[5]) or zone[5]
         return { kind = "journey", name = zone[1], icon = ZONE_ICON, levelText = FormatLevelRange(zone[2], zone[3]),
-            tag = "|cff66ccffZone|r", description = shortText, tooltipLines = shortText ~= zone[5] and { zone[5] } or nil }
+            tag = "", description = shortText, tooltipLines = shortText ~= zone[5] and { zone[5] } or nil }
     end)
+    table.insert(entries, { kind = "section", name = "Dungeons" })
     AddBestFitting(DUNGEONS, MAX_DUNGEONS_SHOWN, function(dungeon)
-        -- Just where it is and how many upgrades it has for you (which ones:
-        -- "Where to get upgrades"). The tip is in the tooltip.
+        -- Where it is, and how many upgrades it has for you on the right.
+        -- Clicking it opens "Where to get upgrades" for this dungeon.
         local dungeonUpgrades = Mentor.Upgrades and Mentor.Upgrades.GetUpgradesInDungeon(dungeon[1]) or {}
-        local upgradeText = #dungeonUpgrades > 0 and string.format("  |cff40ff40%d upgrade%s|r", #dungeonUpgrades,
-            #dungeonUpgrades == 1 and "" or "s") or ""
+        local upgradeTag = #dungeonUpgrades > 0 and string.format("|cff40ff40%d upgrade%s|r", #dungeonUpgrades,
+            #dungeonUpgrades == 1 and "" or "s") or "|cff808080no upgrades|r"
+        local tooltipLines = { dungeon[6] }
+        if #dungeonUpgrades > 0 then
+            table.insert(tooltipLines, "|cff40ff40Click to see the upgrades.|r")
+        end
         return { kind = "journey", name = dungeon[1], icon = DUNGEON_ICON, levelText = FormatLevelRange(dungeon[2], dungeon[3]),
-            tag = "|cffff6666Dungeon|r", description = dungeon[5] .. upgradeText, tooltipLines = { dungeon[6] } }
+            tag = upgradeTag, description = dungeon[5], tooltipLines = tooltipLines,
+            onClick = #dungeonUpgrades > 0 and function() Mentor.Upgrades.ShowDungeon(dungeon[1]) end or nil }
     end)
 
     -- Profession advice: what you have, otherwise two suggestions for your class.
@@ -286,15 +298,16 @@ function journey.GetEntries(advice)
             mainProfessionCount = mainProfessionCount + 1
         end
     end
+    table.insert(entries, { kind = "section", name = "Professions for you" })
     if mainProfessionCount < 2 then
         for _, professionAdvice in ipairs(PROFESSION_ADVICE[advice.classFileName] or {}) do
             local firstProfession = professionAdvice[1]:match("^(.-) %+")
             table.insert(entries, { kind = "journey", name = professionAdvice[1], icon = PROFESSION_ICONS[firstProfession],
-                levelText = "", tag = "|cffffd100Profession|r", description = professionAdvice[2] })
+                levelText = "", tag = "", description = professionAdvice[2] })
         end
     end
     table.insert(entries, { kind = "journey", name = ALWAYS_USEFUL_ADVICE[1], icon = PROFESSION_ICONS["First Aid"],
-        levelText = "", tag = "|cffffd100Profession|r", description = ALWAYS_USEFUL_ADVICE[2] })
+        levelText = "", tag = "", description = ALWAYS_USEFUL_ADVICE[2] })
     return entries
 end
 
