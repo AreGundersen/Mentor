@@ -21,19 +21,9 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
-    -- Tested OK already this cycle (removed): all windows as WoW windows
-    -- (main, Handbook, Settings, talent build, How to play, Life log, gold
-    -- graph, bug report, vendor list, profession panel, this list), Factions
-    -- quartermaster gear, Upgrades window, side tabs, thin scroll bar, Handbook and checklist buttons,
-    -- tabs, Journey layout and dungeon click, auction panel and click, Factions
-    -- bars and standings, profession materials and tools, missing gathering
-    -- tool, settings rows, bug report.
-    { "dungeonTip", "Dungeon tip names your upgrades",
-        "Enter a dungeon for your level: after the tip, a \"Look out for:\" line names the best items for you and who drops them." },
-    { "weaponSkill", "Weapon skill reminder",
-        "Equip a weapon type you rarely use (skill 25+ below max): a reminder says so. Settings > Reminders > Weapon skill turns it off." },
-    { "sharedTrainerPrices", "Trainer prices on an alt",
-        "Log in on another character of a class whose trainer you visited with someone else: the Spells tab shows ranks and prices \"seen by\" that character." },
+    -- New cycle after 1.18.0: nothing to test yet.
+    -- Released 1.18.0 without an in-game check: the "Look out for" dungeon
+    -- tip, the weapon skill reminder, and trainer prices on an alt.
 }
 
 local STATE_ORDER = { [""] = "ok", ok = "problem", problem = "" }
