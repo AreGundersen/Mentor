@@ -24,7 +24,7 @@ local CHECKLIST_ITEMS = {
     { "nativeUpgradesWindow", "Upgrades window looks like WoW",
         "Click \"Find more\": \"Where to get upgrades\" has Blizzard's window frame (stone border, title bar, round Mentor logo top left, dark inset with the list). Does it look right? Show all, closing (X and Escape) and the item tooltips still work. Screenshot it for Are's verdict." },
     { "nativeHandbook", "Handbook looks like WoW",
-        "Open the Handbook: Blizzard's window frame with \"Handbook\" in the title bar, the Mentor portrait, the tab's title beside it, and WoW's own tabs along the bottom edge (Spells ... Words). Clicking a tab switches it and it looks selected." },
+        "Open the Handbook: Blizzard's window frame with \"Handbook\" in the title bar, the Mentor portrait, the tab's title beside it, and square icon tabs down the right edge like the character window (hover shows the name). Clicking one switches tab and gives it a gold border. With Mentor near the right screen edge the Handbook opens on the left and its tabs don't cover the Mentor window." },
     -- Tested OK already this cycle (removed): Handbook and checklist buttons,
     -- tabs, Journey layout and dungeon click, auction panel and click, Factions
     -- bars and standings, profession materials and tools, missing gathering

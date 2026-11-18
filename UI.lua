@@ -390,7 +390,10 @@ function Mentor.PlaceSidePanels()
     local windowRight = mainFrame:GetRight()
     for _, sidePanel in ipairs(sidePanels) do
         local panel = sidePanel.frame
-        local panelWidth = panel:GetWidth() or 0
+        -- Side tabs sticking out of the panel's right edge need room too, and
+        -- on the left side they must not cover the Mentor window.
+        local sideTabsWidth = type(panel.sideTabsWidth) == "number" and panel.sideTabsWidth or 0
+        local panelWidth = (panel:GetWidth() or 0) + sideTabsWidth
         local isRoomOnRight = not windowRight or screenWidth <= 0 or windowRight + SIDE_PANEL_GAP + panelWidth <= screenWidth
         panel:ClearAllPoints()
         if isRoomOnRight then
@@ -399,9 +402,9 @@ function Mentor.PlaceSidePanels()
                 panel:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMRIGHT", SIDE_PANEL_GAP, 0)
             end
         else
-            panel:SetPoint("TOPRIGHT", mainFrame, "TOPLEFT", -SIDE_PANEL_GAP, 0)
+            panel:SetPoint("TOPRIGHT", mainFrame, "TOPLEFT", -SIDE_PANEL_GAP - sideTabsWidth, 0)
             if sidePanel.stretch then
-                panel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMLEFT", -SIDE_PANEL_GAP, 0)
+                panel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMLEFT", -SIDE_PANEL_GAP - sideTabsWidth, 0)
             end
         end
     end

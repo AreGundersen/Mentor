@@ -51,13 +51,14 @@ local PANEL_BACKDROP = {
 local TAB_TEXT_ROOM = 12          -- space around a tab's label
 
 local TABS = {
-    { key = "spells",  label = "Spells" },
-    { key = "racials", label = "Racials" },
-    { key = "macros",  label = "Macros" },
-    { key = "journey", label = "Journey" },
-    { key = "weapons", label = "Weapons" },
-    { key = "reputation", label = "Factions" },
-    { key = "words",   label = "Words" },
+    -- icon: shown on the side tab of the WoW-style window.
+    { key = "spells",  label = "Spells",   icon = "Interface\\Icons\\INV_Misc_Book_09" },
+    { key = "racials", label = "Racials",  icon = "Interface\\Icons\\INV_Misc_GroupNeedMore" },
+    { key = "macros",  label = "Macros",   icon = "Interface\\Icons\\INV_Misc_Note_01" },
+    { key = "journey", label = "Journey",  icon = "Interface\\Icons\\INV_Misc_Map_01" },
+    { key = "weapons", label = "Weapons",  icon = "Interface\\Icons\\INV_Sword_04" },
+    { key = "reputation", label = "Factions", icon = "Interface\\Icons\\Achievement_Reputation_01" },
+    { key = "words",   label = "Words",    icon = "Interface\\Icons\\INV_Scroll_03" },
 }
 
 local extrasUI = {}
@@ -742,13 +743,12 @@ end
 -- Panel
 --------------------------------------------------------------------------------
 function extrasUI.Build(mainFrame)
-    -- A real WoW window ("Handbook" in the title bar, Mentor's portrait, tabs
-    -- along the bottom) when the client has Blizzard's templates; otherwise
+    -- A real WoW window ("Handbook" in the title bar, Mentor's portrait, icon
+    -- tabs on the right edge) when the client has Blizzard's templates; otherwise
     -- Mentor's own dark box with two rows of button tabs.
     local nativeWindow = Mentor.NativeFrame and Mentor.NativeFrame.CreateWindow("MentorExtrasPanel", mainFrame, "Handbook")
     panel = nativeWindow or CreateFrame("Frame", "MentorExtrasPanel", mainFrame, BACKDROP_TEMPLATE)
     panel:SetWidth(PANEL_WIDTH)
-    Mentor.RegisterSidePanel(panel, true)      -- right or left of the Mentor window, where there is room
     if not nativeWindow and panel.SetBackdrop then
         panel:SetBackdrop(PANEL_BACKDROP)
         panel:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
@@ -767,15 +767,13 @@ function extrasUI.Build(mainFrame)
         contentTop = PADDING + 26
     end
 
-    -- Blizzard's tabs under the window; if that fails, button tabs inside.
-    local tabLabels = {}
-    for tabIndex, tab in ipairs(TABS) do
-        tabLabels[tabIndex] = tab.label
-    end
-    panel.nativeTabs = nativeWindow and Mentor.NativeFrame.CreateBottomTabs(panel, tabLabels, function(tabIndex)
+    -- Icon tabs on the window's right edge (like WoW Forever's own windows);
+    -- if that fails, button tabs inside.
+    panel.nativeTabs = nativeWindow and Mentor.NativeFrame.CreateSideTabs(panel, TABS, function(tabIndex)
         MentorDB.extrasTab = TABS[tabIndex].key
         extrasUI.Refresh(Mentor.currentAdvice)
     end)
+    Mentor.RegisterSidePanel(panel, true)      -- right or left of the Mentor window, where there is room
     local tabsBlockHeight = panel.nativeTabs and 0 or (TABS_BLOCK_HEIGHT + 4)
     if not panel.nativeTabs then
         extrasUI.CreateButtonTabs(contentTop)
