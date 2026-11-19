@@ -507,6 +507,9 @@ local function FindLogoutPopup()
     return nil
 end
 
+-- The logout popups that already hide the tip box with them.
+local hookedLogoutPopups = {}
+
 local function GetLogoutTipBox()
     if logoutTipBox then
         return logoutTipBox
@@ -553,9 +556,11 @@ function reminders.OnCamping()
     if logoutPopup then
         tipBox:SetPoint("TOP", logoutPopup, "BOTTOM", 0, -6)
         -- Goes away together with the countdown (logout cancelled or done).
-        if not logoutPopup.isMentorTipHooked then
+        -- Remembered in Mentor's own table: a field written into Blizzard's
+        -- popup could spread "taint" to its secure actions.
+        if not hookedLogoutPopups[logoutPopup] then
             logoutPopup:HookScript("OnHide", function() if logoutTipBox then logoutTipBox:Hide() end end)
-            logoutPopup.isMentorTipHooked = true
+            hookedLogoutPopups[logoutPopup] = true
         end
     else
         tipBox:SetPoint("TOP", UIParent, "TOP", 0, -200)

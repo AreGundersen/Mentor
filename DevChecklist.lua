@@ -21,6 +21,10 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
+    { "professionPanelClose", "Profession panel stays closed",
+        "Open a profession, close Mentor's panel beside it with X, then move an item in your bags: the panel stays closed. Close and reopen the profession window: the panel is back." },
+    { "bankRightClick", "Right-click in bags after the bank",
+        "With /console taintLog 2 on: open a profession window, open the bank, close both, then right-click a usable item in your bags. No \"Mentor has been blocked\" error. If it still happens, /reload right away and tell Claude." },
     { "knownRecipe", "Known recipes count as known",
         "Tailoring around 150-160 with Earthen Vest learned: the panel's Level up step says \"Craft about N to reach skill ...\", not \"You don't know it yet\"." },
     { "recipeSource", "Pattern recipes name the vendor",

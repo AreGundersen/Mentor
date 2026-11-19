@@ -711,6 +711,8 @@ end
 -- The Mentor panel next to the profession window
 --------------------------------------------------------------------------------
 local panel
+-- True after the player closed the panel with X, until the profession window opens again.
+local isPanelDismissed = false
 local upgradeRows = {}
 
 local function GetProfessionWindow()
@@ -806,6 +808,12 @@ local function CreatePanel()
     panel.isNativeWindow = nativeWindow and true or false
     if nativeWindow then
         panel.title = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontNormal")
+        -- X: stay closed until the profession window is opened again, even
+        -- when bag changes or new recipes would refresh the panel.
+        Mentor.NativeFrame.SetCloseAction(nativeWindow, function()
+            isPanelDismissed = true
+            panel:Hide()
+        end)
     else
         if panel.SetBackdrop then
             panel:SetBackdrop(PANEL_BACKDROP)
@@ -873,7 +881,7 @@ end
 function professions.RefreshPanel()
     local professionWindow = GetProfessionWindow()
     local isLevelingShown, areUpgradesShown = IsLevelingHelpOn(), AreCraftableUpgradesOn()
-    if not (isLevelingShown or areUpgradesShown) or not professionWindow then
+    if not (isLevelingShown or areUpgradesShown) or not professionWindow or isPanelDismissed then
         if panel then
             panel:Hide()
         end
@@ -1089,6 +1097,9 @@ end
 -- Events come in bursts (and item info arrives one item at a time): refresh once, a moment later.
 local isRefreshQueued = false
 eventFrame:SetScript("OnEvent", function(_, eventName)
+    if eventName == "TRADE_SKILL_SHOW" then
+        isPanelDismissed = false      -- a newly opened profession window shows the panel again
+    end
     if eventName == "TRADE_SKILL_CLOSE" then
         if panel then
             panel:Hide()
@@ -1109,11 +1120,36 @@ eventFrame:SetScript("OnEvent", function(_, eventName)
 end)
 
 -- Also follow the window itself (the profession window can close without the event).
+-- Kept here, not as a field on Blizzard's frame: writing fields into
+-- Blizzard's frames can spread "taint" and block their secure actions.
+local hookedWindows = {}
 local function HookWindow(windowFrame)
-    if windowFrame and not windowFrame.isMentorHooked then
-        windowFrame:HookScript("OnShow", function() pcall(professions.RefreshPanel) end)
-        windowFrame:HookScript("OnHide", function() if panel then panel:Hide() end end)
-        windowFrame.isMentorHooked = true
+    if windowFrame and not hookedWindows[windowFrame] then
+        -- Run a moment later, outside Blizzard's own show/hide code: WoW
+        -- moves its windows around (for example when the bank opens beside
+        -- the profession window), and Mentor's code running in the middle of
+        -- that could make WoW block right-clicking bag items afterwards.
+        local function RunAfterBlizzard(callback)
+            if C_Timer then
+                C_Timer.After(0, function() pcall(callback) end)
+            else
+                pcall(callback)
+            end
+        end
+        windowFrame:HookScript("OnShow", function()
+            RunAfterBlizzard(function()
+                isPanelDismissed = false
+                professions.RefreshPanel()
+            end)
+        end)
+        windowFrame:HookScript("OnHide", function()
+            RunAfterBlizzard(function()
+                if panel and not (GetProfessionWindow() and GetProfessionWindow():IsShown()) then
+                    panel:Hide()
+                end
+            end)
+        end)
+        hookedWindows[windowFrame] = true
     end
 end
 eventFrame:RegisterEvent("ADDON_LOADED")
