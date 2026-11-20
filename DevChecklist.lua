@@ -23,6 +23,8 @@ Mentor.DevChecklist = devChecklist
 local CHECKLIST_ITEMS = {
     { "questTurnIns", "Quest turn-in reminder",
         "Finish a quest and go to (or be in) the zone where it is turned in: a reminder says how many quests are ready to turn in here, with the quest names and NPCs. Finishing another one there updates it; leaving the zone or turning them all in removes it. Settings > Reminders > Quest turn-ins turns it off." },
+    { "buildStaysClosed", "Talent build stays closed",
+        "Open the full build, close it with its X, then close and reopen the Mentor window (and /reload): the build stays closed and the button says \"Full build\" again." },
     { "bankRightClick", "Right-click in bags after the bank",
         "With /console taintLog 2 on: open a profession window, open the bank, close both, then right-click a usable item in your bags. No \"Mentor has been blocked\" error. If it still happens, /reload right away and tell Claude." },
     -- Tested OK this cycle (removed): profession panel stays closed, known

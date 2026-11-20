@@ -1249,6 +1249,13 @@ local function BuildBuildPanel()
         buildPanel.specIcon = Mentor.NativeFrame.GetPortrait(nativeWindow) or buildPanel:CreateTexture(nil, "ARTWORK")
         buildPanel.title = Mentor.NativeFrame.CreateSubtitle(nativeWindow, "GameFontNormalLarge")
         contentShift = 18
+        -- X remembers that the build is closed (like "Hide build"), or it
+        -- would come back every time the Mentor window opens.
+        Mentor.NativeFrame.SetCloseAction(nativeWindow, function()
+            MentorDB.isBuildShown = false
+            buildPanel:Hide()
+            Mentor.RequestRefresh()
+        end)
     else
         ApplyBackdrop(buildPanel)
         buildPanel.specIcon = buildPanel:CreateTexture(nil, "ARTWORK")
