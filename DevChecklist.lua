@@ -23,14 +23,10 @@ Mentor.DevChecklist = devChecklist
 local CHECKLIST_ITEMS = {
     { "questTurnIns", "Quest turn-in reminder",
         "Finish a quest and go to (or be in) the zone where it is turned in: a reminder says how many quests are ready to turn in here, with the quest names and NPCs. Finishing another one there updates it; leaving the zone or turning them all in removes it. Settings > Reminders > Quest turn-ins turns it off." },
-    { "professionPanelClose", "Profession panel stays closed",
-        "Open a profession, close Mentor's panel beside it with X, then move an item in your bags: the panel stays closed. Close and reopen the profession window: the panel is back." },
     { "bankRightClick", "Right-click in bags after the bank",
         "With /console taintLog 2 on: open a profession window, open the bank, close both, then right-click a usable item in your bags. No \"Mentor has been blocked\" error. If it still happens, /reload right away and tell Claude." },
-    { "knownRecipe", "Known recipes count as known",
-        "Tailoring around 150-160 with Earthen Vest learned: the panel's Level up step says \"Craft about N to reach skill ...\", not \"You don't know it yet\"." },
-    { "recipeSource", "Pattern recipes name the vendor",
-        "Leatherworking 160+: the profession panel's Level up step says Gem-studded Leather Belt is sold by Rikqiz (Booty Bay), not \"Your trainer teaches it\". A recipe the trainer really has still says trainer. (Also fixed in the data: Lesser Mana Oil - Kania, Bold Dirk / Runecloth Cuffs - Pexmit in Hyjal, Brilliant Smallfish - cooking supplier.)" },
+    -- Tested OK this cycle (removed): profession panel stays closed, known
+    -- recipes, pattern recipe sources.
     -- Released 1.18.0 without an in-game check: the "Look out for" dungeon
     -- tip, the weapon skill reminder, and trainer prices on an alt.
 }
