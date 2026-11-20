@@ -21,13 +21,10 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
+    -- New cycle after 1.19.0. Released without an in-game check: no "blocked"
+    -- error when right-clicking bag items after the bank (issue #8).
     { "bankRightClick", "Right-click in bags after the bank",
-        "With /console taintLog 2 on: open a profession window, open the bank, close both, then right-click a usable item in your bags. No \"Mentor has been blocked\" error. If it still happens, /reload right away and tell Claude." },
-    -- Tested OK this cycle (removed): profession panel stays closed, known
-    -- recipes, pattern recipe sources, quest turn-in reminder, talent build
-    -- stays closed.
-    -- Released 1.18.0 without an in-game check: the "Look out for" dungeon
-    -- tip, the weapon skill reminder, and trainer prices on an alt.
+        "Still open from 1.19.0 (issue #8). With /console taintLog 2 on: open a profession window, open the bank, close both, then right-click a usable item in your bags. No \"Mentor has been blocked\" error. If it still happens, /reload right away and tell Claude." },
 }
 
 local STATE_ORDER = { [""] = "ok", ok = "problem", problem = "" }
