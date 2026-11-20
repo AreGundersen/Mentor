@@ -5,6 +5,8 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+
+## 1.19.0 - 2026-11-20
 - Fix: closing the talent build with X kept it closed only until the Mentor window opened again.
 - **Quest turn-in reminder:** when you are in a zone where finished quests can be turned in, Mentor says how many and names them with the NPC who takes them ("2 quests ready to turn in here in The Barrens: Conscript of the Horde (Kargal Battlescar), ..."). Settings > Reminders > Quest turn-ins turns it off.
 - Fix: closing Mentor's profession panel with X keeps it closed until you open the profession window again (moving items in your bags reopened it).
