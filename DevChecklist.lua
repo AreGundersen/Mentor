@@ -21,6 +21,8 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
+    { "questTurnIns", "Quest turn-in reminder",
+        "Finish a quest and go to (or be in) the zone where it is turned in: a reminder says how many quests are ready to turn in here, with the quest names and NPCs. Finishing another one there updates it; leaving the zone or turning them all in removes it. Settings > Reminders > Quest turn-ins turns it off." },
     { "professionPanelClose", "Profession panel stays closed",
         "Open a profession, close Mentor's panel beside it with X, then move an item in your bags: the panel stays closed. Close and reopen the profession window: the panel is back." },
     { "bankRightClick", "Right-click in bags after the bank",

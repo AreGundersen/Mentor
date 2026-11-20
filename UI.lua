@@ -101,9 +101,10 @@ local DEFAULT_SETTINGS = {
     areDungeonTipsEnabled = true,      -- tip when you enter a dungeon (Journey.lua)
     areHelpTipsEnabled = true,         -- what to do when you die, rested XP (Reminders.lua)
     areMobWarningsEnabled = true,      -- elite / dangerous mob line in mob tooltips (Reminders.lua)
-    isMobKillCountEnabled = true,
-    isWeaponSkillReminderEnabled = true,
-    areAuctionUpgradesEnabled = true,    -- upgrades among auction house results (AuctionUpgrades.lua) -- weapon skill far below its max (Reminders.lua)      -- "You have killed 23" in mob tooltips (Reminders.lua, needs Life log)
+    isMobKillCountEnabled = true,      -- "You have killed 23" in mob tooltips (Reminders.lua, needs Life log)
+    isWeaponSkillReminderEnabled = true, -- weapon skill far below its max (Reminders.lua)
+    isTurnInReminderEnabled = true,    -- finished quests you can turn in in this zone (Reminders.lua)
+    areAuctionUpgradesEnabled = true,  -- upgrades among auction house results (AuctionUpgrades.lua)
     areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)
     isProfessionLevelingShown = true,  -- what to craft to level a profession, recipe sources, trainers (Professions.lua)
     areCraftableUpgradesEnabled = true,  -- known recipes that make you an upgrade (Professions.lua)
@@ -1017,6 +1018,7 @@ local SETTINGS_SECTIONS = {
         { "areBagRemindersEnabled",   "Bags & professions", "Empty bag slots and professions that need a trainer" },
         { "areDungeonTipsEnabled",    "Dungeon tips",  "A short tip for your role when you enter a dungeon" },
         { "isWeaponSkillReminderEnabled", "Weapon skill", "When the skill for your weapon is far below its max" },
+        { "isTurnInReminderEnabled",  "Quest turn-ins", "Finished quests you can turn in in the zone you are in" },
     } },
     { column = 1, title = "Interface", rows = {
         { "isMinimapButtonShown",     "Minimap button", "Mentor button on the edge of the minimap" },

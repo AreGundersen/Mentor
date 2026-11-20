@@ -38,6 +38,7 @@ Professions.lua
 Journey.lua
 DungeonLoot.lua
 DungeonQuests.lua
+QuestTurnIns.lua
 VendorGear.lua
 ReputationGear.lua
 AuctionUpgrades.lua

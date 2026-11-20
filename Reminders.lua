@@ -410,6 +410,91 @@ function reminders.CheckWeaponSkill()
 end
 
 --------------------------------------------------------------------------------
+-- Finished quests you can turn in in the zone you are in
+--------------------------------------------------------------------------------
+local MAX_TURN_IN_QUESTS_NAMED = 4
+local currentTurnInReminderKey = nil
+
+-- Zone and NPC for a quest from QuestTurnIns.lua, or nil for quests that are
+-- not in that list (WoW Forever's own quests).
+local function GetTurnInFromData(questId)
+    local packedTurnIn = Mentor.QUEST_TURN_INS and Mentor.QUEST_TURN_INS[questId]
+    if not packedTurnIn then
+        return nil
+    end
+    local zoneNumber = math.floor(packedTurnIn / 65536)
+    local npcNumber = packedTurnIn % 65536
+    return Mentor.TURN_IN_ZONES[zoneNumber], npcNumber > 0 and Mentor.TURN_IN_NPCS[npcNumber] or nil
+end
+
+local function IsQuestReadyToTurnIn(questId)
+    local function Ask(apiFunction)
+        if not apiFunction then
+            return false
+        end
+        local isSuccess, result = pcall(apiFunction, questId)
+        return isSuccess and result == true
+    end
+    return Ask(C_QuestLog.ReadyForTurnIn) or Ask(C_QuestLog.IsComplete)
+end
+
+-- The finished quests whose turn-in is in zoneName: { { title, npcName }, ... }.
+-- Where Mentor has no data, the quest log's zone header is the best guess.
+function reminders.GetTurnInsInZone(zoneName)
+    local readyQuests = {}
+    if not (zoneName and C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetInfo) then
+        return readyQuests
+    end
+    local headerZoneName = nil
+    for entryIndex = 1, C_QuestLog.GetNumQuestLogEntries() or 0 do
+        local questInfo = C_QuestLog.GetInfo(entryIndex)
+        if questInfo and questInfo.isHeader then
+            headerZoneName = questInfo.title
+        elseif questInfo and questInfo.questID and questInfo.questID > 0 and IsQuestReadyToTurnIn(questInfo.questID) then
+            local turnInZone, turnInNpc = GetTurnInFromData(questInfo.questID)
+            if (turnInZone or headerZoneName) == zoneName then
+                table.insert(readyQuests, { title = questInfo.title, npcName = turnInNpc })
+            end
+        end
+    end
+    return readyQuests
+end
+
+function reminders.CheckTurnIns()
+    local zoneName = GetRealZoneText and GetRealZoneText()
+    local readyQuests = IsOn("isTurnInReminderEnabled") and reminders.GetTurnInsInZone(zoneName) or {}
+    -- One reminder per zone and set of quests: a new finished quest shows it again.
+    local questTitles = {}
+    for _, readyQuest in ipairs(readyQuests) do
+        table.insert(questTitles, readyQuest.title or "?")
+    end
+    local reminderKey = #readyQuests > 0 and ("turnIn:" .. zoneName .. ":" .. table.concat(questTitles, "|")) or nil
+    if reminderKey == currentTurnInReminderKey then
+        return
+    end
+    if currentTurnInReminderKey then
+        ForgetReminder(currentTurnInReminderKey)
+    end
+    currentTurnInReminderKey = reminderKey
+    if not reminderKey then
+        return
+    end
+    -- "2 quests ready to turn in here: Conscript of the Horde (Kargal
+    -- Battlescar), Raptor Thieves (Mankrik)."
+    local namedQuests = {}
+    for questNumber, readyQuest in ipairs(readyQuests) do
+        if questNumber > MAX_TURN_IN_QUESTS_NAMED then
+            table.insert(namedQuests, string.format("and %d more", #readyQuests - MAX_TURN_IN_QUESTS_NAMED))
+            break
+        end
+        table.insert(namedQuests, (readyQuest.title or "?") .. (readyQuest.npcName and (" (" .. readyQuest.npcName .. ")") or ""))
+    end
+    local questWord = #readyQuests == 1 and "quest" or "quests"
+    Remind(reminderKey, string.format("%d %s ready to turn in here in %s: %s.",
+        #readyQuests, questWord, zoneName, table.concat(namedQuests, ", ")))
+end
+
+--------------------------------------------------------------------------------
 -- Professions stuck at their cap
 --------------------------------------------------------------------------------
 function reminders.CheckProfessions()
@@ -719,11 +804,13 @@ end
 -- Events
 --------------------------------------------------------------------------------
 local wasResting = nil
+local isTurnInCheckQueued = false
 
 local eventFrame = CreateFrame("Frame")
 for _, eventName in ipairs({ "PLAYER_LOGIN", "PLAYER_LEVEL_UP", "PLAYER_UPDATE_RESTING",
     "UPDATE_INVENTORY_DURABILITY", "SKILL_LINES_CHANGED", "BAG_UPDATE_DELAYED", "UNIT_HAPPINESS", "PLAYER_EQUIPMENT_CHANGED",
-    "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_CAMPING", "LOGOUT_CANCEL" }) do
+    "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_CAMPING", "LOGOUT_CANCEL",
+    "ZONE_CHANGED_NEW_AREA", "QUEST_LOG_UPDATE" }) do
     pcall(eventFrame.RegisterEvent, eventFrame, eventName)
 end
 eventFrame:SetScript("OnEvent", function(_, eventName, ...)
@@ -734,7 +821,17 @@ eventFrame:SetScript("OnEvent", function(_, eventName, ...)
             pcall(reminders.CheckProfessions)
             pcall(reminders.CheckBags)
             pcall(reminders.CheckWeaponSkill)
+            pcall(reminders.CheckTurnIns)
         end)
+    elseif eventName == "ZONE_CHANGED_NEW_AREA" or eventName == "QUEST_LOG_UPDATE" then
+        -- The quest log updates in bursts: check once, a moment later.
+        if not isTurnInCheckQueued then
+            isTurnInCheckQueued = true
+            C_Timer.After(1, function()
+                isTurnInCheckQueued = false
+                pcall(reminders.CheckTurnIns)
+            end)
+        end
     elseif eventName == "PLAYER_LEVEL_UP" then
         local newLevel = ...
         C_Timer.After(SECONDS_AFTER_LEVEL_UP, function()
