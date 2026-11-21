@@ -393,7 +393,7 @@ end
 -- need: { name, place, waypoint }. Trainers in the capital cities come first.
 -- Returns nil when Mentor has no trainer list for the profession.
 function professions.GetTrainers(professionName, neededRank)
-    local routeName = FindRouteName(professionName)
+    local routeName = FindRouteName(professionName) or professionName   -- Fishing has no route
     local trainerList = routeName and Mentor.PROFESSION_TRAINERS and Mentor.PROFESSION_TRAINERS[routeName]
     if not trainerList then
         return nil
@@ -426,6 +426,31 @@ function professions.GetTrainers(professionName, neededRank)
     return shownTrainers
 end
 
+-- How to get a rank that no trainer teaches (Expert and Artisan Cooking,
+-- First Aid and Fishing): { lines = { "Book: ... from ... - place (x, y)" },
+-- note = "Needs ..." } for your faction, or nil when a trainer teaches it.
+function professions.GetRankSource(professionName, neededRank)
+    -- Fishing has no leveling route, so also look it up by its own name.
+    local routeName = FindRouteName(professionName) or professionName
+    local sourcesByRank = routeName and Mentor.PROFESSION_RANK_SOURCES and Mentor.PROFESSION_RANK_SOURCES[routeName]
+    local rankSources = sourcesByRank and sourcesByRank[neededRank]
+    if not rankSources then
+        return nil
+    end
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    local sourceLines = {}
+    for _, source in ipairs(rankSources) do
+        local sourceFaction, sourceKind, sourceName, npcName, placeText, waypoint = unpack(source)
+        if sourceFaction == playerFaction or sourceFaction == "Neutral" then
+            local waypointText = waypoint and (" |cffa6a6a6(" .. waypoint:gsub(" ", ", ") .. ")|r") or ""
+            local howText = sourceKind == "Quest" and "quest from" or "sold by"
+            table.insert(sourceLines, string.format("%s: |cffffffff%s|r, %s |cffffffff%s|r - %s%s",
+                sourceKind, sourceName, howText, npcName, placeText, waypointText))
+        end
+    end
+    return { lines = sourceLines, note = rankSources.note }
+end
+
 -- "Name - Place (x, y)" for one trainer.
 function professions.FormatTrainer(trainer)
     local waypointText = trainer.waypoint and (" |cffa6a6a6(" .. trainer.waypoint:gsub(" ", ", ") .. ")|r") or ""
@@ -437,6 +462,11 @@ function professions.GetTrainerHint(professionName, maximumSkill)
     local neededRank = professions.GetNextRank(maximumSkill)
     if not neededRank then
         return nil
+    end
+    -- Expert and Artisan of the secondary professions come from a book or a quest.
+    local rankSource = professions.GetRankSource(professionName, neededRank)
+    if rankSource and rankSource.lines[1] then
+        return rankSource.lines[1]
     end
     local trainers = professions.GetTrainers(professionName, neededRank)
     if trainers == nil then
@@ -1070,7 +1100,25 @@ function professions.RefreshPanel()
         trainerLine:Hide()
     end
     panel.trainerHeader:Hide()
-    if isLevelingShown and nextRank then
+    local rankSource = isLevelingShown and nextRank and professions.GetRankSource(professionName, nextRank)
+    if rankSource then
+        -- No trainer teaches this rank: where the book or quest is.
+        verticalOffset = verticalOffset - 6
+        panel.trainerHeader:SetText(string.format("How to get %s (skill cap %d)", nextRank, (RANK_ORDER[nextRank] or 1) * 75))
+        Place(panel.trainerHeader, 16)
+        local shownLines = {}
+        for _, sourceLine in ipairs(rankSource.lines) do
+            table.insert(shownLines, sourceLine)
+        end
+        if rankSource.note then
+            table.insert(shownLines, "|cffa6a6a6" .. rankSource.note .. "|r")
+        end
+        for lineIndex = 1, math.min(#shownLines, #panel.trainerLines) do
+            local sourceLine = panel.trainerLines[lineIndex]
+            sourceLine:SetText(shownLines[lineIndex])
+            Place(sourceLine, (sourceLine:GetStringHeight() or 12) + 3)
+        end
+    elseif isLevelingShown and nextRank then
         verticalOffset = verticalOffset - 6
         panel.trainerHeader:SetText(string.format("Trainers for %s (skill cap %d)", nextRank, (RANK_ORDER[nextRank] or 1) * 75))
         Place(panel.trainerHeader, 16)

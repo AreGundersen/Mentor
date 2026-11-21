@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- Fix: for Cooking, First Aid and Fishing, Mentor sent you to a trainer for Expert and Artisan, but trainers only teach up to Journeyman. The profession panel and the Journey tab now say where to get them: the Expert book (Expert Cookbook, Expert First Aid - Under Wraps, Expert Fishing - The Bass and You) and the Artisan quest (Clamlette Surprise, Triage, Nat Pagle, Angler Extreme), with the NPC, place, coordinates and what you need.
 
 ## 1.19.0 - 2026-11-20
 - Fix: closing the talent build with X kept it closed only until the Mentor window opened again.
