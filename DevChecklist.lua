@@ -21,12 +21,8 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
-    -- New cycle after 1.19.0. Released without an in-game check: no "blocked"
-    -- error when right-clicking bag items after the bank (issue #8).
-    { "secondaryRanks", "Expert / Artisan for Cooking, First Aid, Fishing",
-        "Open Cooking (or First Aid) at skill cap 150 or 225: the panel says \"How to get Expert/Artisan\" with the book or quest, the NPC for your faction with place and coordinates, and what you need - no trainers. Journey's profession row says the same. Primary professions still list trainers." },
-    { "bankRightClick", "Right-click in bags after the bank",
-        "Still open from 1.19.0 (issue #8). With /console taintLog 2 on: open a profession window, open the bank, close both, then right-click a usable item in your bags. No \"Mentor has been blocked\" error. If it still happens, /reload right away and tell Claude." },
+    -- Tested OK this cycle (removed): Expert/Artisan sources for the secondary
+    -- professions, right-click in bags after the bank (issue #8).
 }
 
 local STATE_ORDER = { [""] = "ok", ok = "problem", problem = "" }
