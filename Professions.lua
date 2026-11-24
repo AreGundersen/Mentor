@@ -223,13 +223,26 @@ end
 -- Where to get a recipe you haven't learned: Mentor's own list of vendor and
 -- quest recipes first, then the game's source text, then the trainer.
 -- recipe is the entry from the open profession window (may be nil).
-function professions.GetUnknownRecipeSourceText(recipeName, recipe)
+-- learnSkill: the skill the recipe is learned at (the guide step's start).
+-- Trainers teach by rank: recipes from 125 skill need an Expert trainer and
+-- from 200 an Artisan one, so the ordinary city trainer may not have them.
+function professions.GetUnknownRecipeSourceText(recipeName, recipe, professionName, learnSkill)
     if RECIPE_SOURCES[recipeName] then
         return professions.GetRecipeSourceText(recipeName)
     end
     local clientSourceText = recipe and GetClientRecipeSourceText(recipe.recipeId)
     if clientSourceText then
         return clientSourceText
+    end
+    local neededRank = learnSkill and (learnSkill >= 200 and "Artisan" or learnSkill >= 125 and "Expert") or nil
+    local trainers = neededRank and professionName and professions.GetTrainers(professionName, neededRank)
+    if trainers and trainers[1] then
+        -- Two in different cities, so one is likely near you.
+        local trainerTexts = { professions.FormatTrainer(trainers[1]) }
+        if trainers[2] then
+            table.insert(trainerTexts, professions.FormatTrainer(trainers[2]))
+        end
+        return string.format("An %s trainer teaches it: %s.", neededRank, table.concat(trainerTexts, " or "))
     end
     return "Your trainer teaches it."
 end
@@ -969,7 +982,7 @@ function professions.RefreshPanel()
                 -- Where to get it, and what you can craft meanwhile. The window
                 -- also lists unlearned recipes that come from a vendor or a
                 -- drop, so being in the window doesn't mean the trainer has it.
-                local sourceText = professions.GetUnknownRecipeSourceText(step.recipe, recipe)
+                local sourceText = professions.GetUnknownRecipeSourceText(step.recipe, recipe, professionName, step.fromSkill)
                 panel.levelText:SetText("|cffff9933You don't know it yet.|r " .. sourceText)
                 alternative = professions.GetAlternativeRecipe(recipes, professionName, step.recipe)
             elseif recipe.difficulty == "trivial" then
