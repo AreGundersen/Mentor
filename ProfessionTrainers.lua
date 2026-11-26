@@ -101,7 +101,7 @@ Mentor.PROFESSION_TRAINERS = {
         { "Alliance", "Apprentice", "Trianna", "Darnassus", nil },
         { "Horde", "Apprentice", "Bowen Brisboise", "Tirisfal Glades", nil },
         { "Horde", "Apprentice", "Victor Ward", "Undercity", nil },
-        { "Horde", "Expert", "Josef Gregorian", "Undercity", nil },
+        { "Horde", "Expert", "Josef Gregorian", "Magic Quarter, Undercity", "70.6 30.6" },
         { "Horde", "Journeyman", "Rhiannon Davis", "Undercity", nil },
         { "Horde", "Journeyman", "Magar", "Orgrimmar", nil },
         { "Horde", "Apprentice", "Snang", "Orgrimmar", nil },
