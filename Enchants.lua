@@ -246,7 +246,7 @@ end
 local GOLD, WHITE, GREY = { 1, 0.82, 0 }, { 1, 1, 1 }, { 0.65, 0.65, 0.65 }
 
 local function AddEnchantLines(tooltip)
-    if not (MentorDB and MentorDB.settings and MentorDB.settings.isEnchantTipEnabled ~= false) then
+    if not (MentorDB and MentorDB.isEnchantTipEnabled ~= false) then
         return
     end
     if not tooltip.GetItem or not IsEnchanter() then
@@ -294,7 +294,7 @@ function enchants.PrintDiagnosis()
     Mentor.Print("Professions: " .. table.concat(professionNames, ", ") .. " - enchanter: " .. tostring(IsEnchanter()))
     local advice = Mentor.currentAdvice
     Mentor.Print("Spec: " .. tostring(advice and advice.specData and advice.specData.name)
-        .. ", setting on: " .. tostring(MentorDB.settings and MentorDB.settings.isEnchantTipEnabled ~= false))
+        .. ", setting on: " .. tostring(MentorDB.isEnchantTipEnabled ~= false))
     local knownCount = 0
     for _ in pairs(MentorDB.knownEnchantSpellIds or {}) do
         knownCount = knownCount + 1
