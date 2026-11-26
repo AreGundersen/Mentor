@@ -22,7 +22,7 @@ Mentor.DevChecklist = devChecklist
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
     { "expertTrainerRecipes", "Recipes that need an Expert trainer",
-        "Tailoring 160-170 without Robe of Power learned: the panel says \"An Expert trainer teaches it\" and names two Expert (or Artisan) trainers of your faction. Check that one of them really has it." },
+        "Tailoring 160-170 without Robe of Power learned: the panel says \"An Expert trainer teaches it\" and names Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance. Check that he really has it. Trainers for the next rank in Tailoring, Leatherworking and Blacksmithing should now be right too." },
     -- Tested OK this cycle (removed): Expert/Artisan sources for the secondary
     -- professions, right-click in bags after the bank (issue #8).
 }
