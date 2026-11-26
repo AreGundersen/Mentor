@@ -24,7 +24,7 @@ local CHECKLIST_ITEMS = {
     { "expertTrainerRecipes", "Recipes that need an Expert trainer",
         "Tailoring 160-170 without Robe of Power learned: the panel says \"An Expert trainer teaches it\" and names Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance. Check that he really has it. Trainers for the next rank in Tailoring, Leatherworking and Blacksmithing should now be right too." },
     { "buildLevels", "Full build shows levels",
-        "Open the full build: each row starts with the level(s) for its points (10, 11-15, ...), ending at 60. The row for your current level is white, earlier levels grey, later gold. Ranks that build on earlier ones (Deflection 2 then 3) only count the new points." },
+        "Open the full build: no grey text at the top; one row per level from 10 to 60 with the talent for that point and the rank it reaches (Deflection 1/5, 2/5, ...). Your current level is white, earlier grey, later gold; points you've spent have a check mark, the next one a gold box." },
     -- Tested OK this cycle (removed): Expert/Artisan sources for the secondary
     -- professions, right-click in bags after the bank (issue #8).
 }

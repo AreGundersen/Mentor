@@ -1274,12 +1274,10 @@ local function BuildBuildPanel()
         titleLine:SetPoint("TOPLEFT", PADDING, -PADDING - 34)
         titleLine:SetPoint("TOPRIGHT", -PADDING, -PADDING - 34)
     end
-    buildPanel.legend = CreateText(buildPanel, "GameFontHighlightSmall", BUILD_PANEL_WIDTH - PADDING * 2)
-    buildPanel.legend:SetPoint("TOPLEFT", PADDING, -PADDING - 40 - contentShift)
 
     local scrollFrame = nativeWindow and Mentor.NativeFrame.CreateScrollFrame("MentorBuildScroll", buildPanel)
         or CreateFrame("ScrollFrame", "MentorBuildScroll", buildPanel, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 72 - contentShift)
+    scrollFrame:SetPoint("TOPLEFT", PADDING, -PADDING - 40 - contentShift)
     scrollFrame:SetPoint("BOTTOMRIGHT", -30, PADDING)
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
     scrollChild:SetSize(BUILD_PANEL_WIDTH - PADDING - 42, 1)
@@ -1310,12 +1308,12 @@ local function GetBuildRow(rowIndex)
     if row.SetBackdrop then
         row:SetBackdrop(Mentor.BOX_BACKDROP)
     end
-    -- The level (or levels) to put these points in: "10" or "11-15".
-    row.stepText = CreateText(row, "GameFontDisableSmall", 38, "RIGHT")
+    -- The level to put this point in.
+    row.stepText = CreateText(row, "GameFontDisableSmall", 22, "RIGHT")
     row.stepText:SetPoint("LEFT", 2, 0)
     row.talentIconHolder = CreateFrame("Frame", nil, row)
     row.talentIconHolder:SetSize(BUILD_ROW_HEIGHT - 8, BUILD_ROW_HEIGHT - 8)
-    row.talentIconHolder:SetPoint("LEFT", 46, 0)
+    row.talentIconHolder:SetPoint("LEFT", 30, 0)
     row.talentIcon = row.talentIconHolder:CreateTexture(nil, "ARTWORK")
     row.talentIcon:SetAllPoints()
     row.talentIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -1341,31 +1339,48 @@ local function RefreshBuildPanel(advice)
     buildPanel:Show()
     buildPanel.specIcon:SetTexture(advice.specData.icon)
     buildPanel.title:SetText(advice.specData.name .. " build")
-    buildPanel.legend:SetText(MUTED_TEXT .. "Talents in the order to take them, with the level to spend each point at (one point per level from 10). Grey = not in this game version.|r")
 
-    for stepIndex, step in ipairs(advice.steps) do
-        local row = GetBuildRow(stepIndex)
-        local style = STATUS_STYLE[step.status]
+    -- One row per level: the talent to put that level's point in, with the
+    -- rank it reaches ("Deflection 2/5"). Talents missing from this game
+    -- version are left out (they can't be taken).
+    local levelRows = {}
+    local isNextFound = false
+    for _, step in ipairs(advice.steps) do
+        if step.firstLevel then
+            for level = step.firstLevel, step.lastLevel do
+                local rankAfterPoint = step.targetRank - (step.lastLevel - level)
+                local status
+                if step.talent and step.talent.rank >= rankAfterPoint then
+                    status = "done"
+                elseif not isNextFound and step.status == "next" then
+                    status = "next"
+                    isNextFound = true
+                else
+                    status = step.status == "missing" and "missing" or "waiting"
+                end
+                table.insert(levelRows, { level = level, step = step, rank = rankAfterPoint, status = status })
+            end
+        end
+    end
+
+    for rowIndex, levelRow in ipairs(levelRows) do
+        local step = levelRow.step
+        local row = GetBuildRow(rowIndex)
+        local style = STATUS_STYLE[levelRow.status]
         row.statusIcon:SetTexture(style.icon)
         row.statusIcon:SetShown(style.icon ~= nil)
         row.talentIcon:SetTexture(step.talent and step.talent.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-        row.talentIcon:SetDesaturated(step.status == "missing")
+        row.talentIcon:SetDesaturated(levelRow.status == "missing")
         local treeSuffix = step.tree and step.tree ~= advice.mainTree and (MUTED_TEXT .. " (" .. step.tree.name .. ")|r") or ""
         row.nameText:SetText(style.color .. step.talentName .. "|r" .. treeSuffix)
-        local currentRank = step.talent and math.min(step.talent.rank, step.targetRank) or 0
-        row.rankText:SetText(style.color .. currentRank .. "/" .. step.targetRank .. "|r")
-        -- Levels for this step's points; the one you are at is white, past ones grey.
-        local levelText = ""
-        if step.firstLevel then
-            levelText = step.firstLevel == step.lastLevel and tostring(step.firstLevel)
-                or (step.firstLevel .. "-" .. step.lastLevel)
-            local isCurrentLevel = advice.level >= step.firstLevel and advice.level <= step.lastLevel
-            local levelColor = isCurrentLevel and "|cffffffff" or (advice.level > step.lastLevel and MUTED_TEXT or GOLD_TEXT)
-            levelText = levelColor .. levelText .. "|r"
-        end
-        row.stepText:SetText(levelText)
+        local maximumRank = step.talent and step.talent.maxRank or step.targetRank
+        row.rankText:SetText(style.color .. levelRow.rank .. "/" .. maximumRank .. "|r")
+        -- The level: white for the level you are at, grey before, gold after.
+        local levelColor = levelRow.level == advice.level and "|cffffffff"
+            or (levelRow.level < advice.level and MUTED_TEXT or GOLD_TEXT)
+        row.stepText:SetText(levelColor .. levelRow.level .. "|r")
         -- The box: gold edge for the next talent, faint for the rest.
-        local isNext = step.status == "next"
+        local isNext = levelRow.status == "next"
         if row.SetBackdropColor then
             row:SetBackdropColor(isNext and GOLD[1] or 0, isNext and GOLD[2] or 0, isNext and GOLD[3] or 0, isNext and 0.15 or 0.35)
             row:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], isNext and 0.9 or 0.2)
@@ -1379,10 +1394,10 @@ local function RefreshBuildPanel(advice)
         end
         row:Show()
     end
-    for unusedIndex = #advice.steps + 1, #buildRows do
+    for unusedIndex = #levelRows + 1, #buildRows do
         buildRows[unusedIndex]:Hide()
     end
-    buildPanel.scrollChild:SetHeight(#advice.steps * (BUILD_ROW_HEIGHT + BUILD_ROW_GAP) + 4)
+    buildPanel.scrollChild:SetHeight(#levelRows * (BUILD_ROW_HEIGHT + BUILD_ROW_GAP) + 4)
 end
 
 --------------------------------------------------------------------------------
