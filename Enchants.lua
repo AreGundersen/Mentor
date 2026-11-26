@@ -282,6 +282,36 @@ if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and
     end)
 end
 
+-- /mentor enchant: why the tooltip shows (or doesn't show) a best enchant,
+-- using the bracers you wear.
+function enchants.PrintDiagnosis()
+    local professionNames = {}
+    if GetProfessions and GetProfessionInfo then
+        for _, professionIndex in pairs({ GetProfessions() }) do
+            table.insert(professionNames, tostring(GetProfessionInfo(professionIndex)))
+        end
+    end
+    Mentor.Print("Professions: " .. table.concat(professionNames, ", ") .. " - enchanter: " .. tostring(IsEnchanter()))
+    local advice = Mentor.currentAdvice
+    Mentor.Print("Spec: " .. tostring(advice and advice.specData and advice.specData.name)
+        .. ", setting on: " .. tostring(MentorDB.settings and MentorDB.settings.isEnchantTipEnabled ~= false))
+    local knownCount = 0
+    for _ in pairs(MentorDB.knownEnchantSpellIds or {}) do
+        knownCount = knownCount + 1
+    end
+    Mentor.Print("Known enchants remembered: " .. (MentorDB.knownEnchantSpellIds and knownCount or "none yet (open Enchanting)"))
+    local sampleDescription = GetSpellDescriptionText(13846)     -- Enchant Bracer - Greater Spirit
+    Mentor.Print("Sample enchant text: " .. tostring(sampleDescription))
+    local wristLink = GetInventoryItemLink("player", 9)
+    if wristLink and advice and advice.specData then
+        local best = enchants.GetBestEnchants(wristLink, advice.specData.weights)
+        Mentor.Print("Your bracers (" .. tostring(Mentor.GetEquipLocation(wristLink)) .. "): best known "
+            .. tostring(best and best.known and best.known[4]) .. ", better " .. tostring(best and best.better and best.better[4]))
+    else
+        Mentor.Print("No bracers equipped to test with.")
+    end
+end
+
 -- For tests and diagnostics.
 enchants.GetEnchantEffects = GetEnchantEffects
 enchants.ScoreEnchant = ScoreEnchant
