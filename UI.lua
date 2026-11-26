@@ -1310,11 +1310,12 @@ local function GetBuildRow(rowIndex)
     if row.SetBackdrop then
         row:SetBackdrop(Mentor.BOX_BACKDROP)
     end
-    row.stepText = CreateText(row, "GameFontDisableSmall", 18, "RIGHT")
+    -- The level (or levels) to put these points in: "10" or "11-15".
+    row.stepText = CreateText(row, "GameFontDisableSmall", 38, "RIGHT")
     row.stepText:SetPoint("LEFT", 2, 0)
     row.talentIconHolder = CreateFrame("Frame", nil, row)
     row.talentIconHolder:SetSize(BUILD_ROW_HEIGHT - 8, BUILD_ROW_HEIGHT - 8)
-    row.talentIconHolder:SetPoint("LEFT", 26, 0)
+    row.talentIconHolder:SetPoint("LEFT", 46, 0)
     row.talentIcon = row.talentIconHolder:CreateTexture(nil, "ARTWORK")
     row.talentIcon:SetAllPoints()
     row.talentIcon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -1340,7 +1341,7 @@ local function RefreshBuildPanel(advice)
     buildPanel:Show()
     buildPanel.specIcon:SetTexture(advice.specData.icon)
     buildPanel.title:SetText(advice.specData.name .. " build")
-    buildPanel.legend:SetText(MUTED_TEXT .. "Talents in the order to take them. Grey = not in this game version.|r")
+    buildPanel.legend:SetText(MUTED_TEXT .. "Talents in the order to take them, with the level to spend each point at (one point per level from 10). Grey = not in this game version.|r")
 
     for stepIndex, step in ipairs(advice.steps) do
         local row = GetBuildRow(stepIndex)
@@ -1353,7 +1354,16 @@ local function RefreshBuildPanel(advice)
         row.nameText:SetText(style.color .. step.talentName .. "|r" .. treeSuffix)
         local currentRank = step.talent and math.min(step.talent.rank, step.targetRank) or 0
         row.rankText:SetText(style.color .. currentRank .. "/" .. step.targetRank .. "|r")
-        row.stepText:SetText(tostring(stepIndex))
+        -- Levels for this step's points; the one you are at is white, past ones grey.
+        local levelText = ""
+        if step.firstLevel then
+            levelText = step.firstLevel == step.lastLevel and tostring(step.firstLevel)
+                or (step.firstLevel .. "-" .. step.lastLevel)
+            local isCurrentLevel = advice.level >= step.firstLevel and advice.level <= step.lastLevel
+            local levelColor = isCurrentLevel and "|cffffffff" or (advice.level > step.lastLevel and MUTED_TEXT or GOLD_TEXT)
+            levelText = levelColor .. levelText .. "|r"
+        end
+        row.stepText:SetText(levelText)
         -- The box: gold edge for the next talent, faint for the rest.
         local isNext = step.status == "next"
         if row.SetBackdropColor then

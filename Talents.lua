@@ -499,7 +499,39 @@ function Mentor.EvaluateBuild(trees, classData, specNumber)
         end
         table.insert(steps, step)
     end
+    Mentor.AssignTalentLevels(steps)
     return steps
+end
+
+-- The character levels each step's points are spent at: one talent point per
+-- level from level 10, in build order. A step that raises a talent from rank
+-- 2 to 5 takes 3 points, so 3 levels (step.firstLevel to step.lastLevel).
+-- Talents missing from this game version get no level and take no points.
+function Mentor.AssignTalentLevels(steps)
+    -- If no talent could be read at all (talents not loaded yet), count every
+    -- step rather than showing no levels.
+    local isAnyTalentFound = false
+    for _, step in ipairs(steps) do
+        if step.status ~= "missing" then
+            isAnyTalentFound = true
+            break
+        end
+    end
+    local pointsSpent = 0
+    local plannedRankByTalent = {}
+    for _, step in ipairs(steps) do
+        step.firstLevel, step.lastLevel = nil, nil
+        if step.status ~= "missing" or not isAnyTalentFound then
+            local talentKey = step.talentName:lower()
+            local pointsInStep = math.max(0, step.targetRank - (plannedRankByTalent[talentKey] or 0))
+            plannedRankByTalent[talentKey] = math.max(plannedRankByTalent[talentKey] or 0, step.targetRank)
+            if pointsInStep > 0 then
+                step.firstLevel = FIRST_TALENT_LEVEL + pointsSpent
+                step.lastLevel = step.firstLevel + pointsInStep - 1
+                pointsSpent = pointsSpent + pointsInStep
+            end
+        end
+    end
 end
 
 local function GetPlannedMainTreePoints(steps, mainTree)
