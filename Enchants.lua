@@ -57,7 +57,29 @@ local EFFECT_PATTERNS = {
     { "spirit by " .. NUMBER, "SPI" },
     { NUMBER .. " additional points? of damage", "WEAPONDAMAGE" },
     { "weapon damage by " .. NUMBER, "WEAPONDAMAGE" },
+    -- Chest (and some other) enchants say "grant +8 Stamina" or "+3 to all stats".
+    { "%+" .. NUMBER .. " to all stats", "ALLSTATS" },
+    { "%+" .. NUMBER .. " all stats", "ALLSTATS" },
+    { "%+" .. NUMBER .. " strength", "STR" },
+    { "%+" .. NUMBER .. " agility", "AGI" },
+    { "%+" .. NUMBER .. " stamina", "STA" },
+    { "%+" .. NUMBER .. " intellect", "INT" },
+    { "%+" .. NUMBER .. " spirit", "SPI" },
+    { "%+" .. NUMBER .. " armor", "ARMOR" },
+    { "%+" .. NUMBER .. " defense", "DEFENSE" },
+    { "%+" .. NUMBER .. " attack power", "AP" },
+    { "%+" .. NUMBER .. " spell power", "SPELLPOWER" },
+    { "%+" .. NUMBER .. " healing", "HEALING" },
+    { "%+" .. NUMBER .. " mana every 5", "MP5" },
+    { "%+" .. NUMBER .. " health", "HEALTH" },
+    { "health by " .. NUMBER, "HEALTH" },
+    { "%+" .. NUMBER .. " mana%.", "MANA" },
+    { "mana by " .. NUMBER, "MANA" },
 }
+-- Mana from an enchant is worth about what the Intellect giving it would be (1 Intellect = 15 mana).
+local MANA_PER_INTELLECT = 15
+-- Health from an enchant is worth about a tenth of Stamina (1 Stamina = 10 health).
+local HEALTH_PER_STAMINA = 10
 -- "Increases all stats by 3": the five base stats.
 local BASE_STATS = { "STR", "AGI", "STA", "INT", "SPI" }
 
@@ -159,6 +181,17 @@ local function ScoreEnchant(recipe, weights, equipLocation)
             if dpsWeight >= MINIMUM_DPS_WEIGHT then
                 local weaponSpeed = equipLocation == "INVTYPE_2HWEAPON" and TWO_HAND_SPEED or ONE_HAND_SPEED
                 score = score + amount / weaponSpeed * dpsWeight
+            end
+        elseif statName == "MANA" then
+            local intellectWeight = weights.INT or 0
+            if intellectWeight >= minimumWeight then
+                score = score + amount / MANA_PER_INTELLECT * intellectWeight
+            end
+        elseif statName == "HEALTH" then
+            -- Counted as the Stamina it equals, if Stamina matters for the spec.
+            local staminaWeight = weights.STA or 0
+            if staminaWeight >= minimumWeight then
+                score = score + amount / HEALTH_PER_STAMINA * staminaWeight
             end
         else
             local statWeight = weights[statName] or 0
