@@ -5,9 +5,10 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- Fix: the test checklist button needed two clicks after a /reload.
 - **Best enchant (for enchanters):** item tooltips say which enchant is best for that item and your spec - the best one you can make, and a better one you can learn with where it comes from (trainer or the Formula). Covers every released WoW Forever enchant, including Forever's own (Greater Spellpower, Lesser Healing Power, Necklace enchants ...). Open your Enchanting window once so Mentor knows your recipes. Settings > Professions > Best enchant turns it off.
 - **Full build level by level:** the full build lists every level from 10 to 60 with the talent to put that level's point in and the rank it reaches ("15  Deflection 3/5"). The level you are at is white, past levels grey; the explanation text at the top is gone.
-- Fix: for recipes from skill 125 the profession panel said "Your trainer teaches it", but only Expert trainers have them (Artisan from 200). It now names the trainers who do, for example Robe of Power: "An Expert trainer teaches it: Josef Gregorian - Undercity".
+- Fix: for recipes from skill 125 the profession panel said "Your trainer teaches it", but only Expert trainers have them (Artisan from 200). It now names the trainers who do, for example Robe of Power: "Not every trainer has it - go to Josef Gregorian - Magic Quarter, Undercity".
 - Fix: Tailoring, Leatherworking and Blacksmithing trainers were one rank too high (an "Expert Tailor" like Magar only teaches up to Journeyman). Corrected from wow-professions.com's WoW Forever trainer lists, and Dalaran, Theramore and Tarren Mill trainers now only show for their own faction.
 - Fix: for Cooking, First Aid and Fishing, Mentor sent you to a trainer for Expert and Artisan, but trainers only teach up to Journeyman. The profession panel and the Journey tab now say where to get them: the Expert book (Expert Cookbook, Expert First Aid - Under Wraps, Expert Fishing - The Bass and You) and the Artisan quest (Clamlette Surprise, Triage, Nat Pagle, Angler Extreme), with the NPC, place, coordinates and what you need.
 

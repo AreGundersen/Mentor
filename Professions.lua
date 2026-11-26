@@ -242,7 +242,10 @@ function professions.GetUnknownRecipeSourceText(recipeName, recipe, professionNa
         if trainers[2] then
             table.insert(trainerTexts, professions.FormatTrainer(trainers[2]))
         end
-        return string.format("An %s trainer teaches it: %s.", neededRank, table.concat(trainerTexts, " or "))
+        -- No rank name here: trainers' titles are one rank above what they
+        -- teach (Josef Gregorian is an "Artisan Tailor" teaching Expert), so
+        -- naming the rank would only confuse.
+        return string.format("Not every trainer has it - go to %s.", table.concat(trainerTexts, " or "))
     end
     return "Your trainer teaches it."
 end

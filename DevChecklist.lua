@@ -22,7 +22,7 @@ Mentor.DevChecklist = devChecklist
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
     { "expertTrainerRecipes", "Recipes that need an Expert trainer",
-        "Tailoring 160-170 without Robe of Power learned: the panel says \"An Expert trainer teaches it\" and names Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance. Check that he really has it. Trainers for the next rank in Tailoring, Leatherworking and Blacksmithing should now be right too." },
+        "Tailoring 160-170 without Robe of Power learned: the panel says \"Not every trainer has it - go to\" Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance. Check that he really has it. Trainers for the next rank in Tailoring, Leatherworking and Blacksmithing should now be right too." },
     { "bestEnchant", "Best enchant in item tooltips",
         "As an enchanter: open your Enchanting window once, then hover bracers, boots, a cloak, chest, gloves, a weapon, a shield. The tooltip says \"Best enchant for <spec>\": the best one you can make, and \"Better: ...\" with trainer or Formula if a better one exists. Do the picks make sense for your spec? Not shown for non-enchanters; Settings > Professions > Best enchant turns it off." },
     { "buildLevels", "Full build shows levels",
@@ -171,6 +171,8 @@ function devChecklist.Toggle()
     end
     if not window then
         CreateWindow()
+        -- A new window starts out shown; hide it so this click opens it.
+        window:Hide()
     end
     if window:IsShown() then
         window:Hide()
