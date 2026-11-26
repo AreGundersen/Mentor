@@ -23,6 +23,8 @@ Mentor.DevChecklist = devChecklist
 local CHECKLIST_ITEMS = {
     { "expertTrainerRecipes", "Recipes that need an Expert trainer",
         "Tailoring 160-170 without Robe of Power learned: the panel says \"An Expert trainer teaches it\" and names Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance. Check that he really has it. Trainers for the next rank in Tailoring, Leatherworking and Blacksmithing should now be right too." },
+    { "bestEnchant", "Best enchant in item tooltips",
+        "As an enchanter: open your Enchanting window once, then hover bracers, boots, a cloak, chest, gloves, a weapon, a shield. The tooltip says \"Best enchant for <spec>\": the best one you can make, and \"Better: ...\" with trainer or Formula if a better one exists. Do the picks make sense for your spec? Not shown for non-enchanters; Settings > Professions > Best enchant turns it off." },
     { "buildLevels", "Full build shows levels",
         "Open the full build: no grey text at the top; one row per level from 10 to 60 with the talent for that point and the rank it reaches (Deflection 1/5, 2/5, ...). Your current level is white, earlier grey, later gold; points you've spent have a check mark, the next one a gold box." },
     -- Tested OK this cycle (removed): Expert/Artisan sources for the secondary

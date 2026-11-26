@@ -104,6 +104,7 @@ local DEFAULT_SETTINGS = {
     isMobKillCountEnabled = true,      -- "You have killed 23" in mob tooltips (Reminders.lua, needs Life log)
     isWeaponSkillReminderEnabled = true, -- weapon skill far below its max (Reminders.lua)
     isTurnInReminderEnabled = true,    -- finished quests you can turn in in this zone (Reminders.lua)
+    isEnchantTipEnabled = true,        -- best enchant for an item, in its tooltip, for enchanters (Enchants.lua)
     areAuctionUpgradesEnabled = true,  -- upgrades among auction house results (AuctionUpgrades.lua)
     areLootRollPicksEnabled = true,    -- Need / Greed advice on loot rolls (LootRolls.lua)
     isProfessionLevelingShown = true,  -- what to craft to level a profession, recipe sources, trainers (Professions.lua)
@@ -1034,6 +1035,7 @@ local SETTINGS_SECTIONS = {
         { "isLifeLogEnabled",         "Life log",      "Your character's story (/mentor log)" },
         { "isProfessionLevelingShown", "Profession leveling", "What to craft to level up, recipes and trainers" },
         { "areCraftableUpgradesEnabled", "Craftable upgrades", "Recipes you know that make you an upgrade" },
+        { "isEnchantTipEnabled",      "Best enchant",  "Enchanters: the best enchant for an item, in its tooltip" },
     } },
     { column = 2, title = "Mana warning", rows = {
         { "isManaWarningEnabled",     "Mana warning",  "Big LOW MANA warning (/mentor mana low 30)" },

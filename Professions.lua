@@ -524,6 +524,15 @@ end
 -- Every recipe in the open window: { name, isKnown, difficulty, itemLink, recipeId, icon }.
 local function GetOpenRecipes()
     local recipes = {}
+    -- Enchanters: remember which enchants this character knows, for the
+    -- "best enchant" line in item tooltips (Enchants.lua).
+    local function RememberIfEnchanting(readRecipes)
+        local professionName = GetOpenProfession and GetOpenProfession()
+        if professionName == "Enchanting" and Mentor.Enchants then
+            pcall(Mentor.Enchants.RememberKnownEnchants, readRecipes)
+        end
+        return readRecipes
+    end
     if C_TradeSkillUI and C_TradeSkillUI.GetAllRecipeIDs then
         local success, recipeIds = pcall(C_TradeSkillUI.GetAllRecipeIDs)
         if success and type(recipeIds) == "table" then
@@ -546,7 +555,7 @@ local function GetOpenRecipes()
                     })
                 end
             end
-            return recipes
+            return RememberIfEnchanting(recipes)
         end
     end
     if GetNumTradeSkills and GetTradeSkillInfo then
@@ -561,7 +570,7 @@ local function GetOpenRecipes()
             end
         end
     end
-    return recipes
+    return RememberIfEnchanting(recipes)
 end
 
 --------------------------------------------------------------------------------
