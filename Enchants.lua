@@ -42,6 +42,12 @@ local EFFECT_PATTERNS = {
     { "damage and healing done by magical spells and effects by up to " .. NUMBER, "SPELLPOWER" },
     { "healing done by spells and effects by up to " .. NUMBER, "HEALING" },
     { "healing spells by up to " .. NUMBER, "HEALING" },
+    -- WoW Forever's own enchants: "increase damage and healing by up to 55".
+    { "damage and healing by up to " .. NUMBER, "SPELLPOWER" },
+    { "healing by up to " .. NUMBER, "HEALING" },
+    { "spell power by " .. NUMBER, "SPELLPOWER" },
+    { "healing power by " .. NUMBER, "HEALING" },
+    { "mana regeneration by " .. NUMBER, "MP5" },
     { "spell damage by up to " .. NUMBER, "SPELLPOWER" },
     { "all stats by " .. NUMBER, "ALLSTATS" },
     { NUMBER .. " mana every 5 sec", "MP5" },
@@ -335,6 +341,26 @@ function enchants.PrintDiagnosis()
     Mentor.Print("Known enchants remembered: " .. (MentorDB.knownEnchantSpellIds and knownCount or "none yet (open Enchanting)"))
     local sampleDescription = GetSpellDescriptionText(13846)     -- Enchant Bracer - Greater Spirit
     Mentor.Print("Sample enchant text: " .. tostring(sampleDescription))
+    -- Enchants for your main-hand weapon whose text Mentor can't read: show
+    -- them so the wording can be added.
+    local mainHandLink = GetInventoryItemLink("player", 16)
+    local mainHandLocation = mainHandLink and Mentor.GetEquipLocation(mainHandLink)
+    if mainHandLocation then
+        for _, recipe in ipairs(Mentor.ENCHANT_RECIPES or {}) do
+            local fitsLocations = EQUIP_LOCATIONS_BY_ENCHANT_SLOT[recipe[3]]
+            if fitsLocations and fitsLocations[mainHandLocation] then
+                local effects = GetEnchantEffects(recipe)
+                if not effects or not next(effects) then
+                    Mentor.Print("Not understood: " .. recipe[3] .. " - " .. recipe[4] .. ": " .. tostring(GetSpellDescriptionText(recipe[1])))
+                end
+            end
+        end
+        if advice and advice.specData then
+            local best = enchants.GetBestEnchants(mainHandLink, advice.specData.weights)
+            Mentor.Print("Your weapon (" .. mainHandLocation .. "): best known "
+                .. tostring(best and best.known and best.known[4]) .. ", better " .. tostring(best and best.better and best.better[4]))
+        end
+    end
     local wristLink = GetInventoryItemLink("player", 9)
     if wristLink and advice and advice.specData then
         local best = enchants.GetBestEnchants(wristLink, advice.specData.weights)
