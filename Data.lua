@@ -11,6 +11,7 @@
 -- guides (Nov 2026), including Protection Paladin, Discipline and Feral (Tank);
 -- Survival follows LudiDeo's 1-60 guide on Mobalytics and Destruction the
 -- Warcraft Tavern leveling guide (Mobalytics has no Destruction order).
+-- Balance was updated for the Nov 25, 2026 rework (see its build).
 -- The addon matches every name against the real tree it reads from the game. Names that do not exist are
 -- skipped, and when a build step cannot be taken the addon suggests the best
 -- learnable talent in your main tree instead. Nothing here can make it
@@ -602,13 +603,17 @@ Mentor.CLASS_DATA = {
                 tips = { "Moonfire and Insect Swarm, then Wrath or Starfire.",
                          "Entangling Roots keeps melee enemies away from you." },
                 build = {
-                    -- Exact leveling order from the Mobalytics WoW Forever Balance Druid guide
-                    {1, "Improved Wrath", 5}, {1, "Moonglow", 3}, {1, "Improved Moonfire", 2},
+                    -- Updated for the Balance rework of Nov 25, 2026: Improved Wrath is now
+                    -- Starlight Wrath, Improved Moonfire is Moon and Stars, Improved Starfire
+                    -- has 2 ranks and Moonfury was replaced by Dreamstate. Early order from
+                    -- talentsforever.com's Balance leveling order (after the hotfix), the
+                    -- 38 Balance / 13 Restoration split from its most played Balance build;
+                    -- Genesis comes before Moonkin Form so the tree has the 30 points it needs.
+                    {1, "Starlight Wrath", 5}, {1, "Moonglow", 3}, {1, "Moon and Stars", 2},
                     {1, "Nature's Majesty", 2}, {1, "Nature's Splendor", 1}, {1, "Nature's Reach", 2},
-                    {1, "Insect Swarm", 1}, {3, "Nature's Focus", 5}, {3, "Reflection", 3},
-                    {1, "Improved Starfire", 4}, {1, "Nature's Grace", 1}, {1, "Eclipse", 3},
-                    {1, "Improved Starfire", 5}, {1, "Moonfury", 5}, {1, "Moonkin Form", 1},
-                    {3, "Naturalist", 5}, {1, "Genesis", 5}, {1, "Vengeance", 2},
+                    {1, "Insect Swarm", 1}, {1, "Vengeance", 5}, {3, "Nature's Focus", 5}, {3, "Reflection", 3},
+                    {1, "Improved Starfire", 2}, {1, "Nature's Grace", 1}, {1, "Eclipse", 3},
+                    {1, "Genesis", 5}, {1, "Moonkin Form", 1}, {3, "Naturalist", 5}, {1, "Dreamstate", 5},
                 },
             },
             {
@@ -639,7 +644,7 @@ Mentor.CLASS_DATA = {
                     {3, "Gift of Nature", 1}, {3, "Swiftmend", 1}, {3, "Gift of Nature", 5},
                     {3, "Nature's Swiftness", 1}, {3, "Living Spirit", 3}, {3, "Improved Rejuvenation", 3},
                     {3, "Improved Tranquility", 2}, {3, "Improved Regrowth", 1}, {3, "Wild Growth", 1},
-                    {1, "Genesis", 5}, {1, "Nature's Majesty", 2}, {1, "Improved Moonfire", 2},
+                    {1, "Genesis", 5}, {1, "Nature's Majesty", 2}, {1, "Moon and Stars", 2},   -- was Improved Moonfire before Nov 25
                     {1, "Moonglow", 1}, {1, "Nature's Splendor", 1}, {3, "Improved Regrowth", 5},
                     {3, "Heart of the Wild", 5},
                 },

@@ -886,7 +886,7 @@ SetSpecGuide("DRUID", 1, {
         spells = { "Moonfire", "Insect Swarm", "Rejuvenation", "Wrath" },
         lines = {
             "Balance can tank several mobs: dot them all, Thorns and heals do the rest.",
-            "Wrath is cheap with Improved Wrath and Moonglow.",
+            "Wrath is cheap with Starlight Wrath and Moonglow.",
         },
     },
     many = {

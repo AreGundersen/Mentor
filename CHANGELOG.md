@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- **Balance Druid build updated for the Nov 25 rework:** Starlight Wrath (was Improved Wrath), Moon and Stars (was Improved Moonfire), Improved Starfire 2/2 and Dreamstate (replaces Moonfury). Restoration's Improved Moonfire is now Moon and Stars too.
 - Fix: the test checklist button needed two clicks after a /reload.
 - **Best enchant (for enchanters):** item tooltips say which enchant is best for that item and your spec - the best one you can make, and a better one you can learn with where it comes from (trainer or the Formula). Covers every released WoW Forever enchant, including Forever's own (Greater Spellpower, Lesser Healing Power, Necklace enchants ...). Open your Enchanting window once so Mentor knows your recipes. Settings > Professions > Best enchant turns it off.
 - **Full build level by level:** the full build lists every level from 10 to 60 with the talent to put that level's point in and the rank it reaches ("15  Deflection 3/5"). The level you are at is white, past levels grey; the explanation text at the top is gone.
