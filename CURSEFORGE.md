@@ -2,10 +2,13 @@
 
 **An all-in-one leveling helper for new WoW Forever players.** Mentor detects your class and spec and tells you what to do next: which talent to take, which gear to wear, how to play your spec, and what to do with the loot you don't need.
 
+Every Mentor window uses WoW's own window frames and tabs, so it looks like part of the game.
+
 ## Talents
 - Your next talent point is marked with a gold **NEXT** frame in the talent window.
 - A strip above the talent window shows where your **next 5 points** go, with talent icons, ranks and the level for each point.
-- Every spec follows a published level-by-level leveling order (mostly the Mobalytics WoW Forever guides). Druids can pick Feral DPS or Feral Tank.
+- The **full build** lists every level from 10 to 60 with the talent to put that point in and the rank it reaches.
+- Every spec follows a published level-by-level leveling order (mostly the Mobalytics WoW Forever guides). Druids can pick Feral DPS or Feral Tank. Balance is updated for the November 25 rework.
 - Switch spec in the Mentor window whenever you like.
 
 ## Gear
@@ -20,12 +23,13 @@
 - Chat alert when you loot an upgrade, the best quest reward marked when you hand in a quest, and Need or Greed marked on group loot rolls.
 
 ## Where next? and reminders
-- **Journey tab:** zones and dungeons for your level and faction, and professions that suit your class.
+- **Journey tab:** zones and dungeons for your level and faction, and professions that suit your class. Each dungeon shows its upgrades for you and the **quests to pick up before you go in**, with who gives them and where.
+- **Quest turn-ins:** when you are in a zone where finished quests can be turned in, Mentor says how many and to whom.
 - **Weapons tab:** every weapon type your class can learn, which you already know, and which weapon master teaches the rest.
 - **Reputation tab:** your factions, how far you are, what each faction gives you, and quartermaster gear that is an upgrade for you with the reputation it needs.
 - **Spells tab:** new spells and new ranks as you level. Open your class trainer once and Mentor shows the **rank and price** of each (your reputation discount included), which ones your spec should train ("Train now!") and which are optional, and what training costs right now.
-- **Reminders** (on by default): new spells at your class trainer when you level up, low ammo or reagents when you leave town, almost broken gear, professions that need a trainer, empty bag slots, and a weapon skill far below its maximum.
-- **Dungeon tips:** a short tip about the dungeon and your role when you enter one.
+- **Reminders** (on by default): new spells at your class trainer when you level up, low ammo, Soul Shards or reagents (Ankh, runes, Arcane Powder, Blinding Powder, Fish Oil and more) when you leave town, almost broken gear, professions that need a trainer, empty bag slots, and a weapon skill far below its maximum.
+- **Dungeon tips:** a short tip about the dungeon and your role when you enter one, the best gear for you in it, and the quests for it you haven't picked up.
 - **Mob warnings:** the mob tooltip says when a mob is elite or far above your level, and how many of it you have killed.
 - **Help tips:** what to do when you die, and where to log out for rested XP.
 - **Words tab:** what aggro, pull, CC, wipe, OOM and other words in group chat mean.
@@ -46,9 +50,11 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 
 ## Professions
 - Next to the profession window: **which of your recipes make you an upgrade**.
-- **What to craft to level up** each profession (where to get the recipe if you don't have it, and what to craft meanwhile), from Wowhead's WoW Forever leveling guides, also in the Journey tab.
-- **Where the trainers are**: when your skill is stuck at its cap, Mentor names a trainer for the next rank, with the place and map coordinates.
+- **What to craft to level up** each profession, from Wowhead's WoW Forever leveling guides, also in the Journey tab. If you don't have the recipe yet, Mentor says where it comes from: the vendor who sells the pattern, or the trainer who has it (not every trainer teaches everything), and what to craft meanwhile.
+- **Where the trainers are**: when your skill is stuck at its cap, Mentor names a trainer for the next rank, with the place and map coordinates. For Cooking, First Aid and Fishing it names the Expert book and the Artisan quest instead.
 - **Your materials and tools**: what you carry for your recipes, what you can craft right now that still gives skill, and which profession tools you have or are missing (and where to get them).
+- **Worth selling:** Mentor remembers the prices you see on the auction house and lists the crafts that sell for more than their materials cost.
+- **Best enchant (enchanters):** item tooltips show the best enchant for that item and your spec, which one you can make, and a better one you can learn. In the trade window, an item put in "Will not be traded" shows the best enchant for each spec of the other player's class.
 
 ## How to play
 - Rotation, 1 mob, 2 mobs, 3+ mobs, pet and "in trouble" advice for every spec, including Feral Tank.
@@ -75,6 +81,7 @@ Everything can be turned on or off in the Settings window (`/mentor settings`), 
 - `/mentor words` - what the words in group chat mean
 - `/mentor upgrades` - where to get upgrades: dungeons, quests and vendors
 - `/mentor trainer` - what Mentor read at your class trainer (ranks and prices)
+- `/mentor enchant` - what the best-enchant tooltip sees (for enchanters)
 - `/mentor version` - which Mentor version you have
 - `/mentor procs test` - show an example proc alert
 - `/mentor tour` - the short tour again
