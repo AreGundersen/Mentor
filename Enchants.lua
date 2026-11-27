@@ -321,6 +321,112 @@ if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and
     end)
 end
 
+--------------------------------------------------------------------------------
+-- Trade window: enchanting for someone else
+--------------------------------------------------------------------------------
+-- When the other player puts an item in "Will not be traded" (trade slot 7),
+-- a small panel beside the trade window shows the best enchant for that item
+-- for each spec of their class (Mentor can't see their spec), with specs that
+-- get the same answer shown together.
+local ENCHANT_TRADE_SLOT = 7          -- the "Will not be traded" slot
+local TRADE_PANEL_WIDTH = 300
+local tradePanel
+
+local function GetTradePanel()
+    if tradePanel then
+        return tradePanel
+    end
+    tradePanel = CreateFrame("Frame", "MentorTradeEnchantPanel", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    tradePanel:SetWidth(TRADE_PANEL_WIDTH)
+    tradePanel:SetFrameStrata("HIGH")
+    if tradePanel.SetBackdrop and Mentor.BOX_BACKDROP then
+        tradePanel:SetBackdrop(Mentor.BOX_BACKDROP)
+        tradePanel:SetBackdropColor(0.05, 0.05, 0.07, 0.95)
+        tradePanel:SetBackdropBorderColor(GOLD[1], GOLD[2], GOLD[3], 0.9)
+    end
+    tradePanel.title = tradePanel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    tradePanel.title:SetPoint("TOPLEFT", 10, -10)
+    tradePanel.title:SetWidth(TRADE_PANEL_WIDTH - 20)
+    tradePanel.title:SetJustifyH("LEFT")
+    tradePanel.body = tradePanel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    tradePanel.body:SetPoint("TOPLEFT", tradePanel.title, "BOTTOMLEFT", 0, -6)
+    tradePanel.body:SetWidth(TRADE_PANEL_WIDTH - 20)
+    tradePanel.body:SetJustifyH("LEFT")
+    tradePanel.body:SetSpacing(3)
+    tradePanel:Hide()
+    return tradePanel
+end
+
+-- "Enchant Bracer - Strength (you can make it)" for one spec's best result.
+local function DescribeBestForTrade(best)
+    if not best then
+        return "|cffa6a6a6no enchant helps this spec|r"
+    end
+    if best.known then
+        local text = "|cffffffff" .. best.known[4] .. "|r - you can make it"
+        if best.better then
+            text = text .. "\n     |cffa6a6a6better: " .. best.better[4] .. " (" .. GetRecipeSourceText(best.better) .. ")|r"
+        end
+        return text
+    end
+    return "|cffffffff" .. best.better[4] .. "|r |cffa6a6a6- you don't know it (" .. GetRecipeSourceText(best.better) .. ")|r"
+end
+
+function enchants.RefreshTradePanel()
+    local panel = GetTradePanel()
+    local tradeFrame = _G.TradeFrame
+    local itemLink = GetTradeTargetItemLink and GetTradeTargetItemLink(ENCHANT_TRADE_SLOT)
+    if not (MentorDB and MentorDB.isEnchantTipEnabled ~= false) or not IsEnchanter()
+        or not itemLink or not tradeFrame or not tradeFrame:IsShown() then
+        panel:Hide()
+        return
+    end
+    local partnerName = UnitName("NPC") or "them"
+    local _, partnerClassFileName = UnitClass("NPC")
+    local classData = partnerClassFileName and Mentor.CLASS_DATA and Mentor.CLASS_DATA[partnerClassFileName]
+    if not classData then
+        panel:Hide()
+        return
+    end
+    -- One line per different answer: "Arms, Fury: ...".
+    local lines, lineIndexByText = {}, {}
+    for _, specData in ipairs(classData.specs) do
+        local resultText = DescribeBestForTrade(enchants.GetBestEnchants(itemLink, specData.weights))
+        local lineIndex = lineIndexByText[resultText]
+        if lineIndex then
+            lines[lineIndex].specNames = lines[lineIndex].specNames .. ", " .. specData.name
+        else
+            table.insert(lines, { specNames = specData.name, text = resultText })
+            lineIndexByText[resultText] = #lines
+        end
+    end
+    local bodyLines = {}
+    for _, line in ipairs(lines) do
+        table.insert(bodyLines, "|cffffd100" .. line.specNames .. ":|r " .. line.text)
+    end
+    local className = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[partnerClassFileName]) or partnerClassFileName
+    panel.title:SetText(string.format("Best enchant for %s (%s)", partnerName, className))
+    panel.body:SetText(table.concat(bodyLines, "\n"))
+    panel:ClearAllPoints()
+    panel:SetPoint("TOPLEFT", tradeFrame, "TOPRIGHT", 4, 0)
+    panel:SetHeight(10 + (panel.title:GetStringHeight() or 14) + 6 + (panel.body:GetStringHeight() or 14) + 12)
+    panel:Show()
+end
+
+local tradeEventFrame = CreateFrame("Frame")
+for _, eventName in ipairs({ "TRADE_SHOW", "TRADE_CLOSED", "TRADE_TARGET_ITEM_CHANGED", "TRADE_UPDATE" }) do
+    tradeEventFrame:RegisterEvent(eventName)
+end
+tradeEventFrame:SetScript("OnEvent", function(_, eventName)
+    if eventName == "TRADE_CLOSED" then
+        if tradePanel then
+            tradePanel:Hide()
+        end
+        return
+    end
+    pcall(enchants.RefreshTradePanel)
+end)
+
 -- /mentor enchant: why the tooltip shows (or doesn't show) a best enchant,
 -- using the bracers you wear.
 function enchants.PrintDiagnosis()
