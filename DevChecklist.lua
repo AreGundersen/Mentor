@@ -36,6 +36,8 @@ local CHECKLIST_ITEMS = {
         "At Enchanting or Engineering skill cap 150 or 225: \"Trainers for Expert/Artisan\" names Hgarth / Kitta Firewind (Enchanting Expert), Annora in Uldaman (Enchanting Artisan), Roxxik / Springspindle (Engineering Expert)." },
     { "routeUpdates", "Updated profession routes",
         "Enchanting 200: the next step is Runed Truesilver Rod. Leatherworking 225: Rugged Armor Kit. Cooking 50: Longjaw Mud Snapper names the seller for your faction." },
+    { "checklistStaysOpen", "Test checklist stays open",
+        "Open this list, then open the talent tree (N) and the spellbook: the list stays open. X and /mentor check still close it (Escape no longer does)." },
     -- Still open from earlier
     { "expertTrainerRecipes", "Recipes that need a higher trainer",
         "Tailoring 160-170 without Robe of Power learned: the panel says \"Not every trainer has it - go to\" Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance." },
@@ -176,9 +178,9 @@ local function CreateWindow()
         MentorAccountDB.devChecklist = nil
         RefreshWindow()
     end)
-    if UISpecialFrames then
-        table.insert(UISpecialFrames, "MentorDevChecklist")
-    end
+    -- Not in UISpecialFrames on purpose: WoW closes those frames when a big
+    -- window like the talent tree opens, and the list should stay open while
+    -- Are tests talents. Close it with X or /mentor check.
 end
 
 function devChecklist.Toggle()
