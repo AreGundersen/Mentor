@@ -41,6 +41,19 @@ local REAGENT_CHECKS = {
     { "MAGE", "Teleport: Orgrimmar", 17031, "Rune of Teleportation", 1 },
     { "MAGE", "Teleport: Undercity", 17031, "Rune of Teleportation", 1 },
     { "MAGE", "Teleport: Thunder Bluff", 17031, "Rune of Teleportation", 1 },
+    { "MAGE", "Portal: Stormwind", 17032, "Rune of Portals", 1 },
+    { "MAGE", "Portal: Ironforge", 17032, "Rune of Portals", 1 },
+    { "MAGE", "Portal: Darnassus", 17032, "Rune of Portals", 1 },
+    { "MAGE", "Portal: Orgrimmar", 17032, "Rune of Portals", 1 },
+    { "MAGE", "Portal: Undercity", 17032, "Rune of Portals", 1 },
+    { "MAGE", "Portal: Thunder Bluff", 17032, "Rune of Portals", 1 },
+    { "MAGE", "Arcane Brilliance", 17020, "Arcane Powder", 5 },
+    { "MAGE", "Slow Fall", 17056, "Light Feathers", 5 },
+    { "ROGUE", "Blind", 5530, "Blinding Powder", 2 },
+    { "PALADIN", "Divine Intervention", 17033, "Symbol of Divinity", 1 },
+    { "SHAMAN", "Water Walking", 17058, "Fish Oil", 2 },
+    { "SHAMAN", "Water Breathing", 17057, "Shiny Fish Scales", 2 },
+    { "WARLOCK", "Ritual of Summoning", 6265, "Soul Shards", 3 },
 }
 
 local reminders = {}

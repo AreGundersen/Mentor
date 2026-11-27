@@ -5,6 +5,8 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- **More reagent reminders** when you leave town: Rune of Portals, Arcane Powder and Light Feathers (mage), Blinding Powder (rogue), Symbol of Divinity (paladin), Fish Oil and Shiny Fish Scales (shaman), and Soul Shards for Ritual of Summoning.
+- **Trade window - best enchant for others:** when someone puts an item in "Will not be traded", a panel beside the trade window shows the best enchant for that item for each spec of their class, and whether you can make it.
 - Fix: Enchanting and Engineering trainers were one rank too high too (Enchanting's Expert trainers are Hgarth and Kitta Firewind, Artisan is Annora in Uldaman); Alchemy was right.
 - Profession routes rechecked against Wowhead's WoW Forever guides: Enchanting makes a Runed Truesilver Rod at 200, Leatherworking uses Rugged Armor Kit at 225, Longjaw Mud Snapper names the Horde and Alliance sellers, and Lesser Mana Oil also names Lokhtos Darkbargainer.
 - **Balance Druid build updated for the Nov 25 rework:** Starlight Wrath (was Improved Wrath), Moon and Stars (was Improved Moonfire), Improved Starfire 2/2 and Dreamstate (replaces Moonfury). Restoration's Improved Moonfire is now Moon and Stars too.
