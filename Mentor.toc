@@ -39,6 +39,7 @@ Enchants.lua
 Journey.lua
 DungeonLoot.lua
 DungeonQuests.lua
+DungeonQuestStarts.lua
 QuestTurnIns.lua
 EnchantRecipes.lua
 VendorGear.lua

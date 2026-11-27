@@ -668,7 +668,7 @@ local function FillRow(row, entry)
     local rankSuffix = entry.rank and (MUTED_TEXT .. "  Rank " .. entry.rank .. "|r") or ""
     row.nameText:SetText(nameColor .. entry.name .. "|r" .. rankSuffix)
     local hasPrice = entry.cost and entry.cost > 0 and Mentor.FormatMoneyWithIcons
-    row.priceText:SetText(hasPrice and Mentor.FormatMoneyWithIcons(entry.cost) or "")
+    row.priceText:SetText(hasPrice and Mentor.FormatMoneyWithIcons(entry.cost) or (entry.secondTag or ""))
 
     local tagByKind = {
         train     = ORANGE_TEXT .. "Train now!|r",

@@ -110,6 +110,91 @@ local DUNGEONS = {
 -- Shared with Upgrades.lua (where to get gear upgrades).
 journey.DUNGEONS = DUNGEONS
 
+--------------------------------------------------------------------------------
+-- Quests to pick up before a dungeon
+--------------------------------------------------------------------------------
+local MAX_QUESTS_IN_TOOLTIP = 8
+local SIDE_ALLIANCE, SIDE_HORDE = 1, 2
+
+local function IsQuestDone(questId)
+    if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+        local isSuccess, isDone = pcall(C_QuestLog.IsQuestFlaggedCompleted, questId)
+        return isSuccess and isDone == true
+    end
+    return false
+end
+
+local function IsQuestInLog(questId)
+    if C_QuestLog and C_QuestLog.GetLogIndexForQuestID then
+        local isSuccess, logIndex = pcall(C_QuestLog.GetLogIndexForQuestID, questId)
+        return isSuccess and logIndex ~= nil
+    end
+    return false
+end
+
+-- The quests for a dungeon you can still do: { { name, starter, zone, isInLog }, ... }.
+-- Classic dungeons use DungeonQuestStarts.lua (who starts them); WoW
+-- Forever's own dungeons only have the quests in DungeonQuests.lua (no starter).
+function journey.GetDungeonQuests(dungeonName)
+    local playerFaction = UnitFactionGroup and UnitFactionGroup("player")
+    local playerSide = playerFaction == "Alliance" and SIDE_ALLIANCE or playerFaction == "Horde" and SIDE_HORDE or nil
+    local playerLevel = UnitLevel and UnitLevel("player") or 1
+    local openQuests, seenQuestNames = {}, {}
+    local function AddQuest(questId, questName, side, minimumLevel, starterName, starterZone)
+        if seenQuestNames[questName] or (side ~= 3 and side ~= playerSide) then
+            return
+        end
+        if (minimumLevel or 1) > playerLevel or IsQuestDone(questId) then
+            return
+        end
+        seenQuestNames[questName] = true
+        table.insert(openQuests, { name = questName, starter = starterName, zone = starterZone, isInLog = IsQuestInLog(questId) })
+    end
+    for _, quest in ipairs(Mentor.DUNGEON_QUEST_STARTS and Mentor.DUNGEON_QUEST_STARTS[dungeonName] or {}) do
+        AddQuest(quest[1], quest[2], quest[3], quest[4], quest[5], quest[6])
+    end
+    if #openQuests == 0 and not (Mentor.DUNGEON_QUEST_STARTS and Mentor.DUNGEON_QUEST_STARTS[dungeonName]) then
+        for _, quest in ipairs(Mentor.DUNGEON_QUESTS and Mentor.DUNGEON_QUESTS[dungeonName] or {}) do
+            AddQuest(quest[1], quest[2], quest[3], 1, nil, nil)
+        end
+    end
+    return openQuests
+end
+
+-- Tooltip lines: quests in your log first, then where to pick up the others.
+local function GetDungeonQuestLines(openQuests)
+    local questLines = {}
+    if #openQuests == 0 then
+        return questLines
+    end
+    table.insert(questLines, "|cffffd100Quests for this dungeon:|r")
+    table.sort(openQuests, function(first, second)
+        if first.isInLog ~= second.isInLog then
+            return first.isInLog
+        end
+        return first.name < second.name
+    end)
+    for questIndex = 1, math.min(MAX_QUESTS_IN_TOOLTIP, #openQuests) do
+        local quest = openQuests[questIndex]
+        if quest.isInLog then
+            table.insert(questLines, "|cff40ff40" .. quest.name .. "|r |cffa6a6a6(in your quest log)|r")
+        elseif quest.starter and quest.starter:find("^item: ") then
+            -- Started by an item that drops inside the dungeon.
+            table.insert(questLines, "|cffffffff" .. quest.name .. "|r |cffa6a6a6- starts from "
+                .. quest.starter:sub(7) .. " (drops inside)|r")
+        elseif quest.starter then
+            table.insert(questLines, "|cffffffff" .. quest.name .. "|r |cffa6a6a6- " .. quest.starter
+                .. (quest.zone ~= "" and (", " .. quest.zone) or "") .. "|r")
+        else
+            table.insert(questLines, "|cffffffff" .. quest.name .. "|r")
+        end
+    end
+    if #openQuests > MAX_QUESTS_IN_TOOLTIP then
+        table.insert(questLines, string.format("|cffa6a6a6... and %d more|r", #openQuests - MAX_QUESTS_IN_TOOLTIP))
+    end
+    return questLines
+end
+
 -- What to do in a dungeon for each role (from your spec in Data.lua).
 local ROLE_TIPS = {
     ["Tank"] = "You lead: mark targets, pull one pack at a time and keep threat on everything.",
@@ -282,11 +367,25 @@ function journey.GetEntries(advice)
         local upgradeTag = #dungeonUpgrades > 0 and string.format("|cff40ff40%d upgrade%s|r", #dungeonUpgrades,
             #dungeonUpgrades == 1 and "" or "s") or "|cff808080no upgrades|r"
         local tooltipLines = { dungeon[6] }
+        -- Quests to pick up before going in, and who gives them.
+        local openQuests = journey.GetDungeonQuests(dungeon[1])
+        local questsNotPickedUp = 0
+        for _, quest in ipairs(openQuests) do
+            if not quest.isInLog then
+                questsNotPickedUp = questsNotPickedUp + 1
+            end
+        end
+        for _, questLine in ipairs(GetDungeonQuestLines(openQuests)) do
+            table.insert(tooltipLines, questLine)
+        end
+        -- Under the upgrade count: how many quests you haven't picked up yet.
+        local questTag = questsNotPickedUp > 0
+            and string.format("|cffffd100%d quest%s|r", questsNotPickedUp, questsNotPickedUp == 1 and "" or "s") or nil
         if #dungeonUpgrades > 0 then
             table.insert(tooltipLines, "|cff40ff40Click to see the upgrades.|r")
         end
         return { kind = "journey", name = dungeon[1], icon = DUNGEON_ICON, levelText = FormatLevelRange(dungeon[2], dungeon[3]),
-            tag = upgradeTag, description = dungeon[5], tooltipLines = tooltipLines,
+            tag = upgradeTag, secondTag = questTag, description = dungeon[5], tooltipLines = tooltipLines,
             onClick = #dungeonUpgrades > 0 and function() Mentor.Upgrades.ShowDungeon(dungeon[1]) end or nil }
     end)
 
@@ -348,6 +447,17 @@ function journey.ShowDungeonTip()
             end
             if #upgradeTexts > 0 then
                 Mentor.Print("Look out for: " .. table.concat(upgradeTexts, ", "))
+            end
+            -- Quests for this dungeon you could have picked up but didn't.
+            local missedQuestNames = {}
+            for _, quest in ipairs(journey.GetDungeonQuests(dungeon[1])) do
+                if not quest.isInLog and quest.starter and not quest.starter:find("^item:") then
+                    table.insert(missedQuestNames, quest.name .. " (" .. quest.starter .. ")")
+                end
+            end
+            if #missedQuestNames > 0 then
+                Mentor.Print("Quests for here you haven't picked up: " .. table.concat(missedQuestNames, ", ", 1, math.min(4, #missedQuestNames))
+                    .. (#missedQuestNames > 4 and string.format(" and %d more", #missedQuestNames - 4) or ""))
             end
             return
         end
