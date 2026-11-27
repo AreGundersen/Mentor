@@ -735,6 +735,84 @@ function professions.GetMaterialsAndCraftable(recipes)
     return materials, craftable
 end
 
+--------------------------------------------------------------------------------
+-- Worth selling: crafts that earn more on the auction house than their
+-- materials cost, from the prices Mentor remembered from your auction house
+-- searches (AuctionUpgrades.lua).
+--------------------------------------------------------------------------------
+local AUCTION_HOUSE_CUT = 0.05              -- the auction house keeps 5% of a sale
+local MAX_PROFIT_LINES = 3
+local SECONDS_PER_DAY = 86400
+-- Materials sold by vendors (thread, vials, flux, spices, dyes ...): never on
+-- the auction house list, so their price is the vendor price (4x what a
+-- vendor pays you for one).
+local VENDOR_MATERIAL_IDS = {
+    [2320] = true, [2321] = true, [4291] = true, [8343] = true, [14341] = true,   -- thread
+    [3371] = true, [3372] = true, [8925] = true, [18256] = true,                  -- vials
+    [2880] = true, [3466] = true,                                                 -- flux
+    [2678] = true, [2692] = true, [3713] = true, [2665] = true,                   -- spices
+    [2324] = true, [2604] = true, [2605] = true, [2325] = true, [4340] = true,    -- bleach, dyes
+    [4341] = true, [4342] = true, [6260] = true, [6261] = true, [10290] = true,
+    [4470] = true, [4399] = true, [4400] = true,                                  -- wood, charges
+}
+local VENDOR_PRICE_FACTOR = 4
+
+local function GetItemIdFromLink(itemLink)
+    return itemLink and tonumber(itemLink:match("item:(%d+)"))
+end
+
+-- What one of these materials costs: the remembered auction price, or the
+-- vendor price for vendor materials; nil when unknown.
+local function GetMaterialCost(itemId)
+    local auctionUpgrades = Mentor.AuctionUpgrades
+    local auctionPrice = auctionUpgrades and auctionUpgrades.GetRememberedPrice(itemId)
+    if auctionPrice then
+        return auctionPrice
+    end
+    if VENDOR_MATERIAL_IDS[itemId] and C_Item and C_Item.GetItemInfo then
+        local sellPrice = select(11, C_Item.GetItemInfo(itemId))
+        if sellPrice and sellPrice > 0 then
+            return sellPrice * VENDOR_PRICE_FACTOR
+        end
+    end
+    return nil
+end
+
+-- Known recipes that make money: { { recipe, sellPrice, materialCost, profit } }
+-- (most profit first), and how many days old the oldest price used is.
+-- hasAnyPrice tells whether Mentor has seen any of the crafted items' prices.
+function professions.GetProfitableCrafts(recipes)
+    local profitableCrafts, oldestSeenAt, hasAnyPrice = {}, nil, false
+    local auctionUpgrades = Mentor.AuctionUpgrades
+    if not auctionUpgrades then
+        return profitableCrafts, nil, false
+    end
+    for _, recipe in ipairs(recipes) do
+        local productItemId = recipe.isKnown and GetItemIdFromLink(recipe.itemLink)
+        local sellPrice, sellSeenAt = auctionUpgrades.GetRememberedPrice(productItemId)
+        if sellPrice then
+            hasAnyPrice = true
+            local materialCost, isEveryCostKnown = 0, true
+            for _, reagent in ipairs(GetRecipeReagents(recipe)) do
+                local cost = GetMaterialCost(reagent[1])
+                if not cost then
+                    isEveryCostKnown = false
+                    break
+                end
+                materialCost = materialCost + cost * reagent[2]
+            end
+            local profit = sellPrice * (1 - AUCTION_HOUSE_CUT) - materialCost
+            if isEveryCostKnown and profit > 0 then
+                table.insert(profitableCrafts, { recipe = recipe, sellPrice = sellPrice, materialCost = materialCost, profit = profit })
+                oldestSeenAt = math.min(oldestSeenAt or sellSeenAt, sellSeenAt)
+            end
+        end
+    end
+    table.sort(profitableCrafts, function(first, second) return first.profit > second.profit end)
+    local oldestDays = oldestSeenAt and math.floor((time() - oldestSeenAt) / SECONDS_PER_DAY) or nil
+    return profitableCrafts, oldestDays, hasAnyPrice
+end
+
 local function GetItemNameAndIcon(itemId)
     local getItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
     local isSuccess, itemName, _, _, _, _, _, _, _, _, itemIcon = pcall(getItemInfo, itemId)
@@ -900,6 +978,9 @@ local function CreatePanel()
     panel.materialsHeader = CreateTextLine(panel, "GameFontNormalSmall")
     panel.materialsHeader:SetText("Your materials")
     panel.materialsText = CreateTextLine(panel)
+    panel.profitHeader = CreateTextLine(panel, "GameFontNormalSmall")
+    panel.profitHeader:SetText("Worth selling")
+    panel.profitText = CreateTextLine(panel)
     panel.toolsHeader = CreateTextLine(panel, "GameFontNormalSmall")
     panel.toolsHeader:SetText("Tools")
     panel.toolsText = CreateTextLine(panel)
@@ -1090,6 +1171,32 @@ function professions.RefreshPanel()
     panel.materialsText:Hide()
     panel.toolsHeader:Hide()
     panel.toolsText:Hide()
+    panel.profitHeader:Hide()
+    panel.profitText:Hide()
+    -- Worth selling: your crafts that earn more on the auction house than
+    -- their materials cost (setting "Worth selling").
+    if MentorDB and MentorDB.isCraftProfitEnabled ~= false then
+        local profitableCrafts, oldestDays, hasAnyPrice = professions.GetProfitableCrafts(recipes)
+        local profitLines = {}
+        local FormatMoney = Mentor.FormatMoneyWithIcons or function(copper) return tostring(copper) end
+        for craftIndex = 1, math.min(MAX_PROFIT_LINES, #profitableCrafts) do
+            local craft = profitableCrafts[craftIndex]
+            table.insert(profitLines, string.format("%s  |cff40ff40+%s|r |cffa6a6a6(sells %s, materials %s)|r",
+                craft.recipe.name, FormatMoney(math.floor(craft.profit)), FormatMoney(craft.sellPrice), FormatMoney(math.floor(craft.materialCost))))
+        end
+        if #profitLines > 0 then
+            table.insert(profitLines, string.format("|cffa6a6a6Prices from your auction house searches%s.|r",
+                (oldestDays or 0) > 0 and string.format(", up to %d day%s old", oldestDays, oldestDays == 1 and "" or "s") or ""))
+        elseif hasAnyPrice then
+            table.insert(profitLines, "|cffa6a6a6Nothing you make sells for more than its materials (or the material prices are unknown - search for them on the auction house).|r")
+        else
+            table.insert(profitLines, "|cffa6a6a6Search the auction house for what you craft and its materials: Mentor remembers the prices and shows here what is worth selling.|r")
+        end
+        verticalOffset = verticalOffset - 6
+        Place(panel.profitHeader, 16)
+        panel.profitText:SetText(table.concat(profitLines, "\n"))
+        Place(panel.profitText, (panel.profitText:GetStringHeight() or 12) + 4)
+    end
     if isLevelingShown then
         local materials, craftable = professions.GetMaterialsAndCraftable(recipes)
         local materialLines = {}

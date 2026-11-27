@@ -72,6 +72,50 @@ end
 
 -- The upgrades among the current results: best first, the cheapest auction
 -- of each item, one per slot.
+--------------------------------------------------------------------------------
+-- Price memory: the lowest buyout seen for each item, per realm, so the
+-- profession panel can tell which crafts are worth selling (Professions.lua).
+--   MentorAccountDB.auctionPrices[realm][itemId] = { price = copper, seenAt = time() }
+--------------------------------------------------------------------------------
+local function GetItemIdFromLink(itemLink)
+    return itemLink and tonumber(itemLink:match("item:(%d+)"))
+end
+
+local function GetRealmPrices()
+    MentorAccountDB = MentorAccountDB or {}
+    MentorAccountDB.auctionPrices = MentorAccountDB.auctionPrices or {}
+    local realmName = GetRealmName and GetRealmName() or "realm"
+    MentorAccountDB.auctionPrices[realmName] = MentorAccountDB.auctionPrices[realmName] or {}
+    return MentorAccountDB.auctionPrices[realmName]
+end
+
+-- A search shows the current lowest prices: they replace what was remembered.
+function auctionUpgrades.RememberPrices(results)
+    local realmPrices = GetRealmPrices()
+    local lowestInThisSearch = {}
+    for _, auction in ipairs(results) do
+        local itemId = GetItemIdFromLink(auction.itemLink)
+        local buyoutPrice = auction.buyoutPrice
+        if itemId and buyoutPrice and buyoutPrice > 0 and not (issecretvalue and issecretvalue(buyoutPrice)) then
+            if not lowestInThisSearch[itemId] or buyoutPrice < lowestInThisSearch[itemId] then
+                lowestInThisSearch[itemId] = buyoutPrice
+            end
+        end
+    end
+    for itemId, lowestPrice in pairs(lowestInThisSearch) do
+        realmPrices[itemId] = { price = lowestPrice, seenAt = time() }
+    end
+end
+
+-- The remembered price of an item: price in copper and when it was seen, or nil.
+function auctionUpgrades.GetRememberedPrice(itemId)
+    local remembered = itemId and GetRealmPrices()[itemId]
+    if remembered then
+        return remembered.price, remembered.seenAt
+    end
+    return nil
+end
+
 function auctionUpgrades.FindUpgrades(results)
     local weights = GetWeights()
     if not (weights and Mentor.CompareItem) then
@@ -212,7 +256,18 @@ end
 
 function auctionUpgrades.Refresh()
     local auctionWindow = GetAuctionWindow()
-    if not (auctionWindow and auctionWindow:IsShown()) or not IsEnabled() then
+    local isAuctionWindowOpen = auctionWindow and auctionWindow:IsShown()
+    local results = {}
+    if isAuctionWindowOpen then
+        results = ReadModernResults()
+        if #results == 0 then
+            results = ReadClassicResults()
+        end
+        -- Remembered for "Worth selling" in the profession panel, also when
+        -- the upgrade panel is turned off.
+        pcall(auctionUpgrades.RememberPrices, results)
+    end
+    if not isAuctionWindowOpen or not IsEnabled() then
         if panel then
             panel:Hide()
         end
@@ -220,10 +275,6 @@ function auctionUpgrades.Refresh()
     end
     if not panel then
         CreatePanel(auctionWindow)
-    end
-    local results = ReadModernResults()
-    if #results == 0 then
-        results = ReadClassicResults()
     end
     for _, upgrade in ipairs(auctionUpgrades.FindUpgrades(results)) do
         local seenUpgrade = upgradesSeenThisVisit[upgrade.itemLink]

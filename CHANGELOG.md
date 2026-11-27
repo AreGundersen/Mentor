@@ -5,6 +5,7 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- **Worth selling:** Mentor remembers the prices you see when you search the auction house (per realm), and the profession panel lists the crafts you know that sell for more than their materials cost, with the profit after the auction house cut. Thread, vials, flux, spices and dyes count at the vendor price. Settings > Professions > Worth selling.
 - **Dungeon quests:** in the Journey tab, each dungeon shows how many of its quests you haven't picked up, and its tooltip lists them with who gives them and where (quests in your log in green). When you enter a dungeon, Mentor names the quests for it you haven't picked up. 262 quests for the classic dungeons, from Questie's data.
 - **More reagent reminders** when you leave town: Rune of Portals, Arcane Powder and Light Feathers (mage), Blinding Powder (rogue), Symbol of Divinity (paladin), Fish Oil and Shiny Fish Scales (shaman), and Soul Shards for Ritual of Summoning.
 - **Trade window - best enchant for others:** when someone puts an item in "Will not be traded", a panel beside the trade window shows the best enchant for that item for each spec of their class, and whether you can make it.
