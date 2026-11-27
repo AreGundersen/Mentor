@@ -5,6 +5,8 @@ number is only given when Are decides the release is finished (see
 `RELEASING.md`).
 
 ## Unreleased
+- Fix: Enchanting and Engineering trainers were one rank too high too (Enchanting's Expert trainers are Hgarth and Kitta Firewind, Artisan is Annora in Uldaman); Alchemy was right.
+- Profession routes rechecked against Wowhead's WoW Forever guides: Enchanting makes a Runed Truesilver Rod at 200, Leatherworking uses Rugged Armor Kit at 225, Longjaw Mud Snapper names the Horde and Alliance sellers, and Lesser Mana Oil also names Lokhtos Darkbargainer.
 - **Balance Druid build updated for the Nov 25 rework:** Starlight Wrath (was Improved Wrath), Moon and Stars (was Improved Moonfire), Improved Starfire 2/2 and Dreamstate (replaces Moonfury). Restoration's Improved Moonfire is now Moon and Stars too.
 - Fix: the test checklist button needed two clicks after a /reload.
 - **Best enchant (for enchanters):** item tooltips say which enchant is best for that item and your spec - the best one you can make, and a better one you can learn with where it comes from (trainer or the Formula). Covers every released WoW Forever enchant, including Forever's own (Greater Spellpower, Lesser Healing Power, Necklace enchants ...). Open your Enchanting window once so Mentor knows your recipes. Settings > Professions > Best enchant turns it off.

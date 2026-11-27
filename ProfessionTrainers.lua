@@ -9,8 +9,9 @@
 -- theirs come from the trainers' Wowhead WoW Forever NPC pages (zone,
 -- coordinates). A trainer's title is one rank above what they teach (an
 -- "Expert Tailor" teaches up to Journeyman), so the ranks of Tailoring,
--- Leatherworking and Blacksmithing were corrected from wow-professions.com's
--- WoW Forever trainer lists (Nov 2026).
+-- Leatherworking, Blacksmithing, Enchanting and Engineering were corrected
+-- from wow-professions.com's WoW Forever trainer lists (Nov 2026); Alchemy
+-- was already right.
 -- Cooking, First Aid and Fishing trainers only teach up to Journeyman (skill
 -- 150): Expert comes from a book and Artisan from a quest (see
 -- PROFESSION_RANK_SOURCES at the end).
@@ -50,22 +51,23 @@ Mentor.PROFESSION_TRAINERS = {
         { "Neutral", "Artisan", "Master Mycologist Shurome", "Emerald Sanctuary", "51.4 82.0" },
     },
     ["Enchanting"] = {
-        { "Alliance", "Journeyman", "Alanna Raveneye", "The Oracle Glade, Teldrassil", "36.6 34.2" },
-        { "Alliance", "Journeyman", "Thonys Pillarstone", "Thistlefuzz Arcanery, Ironforge", "60.6 44.0" },
-        { "Alliance", "Journeyman", "Betty Quin", "Mage Quarter, Stormwind", "43.0 64.0" },
-        { "Alliance", "Journeyman", "Lalina Summermoon", "Craftsmen's Terrace, Darnassus", "59.6 12.6" },
-        { "Alliance", "Expert", "Lucan Cordell", "Mage Quarter, Stormwind", "43.0 64.2" },
-        { "Alliance", "Expert", "Gimble Thistlefuzz", "Thistlefuzz Arcanery, Ironforge", "60.0 45.2" },
-        { "Alliance", "Expert", "Xylinnia Starshine", "Feathermoon Stronghold, Feralas", "31.6 44.2" },
-        { "Alliance", "Artisan", "Kitta Firewind", "Tower of Azora, Elwynn Forest", "64.8 70.6" },
-        { "Horde", "Journeyman", "Mot Dawnstrider", "Thunder Bluff", "45.0 38.0" },
-        { "Horde", "Journeyman", "Vance Undergloom", "Brill, Tirisfal Glades", "61.6 51.6" },
-        { "Horde", "Journeyman", "Jhag", "The Drag, Orgrimmar", "53.6 38.2" },
-        { "Horde", "Journeyman", "Malcomb Wynn", "The Apothecarium, Undercity", "62.8 60.2" },
-        { "Horde", "Expert", "Teg Dawnstrider", "Thunder Bluff", "45.0 38.4" },
-        { "Horde", "Expert", "Godan", "The Drag, Orgrimmar", "53.8 38.4" },
-        { "Horde", "Expert", "Lavinia Crowe", "The Apothecarium, Undercity", "62.6 61.4" },
-        { "Horde", "Artisan", "Hgarth", "Sun Rock Retreat, Stonetalon Mountains", "49.2 57.2" },
+        { "Alliance", "Apprentice", "Alanna Raveneye", "The Oracle Glade, Teldrassil", "36.6 34.2" },
+        { "Alliance", "Apprentice", "Thonys Pillarstone", "Thistlefuzz Arcanery, Ironforge", "60.6 44.0" },
+        { "Alliance", "Apprentice", "Betty Quin", "Mage Quarter, Stormwind", "43.0 64.0" },
+        { "Alliance", "Apprentice", "Lalina Summermoon", "Craftsmen's Terrace, Darnassus", "59.6 12.6" },
+        { "Alliance", "Journeyman", "Lucan Cordell", "Mage Quarter, Stormwind", "43.0 64.2" },
+        { "Alliance", "Journeyman", "Gimble Thistlefuzz", "Thistlefuzz Arcanery, Ironforge", "60.0 45.2" },
+        { "Alliance", "Journeyman", "Xylinnia Starshine", "Feathermoon Stronghold, Feralas", "31.6 44.2" },
+        { "Alliance", "Expert", "Kitta Firewind", "Tower of Azora, Elwynn Forest", "64.8 70.6" },
+        { "Horde", "Apprentice", "Mot Dawnstrider", "Thunder Bluff", "45.0 38.0" },
+        { "Horde", "Apprentice", "Vance Undergloom", "Brill, Tirisfal Glades", "61.6 51.6" },
+        { "Horde", "Apprentice", "Jhag", "The Drag, Orgrimmar", "53.6 38.2" },
+        { "Horde", "Apprentice", "Malcomb Wynn", "The Apothecarium, Undercity", "62.8 60.2" },
+        { "Horde", "Journeyman", "Teg Dawnstrider", "Thunder Bluff", "45.0 38.4" },
+        { "Horde", "Journeyman", "Godan", "The Drag, Orgrimmar", "53.8 38.4" },
+        { "Horde", "Journeyman", "Lavinia Crowe", "The Apothecarium, Undercity", "62.6 61.4" },
+        { "Horde", "Expert", "Hgarth", "Sun Rock Retreat, Stonetalon Mountains", "49.2 57.2" },
+        { "Neutral", "Artisan", "Annora", "Uldaman (inside the dungeon)", nil },
     },
     ["Engineering"] = {
         { "Alliance", "Apprentice", "Bronk Guzzlegear", "Dun Morogh", "50.2 50.4" },
@@ -74,10 +76,10 @@ Mentor.PROFESSION_TRAINERS = {
         { "Alliance", "Expert", "Springspindle Fizzlegear", "Ironforge", "68.8 45.2" },
         { "Alliance", "Journeyman", "Trixie Quikswitch", "Ironforge", "68.2 44.2" },
         { "Alliance", "Apprentice", "Deek Fizzlebizz", "Loch Modan", "45.8 13.6" },
-        { "Alliance", "Expert", "Lilliam Sparkspindle", "Stormwind City", "62.2 30.6" },
+        { "Alliance", "Journeyman", "Lilliam Sparkspindle", "Stormwind City", "62.2 30.6" },
         { "Alliance", "Apprentice", "Sprite Jumpsprocket", "Stormwind City", "61.8 30.8" },
         { "Alliance", "Apprentice", "Jenna Lemkenilli", "Darkshore", "38.2 41.0" },
-        { "Horde", "Expert", "Franklin Lloyd", "Undercity", "76.6 75.0" },
+        { "Horde", "Journeyman", "Franklin Lloyd", "Undercity", "76.6 75.0" },
         { "Horde", "Apprentice", "Graham Van Talen", "Undercity", "75.6 73.2" },
         { "Horde", "Apprentice", "Mukdrak", "Durotar", "52.2 40.8" },
         { "Horde", "Apprentice", "Twizwick Sprocketgrind", "Mulgore", "61.8 31.6" },

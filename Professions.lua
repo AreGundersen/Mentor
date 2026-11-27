@@ -33,7 +33,9 @@ local PANEL_BACKDROP = {
 
 --------------------------------------------------------------------------------
 -- Leveling routes. Crafting: { from skill, to skill, recipe, crafts }.
--- Source: https://www.wowhead.com/forever/profession-leveling-guides (Nov 2026).
+-- Source: https://www.wowhead.com/forever/profession-leveling-guides (Nov 2026;
+-- rechecked Nov 27: Enchanting's Runed Truesilver Rod and Leatherworking's
+-- Rugged Armor Kit updated).
 --------------------------------------------------------------------------------
 local CRAFTING_ROUTES = {
     Alchemy = {
@@ -68,7 +70,8 @@ local CRAFTING_ROUTES = {
         { 90, 100, "Enchant Bracer - Minor Stamina", 10 }, { 100, 101, "Runed Silver Rod", 1 },
         { 101, 110, "Greater Magic Wand", 9 }, { 110, 135, "Enchant Cloak - Minor Agility", 25 },
         { 135, 155, "Enchant Bracer - Lesser Stamina", 20 }, { 155, 156, "Runed Golden Rod", 1 },
-        { 156, 185, "Enchant Bracer - Lesser Strength", 36 }, { 185, 220, "Enchant Bracer - Strength", 41 },
+        { 156, 185, "Enchant Bracer - Lesser Strength", 36 }, { 185, 200, "Enchant Bracer - Strength", 18 },
+        { 200, 201, "Runed Truesilver Rod", 1 }, { 201, 220, "Enchant Bracer - Strength", 23 },
         { 220, 225, "Enchant Cloak - Greater Defense", 5 }, { 225, 230, "Enchant Gloves - Agility", 5 },
         { 230, 235, "Enchant Boots - Stamina", 5 }, { 235, 250, "Enchant Chest - Superior Stamina", 16 },
         { 250, 265, "Lesser Mana Oil", 15 }, { 265, 294, "Enchant Shield - Greater Stamina", 30 },
@@ -97,7 +100,7 @@ local CRAFTING_ROUTES = {
         { 155, 160, "Barbaric Shoulders", 5 }, { 160, 180, "Gem-studded Leather Belt", 20 },
         { 180, 185, "Barbaric Shoulders", 12 }, { 185, 190, "Gem-studded Leather Belt", 7 },
         { 190, 200, "Guardian Gloves", 20 }, { 200, 210, "Thick Armor Kit", 20 },
-        { 210, 225, "Nightscape Pants", 15 }, { 225, 230, "Cured Rugged Hide", 6 },
+        { 210, 225, "Nightscape Pants", 15 }, { 225, 230, "Rugged Armor Kit", 6 },
         { 230, 240, "Nightscape Pants", 20 }, { 240, 255, "Wicked Leather Gauntlets", 15 },
         { 255, 260, "Heavy Scorpid Bracers", 6 }, { 260, 270, "Wicked Leather Gauntlets", 20 },
         { 270, 300, "Heavy Scorpid Helm", 33 },
@@ -147,7 +150,8 @@ local RECIPE_SOURCES = {
     ["Bold Dirk"] = { vendors = { { "Pexmit", PEXMIT_PLACE } } },
     ["Enchant Cloak - Minor Agility"] = { vendors = { { "Dalria", "Astranaar, Ashenvale", "Alliance" }, { "Kulwia", "Sun Rock Retreat, Stonetalon Mountains", "Horde" } } },
     ["Enchant Bracer - Lesser Strength"] = { vendors = { { "Dalria", "Astranaar, Ashenvale", "Alliance" }, { "Kulwia", "Sun Rock Retreat, Stonetalon Mountains", "Horde" } } },
-    ["Lesser Mana Oil"] = { vendors = { { "Kania", "Cenarion Hold, Silithus" } } },
+    ["Lesser Mana Oil"] = { vendors = { { "Kania", "Cenarion Hold, Silithus" },
+        { "Lokhtos Darkbargainer", "Blackrock Depths (Thorium Brotherhood, Friendly)" } } },
     ["Enchant Shield - Greater Stamina"] = { vendors = { { "Mythrin'dir", "Craftsmen's Terrace, Darnassus", "Alliance" }, { "Daniel Bartlett", "Trade Quarter, Undercity", "Horde" } } },
     ["Runed Arcanite Rod"] = { vendors = { { "Lorelae Wintersong", "Nighthaven, Moonglade" } } },
     ["Enchant Cloak - Superior Defense"] = { vendors = { { "Lorelae Wintersong", "Nighthaven, Moonglade" } } },
@@ -166,7 +170,8 @@ local RECIPE_SOURCES = {
     ["Venomspew Footpads"] = { vendors = { { "Mishta", "Cenarion Hold, Silithus" } } },
     ["Brilliant Smallfish"] = { vendors = { { "Tharynn Bouden", "Goldshire, Elwynn Forest", "Alliance" }, { "Khara Deepwater", "Loch Modan", "Alliance" },
         { "Sewa Mistrunner", "Thunder Bluff", "Horde" }, { "Martine Tramblay", "Brill, Tirisfal Glades", "Horde" } } },
-    ["Longjaw Mud Snapper"] = { vendors = { { "Nyalah Brightfire", "Valanaar, Zephras Isle" } } },
+    ["Longjaw Mud Snapper"] = { vendors = { { "Tharynn Bouden", "Goldshire, Elwynn Forest", "Alliance" },
+        { "Naal Mistrunner", "Thunder Bluff", "Horde" }, { "Nyalah Brightfire", "Valanaar, Zephras Isle" } } },
     ["Bristle Whisker Catfish"] = { vendors = { { "Kilxx", "Ratchet, The Barrens" } } },
     ["Mithril Headed Trout"] = { vendors = { { "Kelsey Yance", "Booty Bay, Stranglethorn Vale" } } },
     ["Spotted Yellowtail"] = { vendors = { { "Gikkix", "Tanaris" } } },
