@@ -788,12 +788,15 @@ function professions.GetProfitableCrafts(recipes)
         return profitableCrafts, nil, false
     end
     for _, recipe in ipairs(recipes) do
-        local productItemId = recipe.isKnown and GetItemIdFromLink(recipe.itemLink)
+        -- Recipes remembered for the Mentor window (see RememberCraftRecipes)
+        -- carry their product and reagents; recipes from the open window are
+        -- read from the window.
+        local productItemId = recipe.isKnown and (recipe.productItemId or GetItemIdFromLink(recipe.itemLink))
         local sellPrice, sellSeenAt = auctionUpgrades.GetRememberedPrice(productItemId)
         if sellPrice then
             hasAnyPrice = true
             local materialCost, isEveryCostKnown = 0, true
-            for _, reagent in ipairs(GetRecipeReagents(recipe)) do
+            for _, reagent in ipairs(recipe.reagents or GetRecipeReagents(recipe)) do
                 local cost = GetMaterialCost(reagent[1])
                 if not cost then
                     isEveryCostKnown = false
@@ -811,6 +814,95 @@ function professions.GetProfitableCrafts(recipes)
     table.sort(profitableCrafts, function(first, second) return first.profit > second.profit end)
     local oldestDays = oldestSeenAt and math.floor((time() - oldestSeenAt) / SECONDS_PER_DAY) or nil
     return profitableCrafts, oldestDays, hasAnyPrice
+end
+
+--------------------------------------------------------------------------------
+-- Worth selling in the Mentor window: the Journey tab can't read the
+-- profession window when it is closed, so Mentor remembers this character's
+-- known recipes (what they make and what they need) each time a profession
+-- window is opened, in MentorDB.craftRecipes[professionName].
+--------------------------------------------------------------------------------
+local MAX_JOURNEY_PROFIT_LINES = 8
+-- Recipe count remembered per profession this session, so the reagents of
+-- every recipe are only read again when you learn something new.
+local rememberedRecipeCounts = {}
+
+local function RememberCraftRecipes(professionName, recipes)
+    if not (professionName and MentorDB) then
+        return
+    end
+    local knownCount = 0
+    for _, recipe in ipairs(recipes) do
+        if recipe.isKnown then
+            knownCount = knownCount + 1
+        end
+    end
+    local storedRecipes = MentorDB.craftRecipes and MentorDB.craftRecipes[professionName]
+    if knownCount == 0 or (storedRecipes and rememberedRecipeCounts[professionName] == knownCount) then
+        return
+    end
+    local rememberedRecipes = {}
+    for _, recipe in ipairs(recipes) do
+        local productItemId = recipe.isKnown and GetItemIdFromLink(recipe.itemLink)
+        local reagents = productItemId and GetRecipeReagents(recipe)
+        if reagents and #reagents > 0 then
+            table.insert(rememberedRecipes, { name = recipe.name, productItemId = productItemId, reagents = reagents, isKnown = true })
+        end
+    end
+    MentorDB.craftRecipes = MentorDB.craftRecipes or {}
+    MentorDB.craftRecipes[professionName] = rememberedRecipes
+    rememberedRecipeCounts[professionName] = knownCount
+end
+
+-- For the Journey tab: { short description, tooltip lines } about what is
+-- worth crafting to sell in this profession, or nil when there is nothing to
+-- say (gathering professions, setting off).
+function professions.GetProfitSummary(professionName)
+    if not (MentorDB and MentorDB.isCraftProfitEnabled ~= false) then
+        return nil
+    end
+    local rememberedRecipes = MentorDB.craftRecipes and MentorDB.craftRecipes[professionName]
+    if not rememberedRecipes then
+        -- Gathering professions only craft something (smelting) once you have
+        -- opened their window; the rest need the window opened once.
+        if professionName == "Herbalism" or professionName == "Skinning" or professionName == "Fishing"
+            or professionName == "Mining" then
+            return nil
+        end
+        return "Open your " .. professionName .. " window once so Mentor knows your recipes.", {
+            "Mentor reads your recipes when the profession window is open,",
+            "then shows here which of them sell for more than their materials.",
+        }
+    end
+    local profitableCrafts, oldestDays, hasAnyPrice = professions.GetProfitableCrafts(rememberedRecipes)
+    local FormatMoney = Mentor.FormatMoneyWithIcons or function(copper) return tostring(copper) end
+    if #profitableCrafts == 0 then
+        if not hasAnyPrice then
+            return "Search the auction house for what you craft and its materials to see what is worth selling.", {
+                "Mentor remembers the prices you see in auction house searches,",
+                "and lists here the crafts that sell for more than their materials.",
+            }
+        end
+        return "Nothing you make sells for more than its materials right now (or the material prices are unknown).", {
+            "Search the auction house for the materials too: a craft is only",
+            "listed when Mentor knows the price of everything it needs.",
+        }
+    end
+    local shortParts, tooltipLines = {}, {}
+    for craftIndex = 1, math.min(MAX_JOURNEY_PROFIT_LINES, #profitableCrafts) do
+        local craft = profitableCrafts[craftIndex]
+        local profitText = FormatMoney(math.floor(craft.profit))
+        if craftIndex <= 2 then
+            table.insert(shortParts, string.format("%s |cff40ff40+%s|r", craft.recipe.name, profitText))
+        end
+        table.insert(tooltipLines, string.format("%s  |cff40ff40+%s|r |cffa6a6a6(sells %s, materials %s)|r",
+            craft.recipe.name, profitText, FormatMoney(craft.sellPrice), FormatMoney(math.floor(craft.materialCost))))
+    end
+    table.insert(tooltipLines, " ")
+    table.insert(tooltipLines, string.format("|cffa6a6a6Profit after the 5%% auction house cut. Prices from your auction house searches%s.|r",
+        (oldestDays or 0) > 0 and string.format(", up to %d day%s old", oldestDays, oldestDays == 1 and "" or "s") or ""))
+    local moreText = #profitableCrafts > 2 and string.format(" |cffa6a6a6(+%d more)|r", #profitableCrafts - 2) or ""
+    return "Best: " .. table.concat(shortParts, ", ") .. moreText, tooltipLines
 end
 
 local function GetItemNameAndIcon(itemId)
@@ -1042,6 +1134,8 @@ function professions.RefreshPanel()
     panel.title:SetText(string.format("%s  |cffffffff%d / %d|r", professionName, skillLevel or 0, maximumSkill or 0))
 
     local recipes = GetOpenRecipes()
+    -- For "Worth selling" in the Mentor window's Journey tab.
+    pcall(RememberCraftRecipes, professionName, recipes)
     local recipesByName = {}
     for _, recipe in ipairs(recipes) do
         -- The window can list the same recipe more than once (a learned

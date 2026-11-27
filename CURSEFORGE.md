@@ -53,7 +53,7 @@ Life log is on (its window stays closed until you click "Life log" in the Mentor
 - **What to craft to level up** each profession, from Wowhead's WoW Forever leveling guides, also in the Journey tab. If you don't have the recipe yet, Mentor says where it comes from: the vendor who sells the pattern, or the trainer who has it (not every trainer teaches everything), and what to craft meanwhile.
 - **Where the trainers are**: when your skill is stuck at its cap, Mentor names a trainer for the next rank, with the place and map coordinates. For Cooking, First Aid and Fishing it names the Expert book and the Artisan quest instead.
 - **Your materials and tools**: what you carry for your recipes, what you can craft right now that still gives skill, and which profession tools you have or are missing (and where to get them).
-- **Worth selling:** Mentor remembers the prices you see on the auction house and lists the crafts that sell for more than their materials cost.
+- **Worth selling:** Mentor remembers the prices you see on the auction house and lists the crafts that sell for more than their materials cost, beside the profession window and in the Journey tab.
 - **Best enchant (enchanters):** item tooltips show the best enchant for that item and your spec, which one you can make, and a better one you can learn. In the trade window, an item put in "Will not be traded" shows the best enchant for each spec of the other player's class.
 
 ## How to play

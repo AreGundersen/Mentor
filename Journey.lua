@@ -329,6 +329,20 @@ function journey.GetEntries(advice)
         end
     end
 
+    -- What is worth crafting to sell, per profession (Professions.lua,
+    -- from your auction house searches). Hover for the full list.
+    for _, profession in ipairs(journey.GetPlayerProfessions()) do
+        local profitText, profitTooltipLines
+        if Mentor.Professions and Mentor.Professions.GetProfitSummary then
+            profitText, profitTooltipLines = Mentor.Professions.GetProfitSummary(profession.name)
+        end
+        if profitText then
+            table.insert(entries, { kind = "journey", name = profession.name .. " - worth selling",
+                icon = PROFESSION_ICONS[profession.name], levelText = "", tag = "|cffffd100Gold|r",
+                description = profitText, tooltipLines = profitTooltipLines })
+        end
+    end
+
     -- Zones and dungeons for your level, the best fitting first (the middle of
     -- their level range closest to your level).
     local function AddBestFitting(sourceList, maximumShown, makeEntry)
