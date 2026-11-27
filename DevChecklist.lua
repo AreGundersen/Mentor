@@ -21,8 +21,28 @@ Mentor.DevChecklist = devChecklist
 
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
-    { "expertTrainerRecipes", "Recipes that need an Expert trainer",
-        "Tailoring 160-170 without Robe of Power learned: the panel says \"Not every trainer has it - go to\" Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance. Check that he really has it. Trainers for the next rank in Tailoring, Leatherworking and Blacksmithing should now be right too." },
+    -- New since the last test round
+    { "balanceBuild", "Balance Druid build (Nov 25 rework)",
+        "On a Balance druid: the full build uses Starlight Wrath, Moon and Stars, Improved Starfire 2/2 and Dreamstate - no grey (missing) talents, and the next-talent box suggests real talents." },
+    { "tradeEnchant", "Best enchant in the trade window",
+        "As an enchanter, open trade with someone and have them put an item in \"Will not be traded\": a panel beside the trade window shows the best enchant for each spec of their class, whether you can make it, and a better one if there is. It closes with the trade." },
+    { "reagentReminders", "More reagent reminders",
+        "On a mage, rogue, paladin or shaman with the spell learned: leave town with too few Rune of Portals / Arcane Powder / Light Feathers / Blinding Powder / Symbol of Divinity / Fish Oil / Shiny Fish Scales - a reminder names the reagent and the spell." },
+    { "dungeonQuests", "Quests for dungeons",
+        "Handbook > Journey: dungeon rows show \"N quests\" under the upgrade count; the tooltip lists the quests with who gives them and where (green = in your log). Entering a dungeon prints the quests for it you haven't picked up." },
+    { "worthSelling", "Worth selling (crafting for profit)",
+        "Search the auction house for something you craft and its materials, then open the profession: \"Worth selling\" lists crafts that earn more than their materials, with the profit. Before any search it explains what to do. Settings > Professions > Worth selling." },
+    { "trainerRanks", "Trainers for Enchanting and Engineering",
+        "At Enchanting or Engineering skill cap 150 or 225: \"Trainers for Expert/Artisan\" names Hgarth / Kitta Firewind (Enchanting Expert), Annora in Uldaman (Enchanting Artisan), Roxxik / Springspindle (Engineering Expert)." },
+    { "routeUpdates", "Updated profession routes",
+        "Enchanting 200: the next step is Runed Truesilver Rod. Leatherworking 225: Rugged Armor Kit. Cooking 50: Longjaw Mud Snapper names the seller for your faction." },
+    -- Still open from earlier
+    { "expertTrainerRecipes", "Recipes that need a higher trainer",
+        "Tailoring 160-170 without Robe of Power learned: the panel says \"Not every trainer has it - go to\" Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance." },
+    { "casterWeaponEnchant", "Best enchant on a caster weapon",
+        "As an enchanter on a caster with a one-hand weapon: hover it - is there a \"Best enchant\" line? If not, type /mentor enchant and screenshot the \"Not understood\" lines for Claude." },
+    { "turnInZones", "Quest turn-ins in more zones",
+        "Finish quests in 2-3 different zones (also Forever's new ones): the turn-in reminder appears in each zone where they are turned in. Note any zone where it doesn't." },
     -- Tested OK this cycle (removed): Expert/Artisan sources for the secondary
     -- professions, right-click in bags after the bank (issue #8), best enchant
     -- in tooltips, full build level by level.
