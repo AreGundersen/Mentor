@@ -22,6 +22,8 @@ Mentor.DevChecklist = devChecklist
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
     -- New since the last test round
+    { "balanceMoonkin", "Balance: Moonkin Form at 40",
+        "On a Balance druid, open Full build: Dreamstate at 35-39, Moonkin Form at 40, Improved Starfire 41-42, then Nature's Focus, Naturalist, Reflection and Genesis. At level 40 with 30 Balance points, Moonkin Form can be learned." },
     { "tradeEnchant", "Best enchant in the trade window",
         "As an enchanter, open trade with someone and have them put an item in \"Will not be traded\": a panel beside the trade window shows the best enchant for each spec of their class, whether you can make it, and a better one if there is. It closes with the trade." },
     { "reagentReminders", "More reagent reminders",

@@ -606,14 +606,16 @@ Mentor.CLASS_DATA = {
                     -- Updated for the Balance rework of Nov 25, 2026: Improved Wrath is now
                     -- Starlight Wrath, Improved Moonfire is Moon and Stars, Improved Starfire
                     -- has 2 ranks and Moonfury was replaced by Dreamstate. Early order from
-                    -- talentsforever.com's Balance leveling order (after the hotfix), the
-                    -- 38 Balance / 13 Restoration split from its most played Balance build;
-                    -- Genesis comes before Moonkin Form so the tree has the 30 points it needs.
+                    -- talentsforever.com's Balance leveling order: Dreamstate takes
+                    -- Moonfury's place in row 6 (levels 35-39), which gives the 30 Balance
+                    -- points row 7 needs, so Moonkin Form comes at level 40, the earliest
+                    -- it can be learned. Then the guide's Improved Starfire and the
+                    -- Restoration talents; Genesis (new in row 1) fills the last points.
                     {1, "Starlight Wrath", 5}, {1, "Moonglow", 3}, {1, "Moon and Stars", 2},
-                    {1, "Nature's Majesty", 2}, {1, "Nature's Splendor", 1}, {1, "Nature's Reach", 2},
-                    {1, "Insect Swarm", 1}, {1, "Vengeance", 5}, {3, "Nature's Focus", 5}, {3, "Reflection", 3},
-                    {1, "Improved Starfire", 2}, {1, "Nature's Grace", 1}, {1, "Eclipse", 3},
-                    {1, "Genesis", 5}, {1, "Moonkin Form", 1}, {3, "Naturalist", 5}, {1, "Dreamstate", 5},
+                    {1, "Nature's Majesty", 2}, {1, "Nature's Reach", 2}, {1, "Nature's Splendor", 1},
+                    {1, "Insect Swarm", 1}, {1, "Vengeance", 5}, {1, "Nature's Grace", 1}, {1, "Eclipse", 3},
+                    {1, "Dreamstate", 5}, {1, "Moonkin Form", 1}, {1, "Improved Starfire", 2},
+                    {3, "Nature's Focus", 5}, {3, "Naturalist", 5}, {3, "Reflection", 3}, {1, "Genesis", 5},
                 },
             },
             {
