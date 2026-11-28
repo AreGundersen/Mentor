@@ -22,6 +22,8 @@ Mentor.DevChecklist = devChecklist
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
     -- New since the last test round
+    { "dualSpec", "Dual spec switches Mentor",
+        "With dual spec bought: switch spec - Mentor's spec, build, gear and guide follow. Click a spec in Mentor on one set of talents, switch: the other set keeps its own (or detects it from talents), and switching back gives your clicked spec again." },
     { "balanceMoonkin", "Balance: Moonkin Form at 40",
         "On a Balance druid, open Full build: Dreamstate at 35-39, Moonkin Form at 40, Improved Starfire 41-42, then Nature's Focus, Naturalist, Reflection and Genesis. At level 40 with 30 Balance points, Moonkin Form can be learned." },
     { "tradeEnchant", "Best enchant in the trade window",

@@ -441,8 +441,52 @@ end
 -- rather than by "most points in one tree": several guides start in another
 -- tree (Frost Mage takes Arcane talents first), so counting trees would flip
 -- a new Frost Mage over to Arcane after the first point.
+-- Dual spec: the active talent group (1 = primary, 2 = secondary).
+function Mentor.GetActiveTalentGroup()
+    local specInfo = C_SpecializationInfo
+    if specInfo and specInfo.GetActiveSpecGroup then
+        local groupOk, specGroup = pcall(specInfo.GetActiveSpecGroup)
+        if groupOk and IsReadable(specGroup) and tonumber(specGroup) then
+            return tonumber(specGroup)
+        end
+    end
+    if GetActiveTalentGroup then
+        local groupOk, talentGroup = pcall(GetActiveTalentGroup)
+        if groupOk and IsReadable(talentGroup) and tonumber(talentGroup) then
+            return tonumber(talentGroup)
+        end
+    end
+    return 1
+end
+
+-- The spec you clicked is remembered per talent group, so switching specs
+-- with dual spec switches Mentor too: each group keeps its own choice, and
+-- a group without one is detected from its talents.
+-- MentorDB.chosenSpecByGroup[group] = spec number. Before dual spec there was
+-- one MentorDB.chosenSpec; that belonged to the primary talents (group 1).
+function Mentor.GetChosenSpec()
+    if not MentorDB then
+        return nil
+    end
+    MentorDB.chosenSpecByGroup = MentorDB.chosenSpecByGroup or {}
+    if MentorDB.chosenSpec then
+        MentorDB.chosenSpecByGroup[1] = MentorDB.chosenSpecByGroup[1] or MentorDB.chosenSpec
+        MentorDB.chosenSpec = nil
+    end
+    return MentorDB.chosenSpecByGroup[Mentor.GetActiveTalentGroup()]
+end
+
+-- specNumber nil: let Mentor detect the spec of the active talents again.
+function Mentor.SetChosenSpec(specNumber)
+    if not MentorDB then
+        return
+    end
+    Mentor.GetChosenSpec()   -- moves an old single choice over first
+    MentorDB.chosenSpecByGroup[Mentor.GetActiveTalentGroup()] = specNumber
+end
+
 function Mentor.DetectSpec(trees, classData)
-    local chosenSpec = MentorDB and MentorDB.chosenSpec
+    local chosenSpec = Mentor.GetChosenSpec()
     if chosenSpec and not classData.specs[chosenSpec] then chosenSpec = nil end
 
     -- The spec you click always wins, however your points are spent (you may

@@ -298,11 +298,12 @@ local function OnSpecButtonClicked(specButton)
     end
     -- Clicking a spec always switches to it. Clicking the spec you already
     -- chose again hands the choice back to Mentor (detected from talents).
-    if MentorDB.chosenSpec == specButton.specNumber then
-        MentorDB.chosenSpec = nil
+    -- The choice belongs to the active talents (dual spec: each has its own).
+    if Mentor.GetChosenSpec() == specButton.specNumber then
+        Mentor.SetChosenSpec(nil)
         Mentor.Print("Spec is automatic again (from your talents).")
     else
-        MentorDB.chosenSpec = specButton.specNumber
+        Mentor.SetChosenSpec(specButton.specNumber)
     end
     Mentor.ClearItemCache()
     Mentor.RequestRefresh()
@@ -365,7 +366,7 @@ local function CreateSpecButton(specIndex, verticalOffset, buttonCount, buttonPo
         GameTooltip:AddLine(specData.name)
         GameTooltip:AddLine(specData.role, 1, 1, 1)
         GameTooltip:AddLine("Best stats: " .. specData.statPriority, 0.8, 0.8, 0.8, true)
-        if MentorDB.chosenSpec == self.specNumber then
+        if Mentor.GetChosenSpec() == self.specNumber then
             GameTooltip:AddLine("Click again to let Mentor pick from your talents.", 0.4, 0.8, 1.0, true)
         else
             GameTooltip:AddLine("Click to switch to this spec: build, gear and guide.", 0.4, 0.8, 1.0, true)
@@ -1579,6 +1580,8 @@ local REFRESH_EVENTS = {
     "ACTIVE_COMBAT_CONFIG_CHANGED", "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
     "GET_ITEM_INFO_RECEIVED", "SPELLS_CHANGED", "LEARNED_SPELL_IN_SKILL_LINE",
     "UPDATE_MACROS", "PLAYER_REGEN_ENABLED", "SKILL_LINES_CHANGED", "LEARNED_SPELL_IN_TAB",
+    -- Dual spec: switching talents switches Mentor's spec (Talents.lua).
+    "ACTIVE_TALENT_GROUP_CHANGED", "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_PLAYER_SPECIALIZATION_CHANGED",
 }
 -- Unknown events throw on some clients, so register each one protected.
 for _, eventName in ipairs({ "ADDON_LOADED", "PLAYER_LOGOUT", "CHAT_MSG_LOOT", "QUEST_COMPLETE", "QUEST_FINISHED", "SPELL_UPDATE_COOLDOWN", "SPELL_DATA_LOAD_RESULT" }) do
@@ -1641,6 +1644,9 @@ eventFrame:SetScript("OnEvent", function(self, eventName, ...)
     else
         if eventName == "PLAYER_EQUIPMENT_CHANGED" or eventName == "PLAYER_LEVEL_UP" then
             Mentor.ClearItemCache() -- level requirements and comparisons change
+        elseif eventName == "ACTIVE_TALENT_GROUP_CHANGED" or eventName == "PLAYER_SPECIALIZATION_CHANGED"
+            or eventName == "ACTIVE_PLAYER_SPECIALIZATION_CHANGED" then
+            Mentor.ClearItemCache() -- another spec weighs gear differently
         elseif eventName == "SKILL_LINES_CHANGED" or eventName == "LEARNED_SPELL_IN_SKILL_LINE"
             or eventName == "LEARNED_SPELL_IN_TAB" or eventName == "SPELLS_CHANGED" then
             -- A new weapon skill (or spell) can make "You cannot use this item" wrong.

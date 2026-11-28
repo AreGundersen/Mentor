@@ -13,6 +13,7 @@ number is only given when Are decides the release is finished (see
 - **Trade window - best enchant for others:** when someone puts an item in "Will not be traded", a panel beside the trade window shows the best enchant for that item for each spec of their class, and whether you can make it.
 - Fix: Enchanting and Engineering trainers were one rank too high too (Enchanting's Expert trainers are Hgarth and Kitta Firewind, Artisan is Annora in Uldaman); Alchemy was right.
 - Profession routes rechecked against Wowhead's WoW Forever guides: Enchanting makes a Runed Truesilver Rod at 200, Leatherworking uses Rugged Armor Kit at 225, Longjaw Mud Snapper names the Horde and Alliance sellers, and Lesser Mana Oil also names Lokhtos Darkbargainer.
+- **Dual spec:** switching specs switches Mentor too. A spec you click in Mentor is remembered for that set of talents only, and talents without a clicked spec are detected from their points.
 - **Balance Druid build updated for the Nov 25 rework:** Starlight Wrath (was Improved Wrath), Moon and Stars (was Improved Moonfire), Improved Starfire 2/2 and Dreamstate (replaces Moonfury, levels 35-39). Moonkin Form comes at level 40, as soon as it can be learned. Restoration's Improved Moonfire is now Moon and Stars too.
 - Fix: the test checklist button needed two clicks after a /reload.
 - Fix: the test checklist closed when you opened the talent tree.
