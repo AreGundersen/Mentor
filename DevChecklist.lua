@@ -22,8 +22,6 @@ Mentor.DevChecklist = devChecklist
 -- { key, "what to check", "how to test it" }
 local CHECKLIST_ITEMS = {
     -- New since the last test round
-    { "balanceBuild", "Balance Druid build (Nov 25 rework)",
-        "On a Balance druid: the full build uses Starlight Wrath, Moon and Stars, Improved Starfire 2/2 and Dreamstate - no grey (missing) talents, and the next-talent box suggests real talents." },
     { "tradeEnchant", "Best enchant in the trade window",
         "As an enchanter, open trade with someone and have them put an item in \"Will not be traded\": a panel beside the trade window shows the best enchant for each spec of their class, whether you can make it, and a better one if there is. It closes with the trade." },
     { "reagentReminders", "More reagent reminders",
@@ -55,7 +53,7 @@ local CHECKLIST_ITEMS = {
         "Finish quests in 2-3 different zones (also Forever's new ones): the turn-in reminder appears in each zone where they are turned in. Note any zone where it doesn't." },
     -- Tested OK this cycle (removed): Expert/Artisan sources for the secondary
     -- professions, right-click in bags after the bank (issue #8), best enchant
-    -- in tooltips, full build level by level.
+    -- in tooltips, full build level by level, Balance Druid build.
 }
 
 local STATE_ORDER = { [""] = "ok", ok = "problem", problem = "" }
