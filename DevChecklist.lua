@@ -26,24 +26,10 @@ local CHECKLIST_ITEMS = {
         "As an enchanter, open trade with someone and have them put an item in \"Will not be traded\": a panel beside the trade window shows the best enchant for each spec of their class, whether you can make it, and a better one if there is. It closes with the trade." },
     { "reagentReminders", "More reagent reminders",
         "On a mage, rogue, paladin or shaman with the spell learned: leave town with too few Rune of Portals / Arcane Powder / Light Feathers / Blinding Powder / Symbol of Divinity / Fish Oil / Shiny Fish Scales - a reminder names the reagent and the spell." },
-    { "dungeonQuests", "Quests for dungeons",
-        "Handbook > Journey: dungeon rows show \"N quests\" under the upgrade count; the tooltip lists the quests with who gives them and where (green = in your log). Entering a dungeon prints the quests for it you haven't picked up." },
-    { "worthSelling", "Worth selling (crafting for profit)",
-        "Search the auction house for something you craft and its materials, then open the profession: \"Worth selling\" lists crafts that earn more than their materials, with the profit. Before any search it explains what to do. Settings > Professions > Worth selling." },
-    { "marketWorthSelling", "Worth selling with market data",
-        "With your scan addon loaded and a full scan done: Worth selling (profession panel and Journey) lists crafts without you searching for them, says how many sell a day, and shows a green ^ / red v with a sentence when the price is expected to rise or drop." },
-    { "worthFarming", "Worth farming (Journey)",
-        "Same setup, on a character with Herbalism, Mining or Skinning: Journey has a \"Worth farming\" row with the best things to gather at your level; hover it for prices, sales a day and trends. Without the scan addon the row is not there." },
-    { "worthSellingClick", "Click a Worth selling craft",
-        "In the profession panel, click a craft under \"Worth selling\": the recipe opens in the profession window. Hover it: the item tooltip says what it sells for and what the materials cost." },
-    { "worthSellingJourney", "Worth selling in the Mentor window",
-        "Open your profession window once, search the auction house for some crafts and their materials, then open Mentor > Journey: a \"<Profession> - worth selling\" row lists the best crafts; hover it for all of them with prices. Before the window or any search it says what to do." },
     { "trainerRanks", "Trainers for Enchanting and Engineering",
         "At Enchanting or Engineering skill cap 150 or 225: \"Trainers for Expert/Artisan\" names Hgarth / Kitta Firewind (Enchanting Expert), Annora in Uldaman (Enchanting Artisan), Roxxik / Springspindle (Engineering Expert)." },
     { "routeUpdates", "Updated profession routes",
         "Enchanting 200: the next step is Runed Truesilver Rod. Leatherworking 225: Rugged Armor Kit. Cooking 50: Longjaw Mud Snapper names the seller for your faction." },
-    { "checklistStaysOpen", "Test checklist stays open",
-        "Open this list, then open the talent tree (N) and the spellbook: the list stays open. X and /mentor check still close it (Escape no longer does)." },
     -- Still open from earlier
     { "expertTrainerRecipes", "Recipes that need a higher trainer",
         "Tailoring 160-170 without Robe of Power learned: the panel says \"Not every trainer has it - go to\" Josef Gregorian (Undercity) for Horde / Georgio Bolero (Stormwind) for Alliance." },
@@ -53,7 +39,9 @@ local CHECKLIST_ITEMS = {
         "Finish quests in 2-3 different zones (also Forever's new ones): the turn-in reminder appears in each zone where they are turned in. Note any zone where it doesn't." },
     -- Tested OK this cycle (removed): Expert/Artisan sources for the secondary
     -- professions, right-click in bags after the bank (issue #8), best enchant
-    -- in tooltips, full build level by level, Balance Druid build.
+    -- in tooltips, full build level by level, Balance Druid build, dungeon
+    -- quests, Worth selling (panel, clicking, Journey, market data), Worth
+    -- farming, checklist stays open.
 }
 
 local STATE_ORDER = { [""] = "ok", ok = "problem", problem = "" }
