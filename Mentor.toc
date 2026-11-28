@@ -33,6 +33,8 @@ Fishing.lua
 LifeLog.lua
 LifeLogGraph.lua
 ManaWarning.lua
+MarketPrices.lua
+Farming.lua
 ProfessionTrainers.lua
 Professions.lua
 Enchants.lua

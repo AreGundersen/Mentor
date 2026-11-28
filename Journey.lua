@@ -343,6 +343,17 @@ function journey.GetEntries(advice)
         end
     end
 
+    -- Worth farming: what you can gather at your level sells best (only
+    -- with market data, Farming.lua). Hover for the full list.
+    local farmingText, farmingTooltipLines
+    if Mentor.Farming then
+        farmingText, farmingTooltipLines = Mentor.Farming.GetSummary(playerLevel)
+    end
+    if farmingText then
+        table.insert(entries, { kind = "journey", name = "Worth farming", icon = "Interface\\Icons\\INV_Misc_Coin_02",
+            levelText = "", tag = "|cffffd100Gold|r", description = farmingText, tooltipLines = farmingTooltipLines })
+    end
+
     -- Zones and dungeons for your level, the best fitting first (the middle of
     -- their level range closest to your level).
     local function AddBestFitting(sourceList, maximumShown, makeEntry)
