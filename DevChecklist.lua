@@ -32,6 +32,8 @@ local CHECKLIST_ITEMS = {
         "Handbook > Journey: dungeon rows show \"N quests\" under the upgrade count; the tooltip lists the quests with who gives them and where (green = in your log). Entering a dungeon prints the quests for it you haven't picked up." },
     { "worthSelling", "Worth selling (crafting for profit)",
         "Search the auction house for something you craft and its materials, then open the profession: \"Worth selling\" lists crafts that earn more than their materials, with the profit. Before any search it explains what to do. Settings > Professions > Worth selling." },
+    { "worthSellingClick", "Click a Worth selling craft",
+        "In the profession panel, click a craft under \"Worth selling\": the recipe opens in the profession window. Hover it: the item tooltip says what it sells for and what the materials cost." },
     { "worthSellingJourney", "Worth selling in the Mentor window",
         "Open your profession window once, search the auction house for some crafts and their materials, then open Mentor > Journey: a \"<Profession> - worth selling\" row lists the best crafts; hover it for all of them with prices. Before the window or any search it says what to do." },
     { "trainerRanks", "Trainers for Enchanting and Engineering",

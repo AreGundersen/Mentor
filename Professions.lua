@@ -944,6 +944,7 @@ local panel
 -- True after the player closed the panel with X, until the profession window opens again.
 local isPanelDismissed = false
 local upgradeRows = {}
+local profitRows = {}    -- "Worth selling" rows, clickable like the upgrade rows
 
 local function GetProfessionWindow()
     if ProfessionsFrame and ProfessionsFrame:IsShown() then
@@ -1013,6 +1014,10 @@ local function CreateRecipeRow()
         if self.itemLink then
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             pcall(GameTooltip.SetHyperlink, GameTooltip, self.itemLink)
+            -- Extra lines a row type adds (Worth selling: price and materials).
+            for _, extraLine in ipairs(self.tooltipExtraLines or {}) do
+                GameTooltip:AddLine(extraLine, 1, 1, 1, true)
+            end
             if self.recipe then
                 GameTooltip:AddLine("|cff66ccffMentor:|r Click to show it in the profession window.", 0.65, 0.65, 0.65)
             end
@@ -1273,12 +1278,36 @@ function professions.RefreshPanel()
         local profitableCrafts, oldestDays, hasAnyPrice = professions.GetProfitableCrafts(recipes)
         local profitLines = {}
         local FormatMoney = Mentor.FormatMoneyWithIcons or function(copper) return tostring(copper) end
-        for craftIndex = 1, math.min(MAX_PROFIT_LINES, #profitableCrafts) do
-            local craft = profitableCrafts[craftIndex]
-            table.insert(profitLines, string.format("%s  |cff40ff40+%s|r |cffa6a6a6(sells %s, materials %s)|r",
-                craft.recipe.name, FormatMoney(math.floor(craft.profit)), FormatMoney(craft.sellPrice), FormatMoney(math.floor(craft.materialCost))))
+        verticalOffset = verticalOffset - 6
+        Place(panel.profitHeader, 16)
+        -- One row per craft: click it to show the recipe in the profession
+        -- window (like the Level up row); hover for price and materials.
+        for rowIndex = 1, MAX_PROFIT_LINES do
+            local craft = profitableCrafts[rowIndex]
+            local row = profitRows[rowIndex]
+            if craft then
+                if not row then
+                    row = CreateRecipeRow()
+                    -- The profit with coin icons is wider than a percentage.
+                    row.nameText:SetPoint("RIGHT", row.valueText, "LEFT", -4, 0)
+                    profitRows[rowIndex] = row
+                end
+                row.recipe, row.itemLink = craft.recipe, craft.recipe.itemLink
+                row.icon:SetTexture(craft.recipe.icon or 134400)
+                row.nameText:SetText(craft.recipe.itemLink or craft.recipe.name)
+                row.valueText:SetText("|cff40ff40+" .. FormatMoney(math.floor(craft.profit)) .. "|r")
+                row.tooltipExtraLines = {
+                    " ",
+                    "|cff66ccffMentor:|r sells for " .. FormatMoney(craft.sellPrice) .. ", materials cost "
+                        .. FormatMoney(math.floor(craft.materialCost)) .. ", profit |cff40ff40" .. FormatMoney(math.floor(craft.profit))
+                        .. "|r after the 5% auction house cut.",
+                }
+                Place(row, ROW_HEIGHT)
+            elseif row then
+                row:Hide()
+            end
         end
-        if #profitLines > 0 then
+        if #profitableCrafts > 0 then
             table.insert(profitLines, string.format("|cffa6a6a6Prices from your auction house searches%s.|r",
                 (oldestDays or 0) > 0 and string.format(", up to %d day%s old", oldestDays, oldestDays == 1 and "" or "s") or ""))
         elseif hasAnyPrice then
@@ -1286,10 +1315,12 @@ function professions.RefreshPanel()
         else
             table.insert(profitLines, "|cffa6a6a6Search the auction house for what you craft and its materials: Mentor remembers the prices and shows here what is worth selling.|r")
         end
-        verticalOffset = verticalOffset - 6
-        Place(panel.profitHeader, 16)
         panel.profitText:SetText(table.concat(profitLines, "\n"))
         Place(panel.profitText, (panel.profitText:GetStringHeight() or 12) + 4)
+    else
+        for _, row in ipairs(profitRows) do
+            row:Hide()
+        end
     end
     if isLevelingShown then
         local materials, craftable = professions.GetMaterialsAndCraftable(recipes)
